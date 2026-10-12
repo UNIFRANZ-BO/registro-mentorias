@@ -329,14 +329,15 @@ function generarPadron_() {
 // «Registros» (filas en RESPUESTAS) y «Estado» vivos. La fórmula cubre exactamente las filas escritas,
 // para no inflar getLastRow() con celdas vacías de un ARRAYFORMULA abierto.
 function refCorreoResp_() { const c = colLetra_(cabResp_().indexOf('Correo del mentor') + 1); return H.RESP + '!$' + c + '$2:$' + c; }
+const NO_PRUEBA_ = () => ',' + H.RESP + '!$B$2:$B,"<>PRUEBA-*"';   // las filas de prueba no cuentan como registros
 function ponerFormulasPadron_(sh, n) {
   const k = CAB_PADRON.length - 1, kl = colLetra_(k);
-  sh.getRange(2, k).setFormula(fx_('=ARRAYFORMULA(COUNTIF(' + refCorreoResp_() + ',A2:A' + (n + 1) + '))'));
+  sh.getRange(2, k).setFormula(fx_('=ARRAYFORMULA(COUNTIFS(' + refCorreoResp_() + ',A2:A' + (n + 1) + NO_PRUEBA_() + '))'));
   sh.getRange(2, k + 1).setFormula(fx_('=ARRAYFORMULA(IF(' + kl + '2:' + kl + (n + 1) + '>0,"Con registros","Sin registros"))'));
 }
 function formulasPadronFila_(sh, r) {
   const k = CAB_PADRON.length - 1, kl = colLetra_(k);
-  sh.getRange(r, k).setFormula(fx_('=COUNTIF(' + refCorreoResp_() + ',A' + r + ')'));
+  sh.getRange(r, k).setFormula(fx_('=COUNTIFS(' + refCorreoResp_() + ',A' + r + NO_PRUEBA_() + ')'));
   sh.getRange(r, k + 1).setFormula(fx_('=IF(' + kl + r + '>0,"Con registros","Sin registros")'));
 }
 
@@ -399,7 +400,7 @@ function estPublico_(e, nombres) {
 // escrita debe ser el comienzo de una palabra del nombre (ej.: «ana rojas», «rojas v»).
 function buscarEstudiantes_(q, mentor, cfg) {
   const qn = norm_(q).replace(/\s+/g, ' ').trim(), digitos = qn.replace(/\D/g, '');
-  const todos = leerEstudiantes_(cfg), nombres = nombresCarreras_();
+  const todos = indiceEst_(cfg), nombres = nombresCarreras_();
   let res;
   if (digitos.length >= 5 && digitos.length >= qn.replace(/\s/g, '').length - 3) {
     res = todos.filter(e => e.ci && ciNorm_(e.ci).replace(/\D/g, '') === digitos);
@@ -442,27 +443,42 @@ function leerMaterias_(cfg) {
   });
   return { lista: lista, errores: errores };
 }
-// Catálogo para la app (sin datos personales). Se guarda en caché en trozos (límite de 100 KB por clave).
-function catalogoMaterias_(cfg) {
+// Listas que se guardan en la caché del script, en trozos (límite de 100 KB por clave). Una lista
+// vacía no se guarda: así, si una base estaba vacía, basta con llenarla para que se lea de nuevo.
+const CACHES = { mat: 600, est: 3600 };   // segundos que dura cada lista
+function cacheLista_(pref, fn) {
   const cache = CacheService.getScriptCache();
   try {
-    const n = Number(cache.get('mat_n'));
+    const n = Number(cache.get(pref + '_n'));
     if (n) {
-      let s = '';
-      for (let i = 0; i < n; i++) { const t = cache.get('mat_' + i); if (t === null) { s = null; break; } s += t; }
-      if (s) return JSON.parse(s);
+      const keys = Array.from({ length: n }, (_, i) => pref + '_' + i), t = cache.getAll(keys);
+      if (keys.every(k => typeof t[k] === 'string')) return JSON.parse(keys.map(k => t[k]).join(''));
     }
   } catch (e) {}
-  const lista = leerMaterias_(cfg).lista;
+  const lista = fn();
   try {
-    const s = JSON.stringify(lista), T = 40000, n = Math.ceil(s.length / T);
-    if (n && n <= 20) { for (let i = 0; i < n; i++) cache.put('mat_' + i, s.slice(i * T, (i + 1) * T), 600); cache.put('mat_n', String(n), 600); }
+    const s = JSON.stringify(lista), T = 40000, n = Math.ceil(s.length / T), o = {};
+    if (lista.length && n <= 60) {
+      for (let i = 0; i < n; i++) o[pref + '_' + i] = s.slice(i * T, (i + 1) * T);
+      o[pref + '_n'] = String(n);
+      cache.putAll(o, CACHES[pref]);
+    }
   } catch (e) {}
   return lista;
 }
+// Catálogo de materias para la app (sin datos personales).
+function catalogoMaterias_(cfg) { return cacheLista_('mat', () => leerMaterias_(cfg).lista); }
+// Índice de estudiantes para buscar rápido: [clave, nombre, ci, sede, carrera, plan, correo]. Sin celulares.
+// Nunca sale entero de la hoja: la app solo recibe resultados de búsqueda.
+function indiceEst_(cfg) {
+  return cacheLista_('est', () => leerEstudiantes_(cfg).map(e => [e.clave, e.nombre, e.ci, e.sede, e.carrera, e.plan, e.correo]))
+    .map(r => ({ clave: r[0], nombre: r[1], ci: r[2], sede: r[3], carrera: r[4], plan: r[5], correo: r[6] }));
+}
 function limpiarCache_() {
   const cache = CacheService.getScriptCache();
-  try { const n = Number(cache.get('mat_n')) || 0; cache.remove('mat_n'); for (let i = 0; i < n; i++) cache.remove('mat_' + i); } catch (e) {}
+  Object.keys(CACHES).forEach(p => {
+    try { const n = Number(cache.get(p + '_n')) || 0; cache.removeAll([p + '_n'].concat(Array.from({ length: n }, (_, i) => p + '_' + i))); } catch (e) {}
+  });
 }
 
 /* ═════════════════════════ RESPUESTAS ═════════════════════════ */
@@ -643,7 +659,7 @@ function validarEnvio_(d, cfg, prueba) {
   const items = Array.isArray(d.items) ? d.items : [];
   if (!items.length || items.length > MAX_EST) return { error: 'Cantidad de estudiantes inválida' };
   const nombres = nombresCarreras_();
-  const ests = {}; leerEstudiantes_(cfg).forEach(e => { ests[e.clave] = e; });
+  const ests = {}; indiceEst_(cfg).forEach(e => { ests[e.clave] = e; });
   const cat = {}, porCod = {}; catalogoMaterias_(cfg).forEach(m => { cat[m[0] + '|' + m[2]] = m; if (!porCod[m[0]]) porCod[m[0]] = m; });
   const hoy = new Date(), out = [], usados = {};
   for (let i = 0; i < items.length; i++) {

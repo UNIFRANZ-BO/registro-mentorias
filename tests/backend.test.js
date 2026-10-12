@@ -41,7 +41,7 @@ const ui={alert:(t,m)=>{console.log('[ALERT]',t,'|',String(m).replace(/\n/g,' / 
 const props={};
 const ctx={PropertiesService:{getScriptProperties:()=>({getProperty:k=>props[k]||null,setProperty:(k,v)=>props[k]=v})},
  SpreadsheetApp:{flush(){},getActive:()=>ss,getActiveSpreadsheet:()=>ss,getUi:()=>ui,newDataValidation:()=>({requireValueInList(){return this},build(){return{}}})},
- LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){}})},CacheService:{getScriptCache:()=>({get:k=>cache[k]===undefined?null:cache[k],put:(k,v)=>cache[k]=v,remove:k=>delete cache[k]})},
+ LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){}})},CacheService:{getScriptCache:()=>({get:k=>cache[k]===undefined?null:cache[k],put:(k,v)=>cache[k]=v,remove:k=>delete cache[k],getAll:ks=>Object.fromEntries(ks.filter(k=>k in cache).map(k=>[k,cache[k]])),putAll:o=>Object.assign(cache,o),removeAll:ks=>ks.forEach(k=>delete cache[k])})},
  Session:{getActiveUser:()=>({getEmail:()=>'rafael@unifranz.edu.bo'})},Utilities:{formatDate:(d)=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},
  ContentService:{createTextOutput:t=>({t,setMimeType(){return this}}),MimeType:{JSON:1,JAVASCRIPT:2}},Logger:{log:console.log},console,__answers:[]};
 const fallo=m=>{console.error('FALLA:',m);process.exit(1)};
@@ -147,9 +147,12 @@ if(vh.mentor.programa!=='Hermano Mayor')fallo('programa Hermano Mayor');
 // base nueva de estudiantes: se agrega en CONFIG sin tocar código
 ss.insertSheet('EST2017').d=[['sede','anho_plan_estudio','carrera','primer_nombre','primer_apellido','ci','correo_institucional'],['CBB',2017,'ADM','CARLA','SOLIZ','4445556','est.carla.soliz.xx@unifranz.edu.bo']];
 ctx.setConfig_('Pestañas de estudiantes','BASEDEDATOSEST; EST2017');
+if(get('buscar',{correo:M,q:'carla'}).resultados.length!==0)fallo('la caché debía tener el índice viejo');
+ctx.menuActualizarPadron();
+if(cache.est_n===undefined)console.log('caché de estudiantes limpiada');
 const b3=get('buscar',{correo:M,q:'carla'});console.log('buscar en base nueva',J(b3.resultados));
 if(b3.resultados.length!==1)fallo('base nueva de estudiantes');
-ctx.menuActualizarPadron();console.log('CARRERAS amarillas',J(ss.getSheetByName('CARRERAS').d.slice(-2)));
+console.log('CARRERAS amarillas',J(ss.getSheetByName('CARRERAS').d.slice(-2)));
 ctx.menuRevisarBases();
 // prueba + tope
 const pr=i=>post({id:'PRUEBA-T'+i+'XYZ',correo:'prueba@unifranz.edu.bo',hito:2,items:[{manual:{ci:'12345',nombre:'Estudiante Prueba',carrera_cod:'SIS'},materias:[{cod:'PRG-211 (P)',car:'SIS'}],asistio:'No'}]});
