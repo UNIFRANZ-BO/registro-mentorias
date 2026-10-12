@@ -11,6 +11,7 @@ SHOTS = RAIZ / 'tests' / 'shots'; SHOTS.mkdir(exist_ok=True)
 API = 'https://script.google.com/macros/s/TESTID/exec'
 W = int(sys.argv[1]) if len(sys.argv) > 1 else 390
 DB = {}
+VIAS = []
 MENTOR = 'doc.juanperez.lopez.ga@unifranz.edu.bo'
 CARR = [{'cod': 'SIS', 'nombre': 'Ingeniería de Sistemas'}, {'cod': 'NGE', 'nombre': 'Negocios y Gestión Empresarial'}, {'cod': 'MED', 'nombre': 'Medicina'}]
 MATS = [['PRG-111 (P)', 'Fundamentos de Programación', 'SIS', 1, 2026], ['PIN-111 (P)', 'Proyecto Integrador I', 'SIS', 1, 2026], ['BDD-311 (P)', 'Bases de Datos', 'SIS', 3, 2026],
@@ -36,6 +37,9 @@ async def backend(route, req):
         out = {'ok': True, 'resultados': [{k: v for k, v in e.items() if k != '_ci'} for e in r], 'mas': False}
     else:
         out = {'ok': True, 'existe': q.get('id', [''])[0] in DB}
+    VIAS.append('jsonp' if cb else 'fetch')
+    if not cb:   # la app pide primero por fetch sin cookies (JSON + CORS, como Apps Script)
+        return await route.fulfill(status=200, headers={'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'}, body=json.dumps(out))
     await route.fulfill(status=200, headers={'Content-Type': 'application/javascript'}, body=f'{cb}({json.dumps(out)});')
 
 async def main():
@@ -141,6 +145,7 @@ async def main():
         assert await pg.evaluate("localStorage.getItem('regment_draft1')") is None, 'el borrador debe borrarse al enviar'
         await pg.click('#otro'); await pg.wait_for_timeout(1200)
         assert await scr() == 'ficha' and await pg.evaluate('S.items.length') == 0 and await pg.evaluate('S.hito') == '3'
+        assert VIAS and 'jsonp' not in VIAS, ('las consultas deben ir por fetch', VIAS)
         assert not errs, errs
         print('OK · errores JS:', errs)
         await b.close()

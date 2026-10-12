@@ -634,7 +634,7 @@ details.more ol li b{color:var(--txt)}
 // ⬇⬇⬇ Pega aquí la URL de tu implementación de Apps Script (termina en /exec) ⬇⬇⬇
 const API_URL_DEFECTO = 'https://script.google.com/macros/s/AKfycbxtZvLrQlpP8L8vUAq1RL007vjRpOfLbbK4f6SMLYEk-8VqrKbbeqvJi1f85OIICug/exec';
 // ⬆⬆⬆ ------------------------------------------------------------------------ ⬆⬆⬆
-const VERSION = '1.3';
+const VERSION = '1.4';
 const LS_DRAFT = 'regment_draft1', LS_COLA = 'regment_cola1';
 const LOGO_FULL = '__LOGO_FULL__';
 const LOGO_WORD = '__LOGO_WORD__';
@@ -1182,7 +1182,21 @@ function fetchTO(url, opt, ms) {
   const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms);
   return fetch(url, {...opt, signal: ac.signal}).finally(() => clearTimeout(t));
 }
-function jsonp(params, ms = 15000) {
+// Consultas GET: primero fetch SIN cookies (credentials:'omit'). Así Google responde como a un visitante
+// anónimo aunque el navegador tenga abiertas varias cuentas (personal + UNIFRANZ), caso en el que la vía
+// JSONP recibía una página de error en lugar de los datos. Si fetch falla, se intenta por JSONP.
+async function jsonp(params, ms = 15000) {
+  try {
+    const u = new URL(API_URL);
+    Object.entries(params).forEach(([k, v]) => u.searchParams.set(k, v));
+    u.searchParams.set('_', Date.now());
+    const r = await fetchTO(u.toString(), {credentials:'omit', redirect:'follow'}, ms);
+    const j = await r.json();
+    if (j && typeof j === 'object') return j;
+  } catch (e) {}
+  return jsonpScript(params, ms);
+}
+function jsonpScript(params, ms = 15000) {
   return new Promise((res, rej) => {
     const cb = '__jp' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     const s = document.createElement('script'); let done = false;
@@ -1206,13 +1220,13 @@ async function enviar(p, log = () => {}) {
   const body = JSON.stringify({action:'guardar', data:p});
   // 1) POST normal (text/plain evita el preflight CORS)
   try {
-    const r = await fetchTO(API_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body, redirect:'follow'}, 30000);
+    const r = await fetchTO(API_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body, redirect:'follow', credentials:'omit'}, 30000);
     const j = await r.json(); log('POST: ' + JSON.stringify(j));
     if (j && j.ok) return j;
     if (j && j.ok === false && FINALES.includes(j.codigo)) throw finalErr(j);
   } catch (e) { if (e.final) throw e; log('POST cors falló: ' + e.message); }
   // 2) POST no-cors + verificación por JSONP
-  try { await fetchTO(API_URL, {method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body}, 30000); log('POST no-cors enviado'); } catch (e) { log('POST no-cors falló: ' + e.message); }
+  try { await fetchTO(API_URL, {method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body, credentials:'omit'}, 30000); log('POST no-cors enviado'); } catch (e) { log('POST no-cors falló: ' + e.message); }
   for (const w of [1500, 3000, 5000]) { await sleep(w); if (await verificar(p.id)) { log('Verificado en la hoja'); return {ok:true, id:p.id, via:'verificar'}; } }
   // 3) Plan C: guardar por JSONP (GET), solo si el envío es corto
   const data = JSON.stringify(p);

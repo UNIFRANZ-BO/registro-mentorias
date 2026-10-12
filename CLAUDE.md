@@ -71,6 +71,12 @@ Ahora: **un envío por grupo** (hito + N estudiantes), cada estudiante con **tod
 - Claves locales: `regment_draft1`, `regment_cola1`. IDs de envío `ME-…` (el mentor ve el código sin `ME-`).
 - Límites: 80 estudiantes por envío, 20 materias por estudiante.
 
+## Conexión (v1.4, 11-oct-2026)
+- Un dispositivo daba «No pudimos conectar con el servidor» mientras curl y otra PC funcionaban. Causa probable: las consultas
+  JSONP (etiqueta `<script>`) envían las cookies de Google; con varias cuentas abiertas o sesión de UNIFRANZ, Google puede
+  responder con una página de error. Ahora **todas las GET van primero por `fetch` con `credentials:'omit'`** (Apps Script
+  responde JSON con CORS) y JSONP queda de respaldo; los POST también usan `credentials:'omit'`.
+
 ## Contrato app ↔ script
 - `GET ?action=ping` → `{ok, servicio:'registro-mentorias-2026', version_app, abierta, periodo, hitos, respuestas}`
 - `GET ?action=validar&correo=` → `{ok, habilitado:true, mentor:{nombre, nombre_completo, sede, sede_nombre, carrera_cod, carrera, plan, programa}, hitos, manual, todas_sedes, periodo, previos:{hito:n_estudiantes}, carreras:[{cod,nombre}], materias:[[cod,nombre,carrera,sem,plan]]}` o `{ok, habilitado:false, motivo:'no_encontrado'|'no_habilitado'|'cerrada', mensaje?}`
@@ -101,7 +107,7 @@ Ahora: **un envío por grupo** (hito + N estudiantes), cada estudiante con **tod
   Hay una hoja vacía de más en la cuenta personal («Registro de Mentorías 2026», `1vorJLyJ-oRITRnQjjMEG5qrw47e-4nHtYf-npwGE8iA`): no se usa.
   El conector de Drive de Claude es de la cuenta personal: **no ve la hoja @unifranz**.
 - [x] **URL del script:** implementación `AKfycbxtZvLrQlpP…OICug` (11-oct-2026), incrustada en `API_URL_DEFECTO`; ping anónimo OK.
-- [x] **Repo** `UNIFRANZ-BO/registro-mentorias` (público, Pages en `main`) → enlace vigente **https://unifranz-bo.github.io/registro-mentorias/?v=5** (v=5: un solo «Guardar» → lista). Ping desde la página publicada OK.
+- [x] **Repo** `UNIFRANZ-BO/registro-mentorias` (público, Pages en `main`) → enlace vigente **https://unifranz-bo.github.io/registro-mentorias/?v=6** (v=6: consultas por fetch sin cookies). Ping desde la página publicada OK.
 - [ ] Rafael: importar `entregables/Base_registro_mentorias.xlsx` en la hoja @unifranz (Insertar hojas nuevas) y ejecutar
   `configuracionInicial` (o «Actualizar padrón»). Al 11-oct, `validar` con un docente real da `no_encontrado` → bases aún no cargadas.
 - [ ] Prueba real (R13 de la guía) y limpieza antes de difundir.
