@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#04050d">
-<title>Registro de Mentorías · UNIFRANZ</title>
+<title>Bitácora de nivelaciones · UNIFRANZ</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2304050d'/%3E%3Cpath d='M12 42 Q32 30 52 24' stroke='%23ff6b1a' stroke-width='6' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='50' cy='18' r='5' fill='%2300e5ff'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -520,6 +520,34 @@ details.more ol li b{color:var(--txt)}
   .fgrid .fld.fecha{grid-column:1/-1}
   .it{padding:13px 13px}
 }
+
+/* ficha en una sola pantalla */
+.fsec{margin:0 0 6px;padding:16px 0 14px;border-top:1px dashed var(--line);border-radius:4px}
+.fsec[hidden]{display:none}
+.fsec:first-of-type{border-top:0;padding-top:0}
+.fhd{display:flex;align-items:center;gap:10px;margin-bottom:12px;font:700 15.5px var(--fb)}
+.fhd b{flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font:800 12px var(--fd);color:#04050d;background:linear-gradient(135deg,var(--o2),var(--c))}
+.fcnt{margin-left:auto;font:600 11px var(--fm);color:var(--c);letter-spacing:.1em;text-transform:uppercase}
+.selest{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;border:1px solid var(--c);background:rgba(0,229,255,.08);animation:optIn .35s both}
+.selest div{flex:1;min-width:0}
+.selest b{display:block;font-size:16px;line-height:1.3}
+.selest span{display:block;margin-top:3px;font-size:12.5px;color:var(--mut);line-height:1.4}
+.selest em{font-style:normal;color:var(--y)}
+.mscroll{max-height:360px;overflow:auto;padding:2px 4px 2px 0;overscroll-behavior:contain;border-radius:12px}
+.mscroll .fac:first-child{margin-top:2px}
+.opts.asis .opt{justify-content:center;padding:15px 12px}
+.opts.asis .opt .lbl{flex:none;font-size:15.5px}
+.opts.asis .opt.si.sel{box-shadow:0 0 0 1.5px var(--g) inset,0 0 26px -6px rgba(57,255,176,.65);background:linear-gradient(135deg,rgba(57,255,176,.16),rgba(0,229,255,.1))}
+.opts.asis .opt.no.sel{box-shadow:0 0 0 1.5px var(--r) inset,0 0 26px -6px rgba(255,61,110,.65);background:linear-gradient(135deg,rgba(255,61,110,.2),rgba(255,122,46,.12))}
+.opts.asis .opt.no.sel .chk{background:var(--r);border-color:var(--r);box-shadow:0 0 14px var(--r)}
+.fnote{margin:12px 0 0;font-size:13px;color:#ffc2d1;line-height:1.5}
+.fnote[hidden]{display:none}
+.fmsg{min-height:22px;margin:8px 0 0;padding:10px 12px;border-radius:12px;border:1px dashed var(--line);font-size:13.5px;color:var(--mut);line-height:1.45}
+.fmsg.ok{color:var(--g);border-color:rgba(57,255,176,.4)}
+.fnav{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.fnav .big{grid-column:1/-1}
+.fnav .btn.wait{opacity:.55}
+.fsec.shake{animation:shake .45s}
 </style>
 </head>
 <body>
@@ -579,7 +607,7 @@ details.more ol li b{color:var(--txt)}
 // ⬇⬇⬇ Pega aquí la URL de tu implementación de Apps Script (termina en /exec) ⬇⬇⬇
 const API_URL_DEFECTO = 'https://script.google.com/macros/s/AKfycbxtZvLrQlpP8L8vUAq1RL007vjRpOfLbbK4f6SMLYEk-8VqrKbbeqvJi1f85OIICug/exec';
 // ⬆⬆⬆ ------------------------------------------------------------------------ ⬆⬆⬆
-const VERSION = '1.0';
+const VERSION = '1.1';
 const LS_DRAFT = 'regment_draft1', LS_COLA = 'regment_cola1';
 const LOGO_FULL = '__LOGO_FULL__';
 const LOGO_WORD = '__LOGO_WORD__';
@@ -637,7 +665,6 @@ const nuevoId = () => {
 const saveDraft = () => { if (S.id && S.perfil) lsSet(LS_DRAFT, {...S, v:VERSION}); };
 const hitoUnico = () => S.cfg && S.cfg.hitos && S.cfg.hitos.length === 1;
 const nItem = () => (S.curIdx >= 0 ? S.curIdx : S.items.length) + 1;
-const estN = () => S.cur && S.cur.est ? firstName(S.cur.est.nombre) : 'el estudiante';
 
 /* ---------- navegación ---------- */
 const stage = $('#stage');
@@ -664,19 +691,16 @@ function retire(back) {
 }
 let autoT = null;
 function autoNext(fn, ms = 650) { clearTimeout(autoT); autoT = setTimeout(fn, ms); }
-const FICHA = ['est', 'mat', 'asis', 'ses', 'act'];
-const FICHA_T = {est:'Estudiante', mat:'Materias', asis:'Asistencia', ses:'Fecha y horario', act:'Actividades'};
 function updateTop() {
   const sc = S.scr, top = $('#top');
   top.classList.toggle('off', !sc);
   if (!sc) return;
-  const fi = FICHA.indexOf(sc);
-  const pos = sc === 'login' ? 8 : sc === 'hito' ? 18 : sc === 'hub' ? (S.items.length ? 70 : 30) : sc === 'review' ? 100 : 30 + (fi + 1) * 8;
+  const pos = sc === 'login' ? 8 : sc === 'hito' ? 18 : sc === 'hub' ? (S.items.length ? 70 : 30) : sc === 'review' ? 100 : 50;
   $('#barFill').style.width = pos + '%';
   $('#pct').textContent = pos + '%';
   const seg = sc === 'login' ? 1 : sc === 'hito' ? 2 : sc === 'review' ? 4 : 3;
   $('#modLbl').innerHTML = sc === 'login' ? '<b>Acceso</b> · Correo institucional' : sc === 'hito' ? '<b>Paso 2</b> · Hito' : sc === 'review' ? '<b>Revisión</b> · antes de enviar'
-    : sc === 'hub' ? `<b>Hito ${esc(S.hito)}</b> · ${S.items.length} estudiante${S.items.length === 1 ? '' : 's'}` : `<b>Estudiante ${nItem()}</b> · ${FICHA_T[sc]}`;
+    : sc === 'hub' ? `<b>Hito ${esc(S.hito)}</b> · ${S.items.length} estudiante${S.items.length === 1 ? '' : 's'}` : `<b>Estudiante ${nItem()}</b> · Hito ${esc(S.hito)}`;
   $$('#modsBar i').forEach((el, k) => { el.className = k + 1 < seg ? 'done' : (k + 1 === seg ? 'on' : ''); });
 }
 
@@ -721,7 +745,7 @@ function setNextOk(el, ok) { const b = $('#btnNext', el); if (b) b.classList.tog
 const MAIL_RE = /^[a-z0-9._%+-]+@unifranz\.edu\.bo$/;
 SCR.login = function (el) {
   const ok = !!S.perfil;
-  el.innerHTML = `<div class="card login ${ok ? 'okd' : ''}">${qHead('@', 'Acceso seguro', 'Ingresa tu correo institucional', 'Usa tu correo @unifranz.edu.bo. Con él sabemos quién eres y en qué sede y carrera trabajas: no tienes que llenarlo.')}
+  el.innerHTML = `<div class="card login ${ok ? 'okd' : ''}">${qHead('@', 'Acceso seguro', 'Ingresa tu correo institucional', 'Usa tu correo docente @unifranz.edu.bo.')}
     <div class="mail"><span class="mi">${IC.mail}</span><input id="mailIn" type="email" inputmode="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="nombre.apellido@unifranz.edu.bo" value="${esc(S.correo || '')}" data-autofocus><span class="scanln"></span><span class="mok">${IC.check}</span></div>
     <div class="mmsg" id="mailMsg" role="alert">${ok ? `<span class="good">Correo verificado. Puedes continuar.</span>` : ''}</div>
     <div class="nav"><button class="btn ghost" data-act="prev">${IC.arrowL}<span>Atrás</span></button><span class="kbd">Enter para verificar</span><button class="btn prime" id="btnVerify"><span>${ok ? 'Continuar' : 'Verificar'}</span>${IC.arrowR}</button></div></div>`;
@@ -759,6 +783,7 @@ async function verify(el) {
     else if (S.hito && S.cfg.hitos.length && !S.cfg.hitos.includes(String(S.hito))) S.hito = '';
     card.classList.add('okd'); msg.innerHTML = `<span class="good">¡Hola, ${esc(firstName(r.mentor.nombre))}! Correo verificado.</span>`;
     const rc = inp.getBoundingClientRect(); FX.burst(rc.right - 30, rc.top + rc.height / 2, 26, '#39ffb0');
+    if (API_OK) jsonp({action:'buscar', correo, q:'zzzz'}, 30000).catch(() => {});   // prepara el índice de estudiantes en el servidor
     saveDraft(); setTimeout(() => { if (S.scr === 'login') trasLogin(); }, 900);
     return;
   }
@@ -783,7 +808,7 @@ async function validarCorreo(correo) {
 /* ---------- hito ---------- */
 SCR.hito = function (el) {
   const hs = S.cfg.hitos.length ? S.cfg.hitos : ['2', '3', '4'];
-  el.innerHTML = `<div class="card">${qHead('02', 'Registro de mentorías', '¿De qué hito es este registro?', 'Todos los estudiantes que agregues en este envío quedarán en ese hito.')}
+  el.innerHTML = `<div class="card">${qHead('02', 'Bitácora de nivelaciones', 'Seleccionar HITO', '')}
     <div class="opts two hitos">${hs.map((h, i) => { const p = S.previos[h]; return `<button class="opt tile ${String(S.hito) === h ? 'sel' : ''}" data-v="${esc(h)}" aria-pressed="${String(S.hito) === h}" ${optDelay(i)} ${i === 0 ? 'data-autofocus' : ''}><span class="code">Hito ${esc(h)}</span><span class="lbl">${p ? `Ya registraste ${p} estudiante${p === 1 ? '' : 's'}` : 'Sin registros todavía'}</span><span class="chk">${IC.check}</span></button>`; }).join('')}</div>
     ${navHtml('Siguiente', !!S.hito, `<span class="kbd">Teclas 1–${hs.length}</span>`)}</div>`;
   el.addEventListener('click', e => {
@@ -826,99 +851,201 @@ SCR.hub = function (el) {
   bindNav(el, () => n ? go('review') : (shake(el), toast('Agrega al menos un estudiante')), () => go(hitoUnico() ? 'login' : 'hito', true));
 };
 
-/* ---------- ficha de un estudiante ---------- */
+/* ---------- ficha de un estudiante: todo en una sola pantalla ---------- */
+// Secciones: 1 Estudiante · 2 Materias · 3 ¿Asistió? · 4 Sesión (solo si asistió). Cada una aparece
+// cuando la anterior está completa. «Guardar y agregar otro» abre de inmediato una ficha nueva.
+const nueva = () => ({est:null, mats:[], asis:'', fecha:'', hi:'', hf:'', act:'', obs:''});
+let estAbierta = true;
 function startFicha(i) {
   S.curIdx = i;
-  S.cur = i >= 0 ? clone(S.items[i]) : {est:null, mats:[], asis:'', fecha:'', hi:'', hf:'', act:'', obs:''};
-  go('est');
+  S.cur = i >= 0 ? clone(S.items[i]) : nueva();
+  go('ficha');
 }
-function commitFicha() {
+function commitFicha(otro) {
   const c = S.cur;
   if (c.asis === 'No') Object.assign(c, {fecha:'', hi:'', hf:'', act:'', obs:''});
+  c.act = c.act.trim(); c.obs = c.obs.trim();
   if (S.curIdx >= 0) S.items[S.curIdx] = c; else S.items.push(c);
-  const nom = firstName(c.est.nombre), dest = S.ret === 'review' ? 'review' : 'hub';
+  const nom = firstName(c.est.nombre), msg = c.asis === 'No' ? `${nom}: registrado como «No asistió»` : `${nom} quedó en la lista ✓`;
   S.cur = null; S.curIdx = -1;
-  go(dest, true);
-  toast(c.asis === 'No' ? `${nom}: registrado como «No asistió»` : `${nom} quedó en la lista ✓`);
+  if (otro && S.items.length < MAX_EST) { S.cur = nueva(); go('ficha'); }
+  else go(S.ret === 'review' ? 'review' : 'hub', true);
+  toast(msg);
 }
 function cancelFicha() { S.cur = null; S.curIdx = -1; go(S.ret === 'review' ? 'review' : 'hub', true); }
 const claveEst = e => e ? (e.manual ? 'ci:' + norm(e.ci).replace(/[^0-9a-z]/g, '') : e.id) : '';
 function repetido(e) { const k = claveEst(e); return S.items.findIndex((it, i) => i !== S.curIdx && claveEst(it.est) === k); }
+const anterior = () => { const lst = S.items.filter((it, i) => i !== S.curIdx && it.asis === 'Sí'); return lst.length ? lst[lst.length - 1] : null; };
+function sesError(c) {
+  if (!c.fecha) return 'Falta la fecha de la sesión.';
+  const hoy = isoHoy();
+  if (c.fecha > hoy) return 'La fecha no puede ser posterior a hoy.';
+  const d = new Date(c.fecha + 'T12:00:00'); if (isNaN(d) || (Date.now() - d) > 365 * 86400000) return 'Revisa la fecha: es de hace más de un año.';
+  const a = minutos(c.hi), b = minutos(c.hf);
+  if (a === null || b === null) return 'Faltan la hora de inicio y la de conclusión.';
+  if (b <= a) return 'La hora de conclusión debe ser posterior a la de inicio.';
+  if (b - a > 600) return 'La sesión no puede durar más de 10 horas.';
+  return '';
+}
+// Primer dato que falta: [sección, mensaje], o null si la ficha está completa.
+function fichaError(c) {
+  if (!c.est) return ['secEst', 'Busca y elige al estudiante (o regístralo a mano).'];
+  if (repetido(c.est) >= 0) return ['secEst', 'Ese estudiante ya está en la lista.'];
+  if (!c.mats.length) return ['secMat', 'Selecciona al menos una materia.'];
+  if (!c.asis) return ['secAsis', 'Indica si asistió.'];
+  if (c.asis === 'Sí') { const e = sesError(c); if (e) return ['secSes', e]; if (!c.act.trim()) return ['secSes', 'Escribe las actividades realizadas.']; }
+  return null;
+}
+
+SCR.ficha = function (el) {
+  const c = S.cur;
+  estAbierta = !c.est; filtroMat = ''; verTodas = c.est ? !propias().length : false;
+  el.innerHTML = `<div class="card ficha">${qHead(pad(nItem()), 'Hito ' + S.hito + ' · Estudiante ' + nItem(), S.curIdx >= 0 ? 'Editar estudiante' : 'Registrar estudiante', '', null)}
+    <section class="fsec" id="secEst"><div class="fhd"><b>1</b>Estudiante</div><div class="fbd" id="bdEst"></div></section>
+    <section class="fsec" id="secMat"><div class="fhd"><b>2</b>Seleccionar materias<span class="fcnt" id="mc"></span></div><div class="fbd" id="bdMat"></div></section>
+    <section class="fsec" id="secAsis"><div class="fhd"><b>3</b>¿Asistió?</div><div class="fbd">
+      <div class="opts two asis">${['Sí', 'No'].map(o => `<button class="opt ${o === 'Sí' ? 'si' : 'no'}" data-asis="${o}"><span class="lbl">${o === 'Sí' ? 'Sí asistió' : 'No asistió'}</span><span class="chk">${IC.check}</span></button>`).join('')}</div>
+      <p class="fnote" id="noteNo">Si no asistió, no hace falta nada más: guarda y sigue con el siguiente estudiante.</p></div></section>
+    <section class="fsec" id="secSes"><div class="fhd"><b>4</b>Sesión</div><div class="fbd" id="bdSes"></div></section>
+    <div class="fmsg" id="fmsg"></div>
+    <div class="fnav"><button class="btn ghost" data-act="prev">${IC.arrowL}<span>Cancelar</span></button><button class="btn" id="btnSave"><span>Guardar</span>${IC.check}</button>
+      <button class="btn prime big" id="btnOtro"><span>Guardar y agregar otro</span>${IC.plus}</button></div></div>`;
+  pintaEst(el); pintaMatSec(el); pintaSes(el); refresh(el);
+
+  el.addEventListener('click', ev => {
+    const t = ev.target;
+    if (t.closest('[data-act=prev]')) return cancelFicha();
+    if (t.closest('#btnSave')) return guardarFicha(el, false);
+    if (t.closest('#btnOtro')) return guardarFicha(el, true);
+    if (t.closest('#cambiarEst')) { estAbierta = true; pintaEst(el); const q = $('#q', el); if (q) q.focus(); return; }
+    if (t.closest('#tgMan')) { const mb = $('#manBox', el); mb.classList.toggle('on'); if (mb.classList.contains('on')) $('#mCi', el).focus(); return; }
+    const r = t.closest('#sres .opt'); if (r) return elegirEst(el, r, ev);
+    const m = t.closest('#mwrap .opt, #selbox button'); if (m) return toggleMat(el, m, ev);
+    if (t.closest('#mtg')) { verTodas = !verTodas; pintarMat(el); return; }
+    const a = t.closest('[data-asis]');
+    if (a) {
+      c.asis = a.dataset.asis; ripple(a, ev); FX.burst(ev.clientX || 0, ev.clientY || 0, 14, c.asis === 'Sí' ? '#39ffb0' : '#ff3d6e');
+      if (c.asis === 'Sí' && !c.fecha) c.fecha = isoHoy();
+      pintaSes(el); refresh(el);
+      if (c.asis === 'Sí') setTimeout(() => $('#secSes', el).scrollIntoView({behavior: REDUCED ? 'auto' : 'smooth', block:'start'}), 120);
+      return;
+    }
+    if (t.closest('#cpy')) { const p = anterior(); Object.assign(c, {fecha:p.fecha, hi:p.hi, hf:p.hf, act:p.act}); pintaSes(el); refresh(el); FX.burst(innerWidth / 2, 240, 14); return; }
+    const ch = t.closest('.achip');
+    if (ch) {
+      const s = ch.dataset.a;
+      if (c.act.toLowerCase().includes(s.toLowerCase())) c.act = c.act.replace(new RegExp('(;\\s*)?' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(;\\s*)?', 'i'), (x, p1, p2) => p1 && p2 ? '; ' : '').trim();
+      else c.act = (c.act.trim() ? c.act.trim().replace(/[;.,]$/, '') + '; ' : '') + s;
+      c.act = c.act.slice(0, 1000); $('#tAct', el).value = c.act; refresh(el);
+    }
+  });
+  el.addEventListener('input', ev => {
+    const id = ev.target.id, v = ev.target.value;
+    if (id === 'q') { clearTimeout(buscaT); buscaT = setTimeout(() => buscarAhora(el), 350); }
+    else if (id === 'mq') { filtroMat = v; pintarMat(el); }
+    else if (id === 'mCi' || id === 'mNom') leerManual(el);
+    else if (id === 'fF' || id === 'fHi' || id === 'fHf') { c[{fF:'fecha', fHi:'hi', fHf:'hf'}[id]] = v; refresh(el); }
+    else if (id === 'tAct') { c.act = v; refresh(el); }
+    else if (id === 'tObs') { c.obs = v; refresh(el); }
+  });
+  el.addEventListener('change', ev => { if (ev.target.id === 'mCar') leerManual(el); });
+  el.addEventListener('keydown', ev => { if (ev.target.id === 'q' && ev.key === 'Enter') { ev.preventDefault(); clearTimeout(buscaT); buscarAhora(el); } });
+};
+function guardarFicha(el, otro) {
+  const er = fichaError(S.cur);
+  if (er) {
+    toast(er[1]);
+    const s = $('#' + er[0], el);
+    if (s) { s.scrollIntoView({behavior: REDUCED ? 'auto' : 'smooth', block:'center'}); s.classList.remove('shake'); void s.offsetWidth; s.classList.add('shake'); }
+    return;
+  }
+  FX.burst(innerWidth / 2, innerHeight - 120, 24, '#39ffb0');
+  commitFicha(otro);
+}
+// Muestra u oculta secciones, el contador de materias, el aviso de lo que falta y el estado de los botones.
+function refresh(el) {
+  const c = S.cur, er = fichaError(c);
+  $('#secMat', el).hidden = !c.est;
+  $('#secAsis', el).hidden = !c.est || !c.mats.length;
+  $('#secSes', el).hidden = $('#secAsis', el).hidden || c.asis !== 'Sí';
+  $('#noteNo', el).hidden = c.asis !== 'No';
+  $$('[data-asis]', el).forEach(b => { const on = b.dataset.asis === c.asis; b.classList.toggle('sel', on); b.setAttribute('aria-pressed', on); });
+  $('#mc', el).textContent = c.mats.length ? c.mats.length + ' seleccionada' + (c.mats.length === 1 ? '' : 's') : '';
+  if (c.asis === 'Sí') {
+    const err = sesError(c), d = $('#dur', el);
+    if (d) { d.classList.toggle('err', !!err && !!(c.hi && c.hf)); d.innerHTML = err ? (c.hi && c.hf ? esc(err) : 'Indica la hora de inicio y la de conclusión.') : `Duración: <b>${fmtDur(minutos(c.hf) - minutos(c.hi))}</b>`; }
+    const cA = $('#cA', el); if (cA) { cA.textContent = c.act.length; $('#cO', el).textContent = c.obs.length; }
+    $$('.achip', el).forEach(b => b.classList.toggle('on', c.act.toLowerCase().includes(b.dataset.a.toLowerCase())));
+  }
+  const m = $('#fmsg', el);
+  m.className = 'fmsg' + (er ? '' : ' ok');
+  m.textContent = er ? 'Falta: ' + er[1].charAt(0).toLowerCase() + er[1].slice(1) : '✓ Todo listo para guardar.';
+  $('#btnSave', el).classList.toggle('wait', !!er); $('#btnOtro', el).classList.toggle('wait', !!er);
+  saveDraft();
+}
 
 /* 1 · estudiante */
 let buscaSeq = 0, buscaT = null, ultimos = [];
-SCR.est = function (el) {
-  const c = S.cur, man = !!(c.est && c.est.manual);
-  el.innerHTML = `<div class="card">${qHead(pad(nItem()), 'Estudiante ' + nItem() + ' · Paso 1 de 5', '¿A qué estudiante acompañaste?', 'Escribe su <b>CI</b> o su <b>nombre y apellido</b>.' + (S.cfg.todas ? '' : ' Por nombre se busca en tu sede; por CI, en todas.'))}
-    <div class="search">${IC.search}<input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Ej.: 6530660 o «ana rojas»" data-autofocus></div>
+function pintaEst(el) {
+  const c = S.cur, bd = $('#bdEst', el), man = !!(c.est && c.est.manual);
+  if (c.est && !estAbierta) {
+    const e = c.est;
+    bd.innerHTML = `<div class="selest"><div><b>${esc(e.nombre)}</b><span>${esc(e.carrera || e.carrera_cod)} · ${esc(e.sede_nombre || SEDE_N[e.sede] || e.sede || '')}${e.ci ? ' · CI ' + esc(e.ci) : ''}${e.plan ? ' · Plan ' + esc(e.plan) : ''}${man ? ' · <em>registrado a mano</em>' : ''}</span></div><button class="sbtn" id="cambiarEst">Cambiar</button></div>`;
+    return;
+  }
+  bd.innerHTML = `<div class="search">${IC.search}<input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="CI o nombre y apellido" data-autofocus></div>
     <div class="sres" id="sres"></div>
     ${S.cfg.manual ? `<button class="linkbtn" id="tgMan">¿No aparece en la lista? <u>Regístralo a mano</u></button>
     <div class="manualbox ${man ? 'on' : ''}" id="manBox"><p>Usa esta opción solo si el estudiante no aparece al buscarlo. Quedará marcado para que la dirección lo revise.</p>
       <div class="fgrid"><label class="fld">CI<input id="mCi" inputmode="numeric" maxlength="20" value="${man ? esc(c.est.ci) : ''}" placeholder="Ej.: 1234567"></label>
       <label class="fld">Carrera<span class="selw"><select id="mCar">${S.carreras.map(k => `<option value="${esc(k.cod)}" ${(man ? c.est.carrera_cod : S.perfil.carrera_cod) === k.cod ? 'selected' : ''}>${esc(k.nombre)}</option>`).join('')}</select></span></label>
-      <label class="fld full">Nombre completo<input id="mNom" maxlength="120" value="${man ? esc(c.est.nombre) : ''}" placeholder="Nombres y apellidos"></label></div></div>` : ''}
-    ${navHtml('Siguiente', !!c.est)}</div>`;
-  const q = $('#q', el), res = $('#sres', el);
-  const pintar = (lista, info) => {
-    ultimos = lista || [];
-    const sel = c.est && !c.est.manual ? c.est : null;
-    const arr = sel && !ultimos.some(x => x.id === sel.id) ? [sel].concat(ultimos) : ultimos;
-    res.innerHTML = (arr.length ? arr.map((x, i) => `<button class="opt ${sel && sel.id === x.id ? 'sel' : ''}" data-k="${esc(x.id)}" ${optDelay(i)}><span class="key">${keyL(i)}</span><span class="lbl">${esc(x.nombre)}<span class="sub">${esc(x.carrera || x.carrera_cod)} · ${esc(x.sede_nombre || SEDE_N[x.sede] || x.sede || '')}${x.ci ? ' · CI ' + esc(x.ci) : ''}${x.plan ? ' · Plan ' + esc(x.plan) : ''}</span></span><span class="chk">${IC.check}</span></button>`).join('') : '') + (info ? `<div class="sinfo ${info.load ? 'load' : ''}">${info.t}</div>` : '');
-  };
-  pintar([], c.est && !c.est.manual ? null : {t:'Escribe al menos 3 letras del nombre o el CI completo.'});
-  const buscar = async () => {
-    const t = q.value.trim(), seq = ++buscaSeq;
-    if (norm(t).replace(/\s/g, '').length < 3) return pintar([], {t:'Escribe al menos 3 letras del nombre o el CI completo.'});
-    pintar([], {t:'Buscando…', load:true});
-    let r;
-    try { r = await buscarEst(t); } catch (e) { r = {ok:false, motivo:'red'}; }
-    if (seq !== buscaSeq) return;
-    if (!r || !r.ok) return pintar([], {t: r && r.motivo === 'cerrada' ? 'El registro se cerró.' : 'No pudimos buscar. Revisa tu conexión e inténtalo de nuevo.'});
-    if (!r.resultados.length) return pintar([], {t:`No encontramos a nadie con «${esc(t)}».` + (S.cfg.todas ? '' : ' Si es de otra sede, búscalo por su CI.') + (S.cfg.manual ? ' Si no aparece, regístralo a mano.' : '')});
-    pintar(r.resultados, r.mas ? {t:`Hay más de ${r.resultados.length} resultados: escribe también el apellido.`} : null);
-  };
-  q.addEventListener('input', () => { clearTimeout(buscaT); buscaT = setTimeout(buscar, 450); });
-  q.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); clearTimeout(buscaT); buscar(); } });
-  res.addEventListener('click', e => {
-    const b = e.target.closest('.opt'); if (!b) return;
-    const x = ultimos.find(y => y.id === b.dataset.k) || (c.est && c.est.id === b.dataset.k ? c.est : null); if (!x) return;
-    const k = repetido(x);
-    if (k >= 0) { shake(b); return toast(`${firstName(x.nombre)} ya está en la lista (n.º ${k + 1}). Edítalo desde ahí.`); }
-    if (c.est && c.est.id !== x.id) c.mats = [];          // otro estudiante: sus materias son otras
-    c.est = {...x}; delete c.est.manual;
-    const mb = $('#manBox', el); if (mb) mb.classList.remove('on');
-    $$('.opt', res).forEach(o => { const on = o === b; o.classList.toggle('sel', on); o.setAttribute('aria-pressed', on); });
-    ripple(b, e); FX.burst(e.clientX, e.clientY, 14);
-    setNextOk(el, true); saveDraft(); autoNext(nextEst, 700);
-  });
-  const leerManual = () => {
-    const ci = $('#mCi', el).value.trim(), nom = $('#mNom', el).value.trim().replace(/\s+/g, ' '), car = $('#mCar', el).value;
-    const k = S.carreras.find(x => x.cod === car);
-    if (ci.replace(/\D/g, '').length >= 4 && nom.split(' ').length >= 2) {
-      if (!c.est || !c.est.manual || c.est.carrera_cod !== car) c.mats = c.est && c.est.manual && c.est.carrera_cod === car ? c.mats : [];
-      c.est = {id:null, manual:true, ci, nombre:nom, carrera_cod:car, carrera:k ? k.nombre : car, sede:S.perfil.sede, sede_nombre:S.perfil.sede_nombre, plan:''};
-      $$('.opt', res).forEach(o => o.classList.remove('sel'));
-    } else if (c.est && c.est.manual) c.est = null;
-    setNextOk(el, !!c.est); saveDraft();
-  };
-  if (S.cfg.manual) {
-    $('#tgMan', el).addEventListener('click', () => { const mb = $('#manBox', el); mb.classList.toggle('on'); if (mb.classList.contains('on')) $('#mCi', el).focus(); });
-    ['mCi', 'mNom', 'mCar'].forEach(id => $('#' + id, el).addEventListener(id === 'mCar' ? 'change' : 'input', leerManual));
-  }
-  bindNav(el, nextEst, cancelFicha);
-  if (c.est && !c.est.manual) q.value = '';
-};
-function nextEst() {
-  const c = S.cur;
-  if (!c.est) { shake(stage.lastElementChild); return toast('Busca y elige al estudiante (o regístralo a mano)'); }
-  if (repetido(c.est) >= 0) return toast('Ese estudiante ya está en la lista');
-  go('mat');
+      <label class="fld full">Nombre completo<input id="mNom" maxlength="120" value="${man ? esc(c.est.nombre) : ''}" placeholder="Nombres y apellidos"></label></div></div>` : ''}`;
+  pintarRes(el, [], {t:'Escribe al menos 3 letras del nombre o el CI completo.'});
+}
+function pintarRes(el, lista, info) {
+  ultimos = lista || [];
+  const res = $('#sres', el); if (!res) return;
+  res.innerHTML = ultimos.map((x, i) => `<button class="opt" data-k="${esc(x.id)}" ${optDelay(i)}><span class="key">${keyL(i)}</span><span class="lbl">${esc(x.nombre)}<span class="sub">${esc(x.carrera || x.carrera_cod)} · ${esc(x.sede_nombre || SEDE_N[x.sede] || x.sede || '')}${x.ci ? ' · CI ' + esc(x.ci) : ''}${x.plan ? ' · Plan ' + esc(x.plan) : ''}</span></span><span class="chk">${IC.check}</span></button>`).join('')
+    + (info ? `<div class="sinfo ${info.load ? 'load' : ''}">${info.t}</div>` : '');
+}
+async function buscarAhora(el) {
+  const q = $('#q', el); if (!q) return;
+  const t = q.value.trim(), seq = ++buscaSeq;
+  if (norm(t).replace(/\s/g, '').length < 3) return pintarRes(el, [], {t:'Escribe al menos 3 letras del nombre o el CI completo.'});
+  pintarRes(el, [], {t:'Buscando…', load:true});
+  let r;
+  try { r = await buscarEst(t); } catch (e) { r = {ok:false, motivo:'red'}; }
+  if (seq !== buscaSeq || !$('#q', el)) return;
+  if (!r || !r.ok) return pintarRes(el, [], {t: r && r.motivo === 'cerrada' ? 'El registro se cerró.' : 'No pudimos buscar. Revisa tu conexión e inténtalo de nuevo.'});
+  if (!r.resultados.length) return pintarRes(el, [], {t:`No encontramos a nadie con «${esc(t)}».` + (S.cfg.todas ? '' : ' Si es de otra sede, búscalo por su CI.') + (S.cfg.manual ? ' Si no aparece, regístralo a mano.' : '')});
+  pintarRes(el, r.resultados, r.mas ? {t:`Hay más de ${r.resultados.length} resultados: escribe también el apellido.`} : null);
+}
+function elegirEst(el, b, ev) {
+  const c = S.cur, x = ultimos.find(y => y.id === b.dataset.k); if (!x) return;
+  const k = repetido(x);
+  if (k >= 0) { shake(b); return toast(`${firstName(x.nombre)} ya está en la lista (n.º ${k + 1}). Edítalo desde ahí.`); }
+  if (!c.est || c.est.id !== x.id) c.mats = [];          // otro estudiante: sus materias son otras
+  c.est = {...x}; delete c.est.manual;
+  ripple(b, ev); FX.burst(ev.clientX, ev.clientY, 14);
+  estAbierta = false; filtroMat = ''; verTodas = !propias().length;
+  pintaEst(el); pintaMatSec(el); refresh(el);
+  setTimeout(() => $('#secMat', el).scrollIntoView({behavior: REDUCED ? 'auto' : 'smooth', block:'start'}), 120);
+}
+function leerManual(el) {
+  const c = S.cur, ci = $('#mCi', el).value.trim(), nom = $('#mNom', el).value.trim().replace(/\s+/g, ' '), car = $('#mCar', el).value;
+  const k = S.carreras.find(x => x.cod === car);
+  if (ci.replace(/\D/g, '').length >= 4 && nom.split(' ').length >= 2) {
+    const misma = c.est && c.est.manual && c.est.carrera_cod === car;
+    c.est = {id:null, manual:true, ci, nombre:nom, carrera_cod:car, carrera:k ? k.nombre : car, sede:S.perfil.sede, sede_nombre:S.perfil.sede_nombre, plan:''};
+    if (!misma) { c.mats = []; filtroMat = ''; verTodas = !propias().length; pintaMatSec(el); }
+  } else if (c.est && c.est.manual) c.est = null;
+  refresh(el);
 }
 function buscarEst(t) {
   if (!API_OK) {
     const qn = norm(t), dig = qn.replace(/\D/g, '');
     const lista = DEMO.est.map(([nombre, ci, sede, car]) => ({id:'est.' + norm(nombre).replace(/\s/g, '.') + '@unifranz.edu.bo', nombre, ci:'•••' + ci.slice(-3), _ci:ci, sede, sede_nombre:SEDE_N[sede], carrera_cod:car, carrera:(DEMO.carreras.find(k => k.cod === car) || {}).nombre || car, plan:2026}));
-    const r = dig.length >= 5 ? lista.filter(x => x._ci === dig) : lista.filter(x => x.sede === 'CBB' && qn.split(' ').every(w => norm(x.nombre).split(' ').some(p => p.startsWith(w))));
+    const r = dig.length >= 5 ? lista.filter(x => x._ci === dig) : lista.filter(x => qn.split(' ').every(w => norm(x.nombre).split(' ').some(p => p.startsWith(w))));
     return sleep(400).then(() => ({ok:true, resultados:r.map(({_ci, ...x}) => x), mas:false}));
   }
   return jsonp({action:'buscar', correo:S.correo, q:t}, 20000);
@@ -931,41 +1058,35 @@ function propias() {
   const e = S.cur.est;
   return S.materias.filter(m => m[2] === e.carrera_cod && (!e.plan || !m[4] || String(m[4]) === String(e.plan)));
 }
-SCR.mat = function (el) {
-  const c = S.cur, e = c.est, own = propias();
-  verTodas = !own.length; filtroMat = '';
-  el.innerHTML = `<div class="card">${qHead(pad(nItem()), 'Estudiante ' + nItem() + ' · Paso 2 de 5', `¿En qué materias apoyaste a ${estN()}?`, `Marca <b>todas</b> las materias que trabajaste con ${esc(estN())}. Puedes elegir hasta ${MAX_MAT}.`)}
-    <div class="mcount"><b id="mc">${c.mats.length}</b> seleccionada${c.mats.length === 1 ? '' : 's'}</div>
-    <div class="selbox" id="selbox"></div>
-    <div class="search">${IC.search}<input id="mq" type="search" autocomplete="off" spellcheck="false" placeholder="Buscar materia por nombre o código" data-autofocus></div>
-    <div id="mwrap"></div>
-    ${own.length ? `<button class="mtoggle" id="mtg"></button>` : ''}
-    ${navHtml('Siguiente', c.mats.length > 0)}</div>`;
+function pintaMatSec(el) {
+  const bd = $('#bdMat', el);
+  if (!S.cur.est) { bd.innerHTML = ''; return; }
+  bd.innerHTML = `<div class="selbox" id="selbox"></div>
+    <div class="search">${IC.search}<input id="mq" type="search" autocomplete="off" spellcheck="false" placeholder="Filtrar por nombre o código"></div>
+    <div class="mscroll" id="mwrap"></div>
+    ${propias().length ? `<button class="mtoggle" id="mtg"></button>` : ''}`;
   pintarSel(el); pintarMat(el);
-  $('#mq', el).addEventListener('input', ev => { filtroMat = ev.target.value; pintarMat(el); });
-  const tg = $('#mtg', el); if (tg) tg.addEventListener('click', () => { verTodas = !verTodas; pintarMat(el); });
-  el.addEventListener('click', ev => {
-    const b = ev.target.closest('#mwrap .opt, #selbox button'); if (!b) return;
-    const k = b.dataset.k, i = c.mats.findIndex(m => m.c + '|' + m.k === k);
-    if (i >= 0) c.mats.splice(i, 1);
-    else {
-      if (c.mats.length >= MAX_MAT) { shake(b); return toast(`Máximo ${MAX_MAT} materias por estudiante`); }
-      const m = S.materias.find(x => mKey(x) === k); if (!m) return;
-      if (c.mats.some(x => x.c === m[0])) { shake(b); return toast('Esa materia ya está marcada (con otra carrera)'); }
-      c.mats.push({c:m[0], n:m[1], k:m[2], s:m[3]});
-      if (b.classList.contains('opt')) { ripple(b, ev); FX.burst(ev.clientX, ev.clientY, 10); }
-    }
-    pintarSel(el); $$('#mwrap .opt', el).forEach(o => { const on = c.mats.some(m => m.c + '|' + m.k === o.dataset.k); o.classList.toggle('sel', on); o.setAttribute('aria-pressed', on); });
-    $('#mc', el).textContent = c.mats.length; $('#mc', el).nextSibling.textContent = ' seleccionada' + (c.mats.length === 1 ? '' : 's');
-    setNextOk(el, c.mats.length > 0); saveDraft();
-  });
-  bindNav(el, () => c.mats.length ? go('asis') : (shake(el), toast('Marca al menos una materia')), () => go('est', true));
-};
+}
+function toggleMat(el, b, ev) {
+  const c = S.cur, k = b.dataset.k, i = c.mats.findIndex(m => m.c + '|' + m.k === k);
+  if (i >= 0) c.mats.splice(i, 1);
+  else {
+    if (c.mats.length >= MAX_MAT) { shake(b); return toast(`Máximo ${MAX_MAT} materias por estudiante`); }
+    const m = S.materias.find(x => mKey(x) === k); if (!m) return;
+    if (c.mats.some(x => x.c === m[0])) { shake(b); return toast('Esa materia ya está marcada (con otra carrera)'); }
+    c.mats.push({c:m[0], n:m[1], k:m[2], s:m[3]});
+    if (b.classList.contains('opt')) { ripple(b, ev); FX.burst(ev.clientX, ev.clientY, 10); }
+  }
+  pintarSel(el);
+  $$('#mwrap .opt', el).forEach(o => { const on = c.mats.some(m => m.c + '|' + m.k === o.dataset.k); o.classList.toggle('sel', on); o.setAttribute('aria-pressed', on); });
+  refresh(el);
+}
 function pintarSel(el) {
   $('#selbox', el).innerHTML = S.cur.mats.map(m => `<button data-k="${esc(m.c + '|' + m.k)}" title="Quitar">${esc(m.n)} <i>×</i></button>`).join('');
 }
 function pintarMat(el) {
   const c = S.cur, e = c.est, own = propias(), q = norm(filtroMat), wrap = $('#mwrap', el), tg = $('#mtg', el);
+  if (!wrap) return;
   if (tg) tg.textContent = verTodas ? `Ver solo las materias de ${e.carrera || e.carrera_cod}` : 'Buscar en materias de todas las carreras';
   const match = m => !q || norm(m[1] + ' ' + m[0]).includes(q);
   let html = '';
@@ -974,7 +1095,6 @@ function pintarMat(el) {
     lista.forEach(m => { const g = m[3] || 0; (grupos[g] = grupos[g] || []).push(m); });
     html = Object.keys(grupos).sort((a, b) => (+a || 99) - (+b || 99)).map(g => `<div class="fac">${+g ? (ORD[g] || g + '°') + ' semestre' : 'Sin semestre'}</div><div class="clist mlist">${grupos[g].map(optMat).join('')}</div>`).join('');
     if (!lista.length) html = `<div class="sinfo">${q ? `Ninguna materia de ${esc(e.carrera || e.carrera_cod)} coincide con «${esc(filtroMat)}». Prueba en todas las carreras.` : 'No hay materias cargadas para esta carrera.'}</div>`;
-    else html = `<div class="mnote" style="background:none;border-color:var(--line);color:var(--mut)">Materias de <b style="color:var(--txt)">${esc(e.carrera || e.carrera_cod)}</b>${e.plan ? ' · Plan ' + esc(e.plan) : ''}.</div>` + html;
   } else {
     const nota = own.length ? '' : `<div class="mnote">No hay materias cargadas para ${esc(e.carrera || e.carrera_cod)}${e.plan ? ' plan ' + esc(e.plan) : ''}. Búscalas entre todas las carreras.</div>`;
     if (q.length < 3) html = nota + '<div class="sinfo">Escribe al menos 3 letras del nombre o del código de la materia.</div>';
@@ -992,91 +1112,21 @@ function optMat(m, i) {
   return `<button class="opt sq ${on ? 'sel' : ''}" data-k="${esc(mKey(m))}" aria-pressed="${on}" ${optDelay(i)}><span class="lbl">${esc(m[1])}<span class="sub">${esc(m[0])}${verTodas && m[3] ? ' · ' + (ORD[m[3]] || m[3]) + ' sem.' : ''}</span></span><span class="chk">${IC.check}</span></button>`;
 }
 
-/* 3 · asistencia */
-SCR.asis = function (el) {
-  const c = S.cur, v = c.asis;
-  el.innerHTML = `<div class="card">${qHead(pad(nItem()), 'Estudiante ' + nItem() + ' · Paso 3 de 5', `¿${estN()} asistió?`, 'Si no asistió, marca «No»: su registro termina aquí y vuelves a la lista.')}
-    <div class="duo"><span class="vs">O</span>${['Sí', 'No'].map((o, i) => `<button class="opt ${o === 'Sí' ? 'si' : 'no'} ${v === o ? 'sel' : ''}" data-v="${o}" aria-pressed="${v === o}" ${optDelay(i)} ${i === 0 ? 'data-autofocus' : ''}><span class="key">${i + 1}</span>${IC[o === 'Sí' ? 'si' : 'no']}<span class="lbl">${o === 'Sí' ? 'Sí asistió' : 'No asistió'}</span><span class="chk">${IC.check}</span></button>`).join('')}</div>
-    ${navHtml(v === 'No' ? 'Guardar estudiante' : 'Siguiente', !!v, '<span class="kbd">Teclas 1–2</span>')}</div>`;
-  el.addEventListener('click', e => {
-    const b = e.target.closest('.opt'); if (!b) return;
-    c.asis = b.dataset.v;
-    $$('.opt', el).forEach(x => { const on = x === b; x.classList.toggle('sel', on); x.setAttribute('aria-pressed', on); });
-    ripple(b, e); FX.burst(e.clientX || 0, e.clientY || 0, 16, c.asis === 'Sí' ? '#39ffb0' : '#ff3d6e');
-    $('#btnNext span', el).textContent = c.asis === 'No' ? 'Guardar estudiante' : 'Siguiente';
-    setNextOk(el, true); saveDraft(); autoNext(nextAsis, 700);
-  });
-  bindNav(el, nextAsis, () => go('mat', true));
-  tilt($('.card', el));
-};
-function nextAsis() { const c = S.cur; if (!c.asis) { shake(stage.lastElementChild); return toast('Indica si asistió'); } c.asis === 'No' ? commitFicha() : go('ses'); }
-
-/* 4 · fecha y horario */
-const anterior = () => { const lst = S.items.filter((it, i) => i !== S.curIdx && it.asis === 'Sí'); return lst.length ? lst[lst.length - 1] : null; };
-function sesError(c) {
-  if (!c.fecha) return 'Falta la fecha de la sesión.';
-  const hoy = isoHoy();
-  if (c.fecha > hoy) return 'La fecha no puede ser posterior a hoy.';
-  const d = new Date(c.fecha + 'T12:00:00'); if (isNaN(d) || (Date.now() - d) > 365 * 86400000) return 'Revisa la fecha: es de hace más de un año.';
-  const a = minutos(c.hi), b = minutos(c.hf);
-  if (a === null || b === null) return 'Faltan la hora de inicio y la de conclusión.';
-  if (b <= a) return 'La hora de conclusión debe ser posterior a la de inicio.';
-  if (b - a > 600) return 'La sesión no puede durar más de 10 horas.';
-  return '';
-}
-SCR.ses = function (el) {
-  const c = S.cur, prev = anterior();
-  if (!c.fecha) c.fecha = isoHoy();
-  el.innerHTML = `<div class="card">${qHead(pad(nItem()), 'Estudiante ' + nItem() + ' · Paso 4 de 5', 'Fecha y horario de la sesión', `¿Cuándo fue la sesión con ${esc(estN())}?`)}
-    ${prev ? `<button class="copybtn" id="cpy">${IC.copy}<span>Usar la misma fecha y horario de <b>${esc(firstName(prev.est.nombre))}</b> (${fmtF(prev.fecha)} · ${esc(prev.hi)}–${esc(prev.hf)})</span></button>` : ''}
+/* 4 · sesión: fecha, horario, actividades y observaciones */
+function pintaSes(el) {
+  const c = S.cur, bd = $('#bdSes', el), p = anterior();
+  if (c.asis !== 'Sí') { bd.innerHTML = ''; return; }
+  bd.innerHTML = `${p ? `<button class="copybtn" id="cpy">${IC.copy}<span>Misma sesión que <b>${esc(firstName(p.est.nombre))}</b>: copiar fecha, horario y actividades (${fmtF(p.fecha)} · ${esc(p.hi)}–${esc(p.hf)})</span></button>` : ''}
     <div class="fgrid"><label class="fld fecha full">Fecha de la sesión<input id="fF" type="date" max="${isoHoy()}" value="${esc(c.fecha)}"></label>
-    <label class="fld">Hora de inicio<input id="fHi" type="time" value="${esc(c.hi)}" data-autofocus></label>
+    <label class="fld">Hora de inicio<input id="fHi" type="time" value="${esc(c.hi)}"></label>
     <label class="fld">Hora de conclusión<input id="fHf" type="time" value="${esc(c.hf)}"></label></div>
     <div class="durbox" id="dur"></div>
-    ${navHtml('Siguiente', !sesError(c))}</div>`;
-  const pinta = () => {
-    const err = sesError(c), d = $('#dur', el);
-    d.classList.toggle('err', !!err && !!(c.hi && c.hf));
-    d.innerHTML = err ? (c.hi && c.hf ? esc(err) : 'Indica la hora de inicio y la de conclusión.') : `Duración: <b>${fmtDur(minutos(c.hf) - minutos(c.hi))}</b>`;
-    setNextOk(el, !err); saveDraft();
-  };
-  [['fF', 'fecha'], ['fHi', 'hi'], ['fHf', 'hf']].forEach(([id, k]) => $('#' + id, el).addEventListener('input', ev => { c[k] = ev.target.value; pinta(); }));
-  const cp = $('#cpy', el);
-  if (cp) cp.addEventListener('click', () => { Object.assign(c, {fecha:prev.fecha, hi:prev.hi, hf:prev.hf}); $('#fF', el).value = c.fecha; $('#fHi', el).value = c.hi; $('#fHf', el).value = c.hf; pinta(); FX.burst(innerWidth / 2, 200, 14); });
-  pinta();
-  bindNav(el, () => { const err = sesError(c); if (err) { shake(el); return toast(err); } go('act'); }, () => go('asis', true));
-};
-
-/* 5 · actividades y observaciones */
-SCR.act = function (el) {
-  const c = S.cur, prev = anterior(), MAX = 1000;
-  el.innerHTML = `<div class="card">${qHead(pad(nItem()), 'Estudiante ' + nItem() + ' · Paso 5 de 5', 'Actividad(es) realizada(s)', 'Toca una sugerencia para agregarla o escribe con tus palabras.')}
-    ${prev && prev.act ? `<button class="copybtn" id="cpy">${IC.copy}<span>Usar las mismas actividades de <b>${esc(firstName(prev.est.nombre))}</b></span></button>` : ''}
+    <span class="lbl2 ob">Actividad(es) realizada(s)</span>
     <div class="achips">${ACTS.map(a => `<button class="achip" data-a="${esc(a)}">${esc(a)}</button>`).join('')}</div>
-    <div class="tx"><textarea id="tAct" class="short" maxlength="${MAX}" placeholder="Describe lo que trabajaron en la sesión…" data-autofocus>${esc(c.act)}</textarea><span class="cnt"><span id="cA">${c.act.length}</span> / ${MAX}</span></div>
+    <div class="tx"><textarea id="tAct" class="short" maxlength="1000" placeholder="Toca una sugerencia o escribe lo que trabajaron…">${esc(c.act)}</textarea><span class="cnt"><span id="cA">${c.act.length}</span> / 1000</span></div>
     <span class="lbl2">Observaciones y comentarios · opcional</span>
-    <div class="tx"><textarea id="tObs" class="short" maxlength="${MAX}" placeholder="Algo que la dirección deba saber (opcional)…">${esc(c.obs)}</textarea><span class="cnt"><span id="cO">${c.obs.length}</span> / ${MAX}</span></div>
-    ${navHtml('Guardar estudiante', !!c.act.trim(), '', IC.check)}</div>`;
-  const tA = $('#tAct', el), tO = $('#tObs', el);
-  const pinta = () => {
-    $('#cA', el).textContent = c.act.length; $('#cO', el).textContent = c.obs.length;
-    $$('.achip', el).forEach(b => b.classList.toggle('on', c.act.toLowerCase().includes(b.dataset.a.toLowerCase())));
-    setNextOk(el, !!c.act.trim()); saveDraft();
-  };
-  tA.addEventListener('input', () => { c.act = tA.value; pinta(); });
-  tO.addEventListener('input', () => { c.obs = tO.value; pinta(); });
-  el.addEventListener('click', e => {
-    const b = e.target.closest('.achip'); if (!b) return;
-    const a = b.dataset.a;
-    if (c.act.toLowerCase().includes(a.toLowerCase())) c.act = c.act.replace(new RegExp('(;\\s*)?' + a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(;\\s*)?', 'i'), (m, p1, p2) => p1 && p2 ? '; ' : '').trim();
-    else c.act = (c.act.trim() ? c.act.trim().replace(/[;.,]$/, '') + '; ' : '') + a;
-    c.act = c.act.slice(0, MAX); tA.value = c.act; pinta();
-  });
-  const cp = $('#cpy', el);
-  if (cp) cp.addEventListener('click', () => { c.act = prev.act; tA.value = c.act; pinta(); FX.burst(innerWidth / 2, 200, 14); });
-  pinta();
-  bindNav(el, () => { if (!c.act.trim()) { shake(el); return toast('Escribe las actividades realizadas'); } c.act = c.act.trim(); c.obs = c.obs.trim(); FX.burst(innerWidth / 2, innerHeight - 120, 24, '#39ffb0'); commitFicha(); }, () => go('ses', true));
-};
+    <div class="tx"><textarea id="tObs" class="short" maxlength="1000" placeholder="Algo que la dirección deba saber (opcional)…">${esc(c.obs)}</textarea><span class="cnt"><span id="cO">${c.obs.length}</span> / 1000</span></div>`;
+}
 
 /* ---------- revisión ---------- */
 SCR.review = function (el) {
@@ -1239,7 +1289,7 @@ function showWelcome(back) {
   S.scr = null; $('#top').classList.add('off');
   const d = lsGet(LS_DRAFT, null);
   const hasDraft = d && d.id && d.perfil && d.v === VERSION;
-  const words = [['Registro', 0], ['de', 0], ['sesiones', 0], ['de', 0], ['mentoría', 1]];
+  const words = [['Bitácora', 0], ['de', 0], ['nivelaciones', 0], ['Unifranz', 1]];
   let ci = 0;
   const NG = words.filter(w => w[1]).reduce((n, w) => n + w[0].length, 0); let gi = 0;
   const title = words.map(([w, g]) => `<span class="wd${g ? ' grad' : ''}">` + w.split('').map(c => `<span class="ch" style="animation-delay:${200 + (ci++) * 26}ms${g ? `;background-position:${(gi++ / (NG - 1) * 100).toFixed(1)}% 0` : ''}">${c}</span>`).join('') + '</span>').join(' ');
@@ -1254,15 +1304,15 @@ function showWelcome(back) {
     <div class="chips"><span class="chip">${IC.mail}Con tu correo UNIFRANZ</span><span class="chip">${IC.users}Varios estudiantes, <b>1</b> envío</span><span class="chip">${IC.books}Varias materias por estudiante</span><span class="chip">${IC.clock}<b>≈1</b> min por estudiante</span></div>
     ${hasDraft ? `<div class="resume">Tienes un registro sin enviar en este equipo (hito ${esc(d.hito || '–')} · ${nd} estudiante${nd === 1 ? '' : 's'}).<div class="row"><button class="btn prime" id="cont"><span>Continuar donde lo dejé</span>${IC.arrowR}</button><button class="btn ghost" id="fresh">Empezar de nuevo</button></div></div>`
       : `<button class="btn prime big" id="start" data-autofocus><span>Comenzar registro</span>${IC.arrowR}</button>`}
-    <div class="hfoot">Universidad Privada Franz Tamayo · Acompañamiento académico</div>
+    <div class="hfoot">Universidad Privada Franz Tamayo · Nivelaciones</div>
   </div>`;
   const sh = $('#shine', el); sh.style.webkitMaskImage = sh.style.maskImage = `url(${LOGO_FULL})`;
   const start = () => { S = {...fresh(), id:nuevoId(), t0:Date.now()}; go('login'); };
   if (hasDraft) {
     $('#cont', el).onclick = () => {
       S = {...fresh(), ...d}; delete S.v;
-      const sc = FICHA.includes(S.scr) && S.cur ? (S.cur.est ? S.scr : 'est') : (S.scr === 'review' && S.items.length ? 'review' : (S.hito ? 'hub' : 'hito'));
-      if (!FICHA.includes(sc)) { S.cur = null; S.curIdx = -1; }
+      const sc = S.scr === 'ficha' && S.cur ? 'ficha' : (S.scr === 'review' && S.items.length ? 'review' : (S.hito ? 'hub' : 'hito'));
+      if (sc !== 'ficha') { S.cur = null; S.curIdx = -1; }
       go(sc);
     };
     $('#fresh', el).onclick = () => { lsDel(LS_DRAFT); start(); };
@@ -1293,7 +1343,6 @@ document.addEventListener('keydown', e => {
   const tag = (e.target.tagName || '').toLowerCase();
   if (tag === 'textarea' || tag === 'input' || tag === 'select') return;
   const el = stage.lastElementChild;
-  if (sc === 'asis' && /^[12]$/.test(e.key)) { const b = $$('.duo .opt', el)[+e.key - 1]; if (b) b.click(); return; }
   if (sc === 'hito' && /^[1-9]$/.test(e.key)) { const b = $$('.opt', el)[+e.key - 1]; if (b) b.click(); return; }
   if (e.key === 'Enter' && !e.target.closest('button') && sc !== 'review') { e.preventDefault(); const b = $('#btnNext', el); if (b) b.click(); }
 });
@@ -1407,7 +1456,7 @@ const FX = (() => {
 (function init() {
   $('#topLogo').src = LOGO_WORD;
   $('#ver').textContent = 'v' + VERSION;
-  const tk = ['<b>UNIFRANZ</b>', 'REGISTRO DE MENTORÍAS', '<i>DOCENTES TUTORES</i>', 'HERMANOS MAYORES', '<i>HITOS 2 · 3 · 4</i>', 'ACOMPAÑAMIENTO ACADÉMICO', '<i>UN SOLO ENVÍO</i>', '<b>LA PAZ · EL ALTO · COCHABAMBA · SANTA CRUZ</b>'];
+  const tk = ['<b>UNIFRANZ</b>', 'BITÁCORA DE NIVELACIONES', '<i>DOCENTES TUTORES</i>', 'HERMANOS MAYORES', '<i>HITOS 2 · 3 · 4</i>', 'ACOMPAÑAMIENTO ACADÉMICO', '<i>UN SOLO ENVÍO</i>', '<b>LA PAZ · EL ALTO · COCHABAMBA · SANTA CRUZ</b>'];
   const seq = tk.map(t => `<span>◆ ${t}</span>`).join('');
   $('#tickTrack').innerHTML = seq + seq;
   if (!API_OK) $('#bannerSlot').innerHTML = '<div class="banner"><div>Modo de prueba: el registro aún no está conectado a la base de datos. Cualquier correo @unifranz.edu.bo entra con datos ficticios y los envíos se guardan solo en este equipo.</div></div>';

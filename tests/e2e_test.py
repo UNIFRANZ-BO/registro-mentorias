@@ -54,76 +54,73 @@ async def main():
         assert 'No encontramos' in await pg.inner_text('#mailMsg')
         await pg.fill('#mailIn', ' DOC.JuanPerez.Lopez.ga@unifranz.edu.bo '); await pg.click('#btnVerify'); await pg.wait_for_timeout(2200)
         assert await scr() == 'hito', await scr()
-        assert 'Ya registraste 4' in await pg.inner_text('#stage'); await shot('01_hito')
+        assert 'Ya registraste 4' in await pg.inner_text('#stage') and 'Seleccionar HITO' in await pg.inner_text('.qtitle'); await shot('01_hito')
         await pg.click('.opt[data-v="3"]'); await pg.wait_for_timeout(1500)
         assert await scr() == 'hub'; await shot('02_hub_vacio')
 
-        # ── estudiante 1: búsqueda por nombre, 2 materias, asistió, sesión, actividades
+        # ── estudiante 1: todo en una sola pantalla (buscar, materias, asistió, sesión)
         await pg.click('#btnAdd'); await pg.wait_for_timeout(900)
+        assert await scr() == 'ficha'
+        assert await pg.locator('#secMat').is_hidden() and await pg.locator('#secAsis').is_hidden(), 'secciones ocultas al inicio'
         await pg.fill('#q', 'ronald mend'); await pg.wait_for_timeout(1300)
         await shot('03_buscar')
-        await pg.click('#sres .opt'); await pg.wait_for_timeout(1500)
-        assert await scr() == 'mat', await scr()
+        await pg.click('#sres .opt'); await pg.wait_for_timeout(700)
+        assert 'Ronald Mendoza Vargas' in await pg.inner_text('.selest')
         assert await pg.locator('#mwrap .opt').count() == 3, 'materias propias de SIS'
+        assert await pg.locator('#secAsis').is_hidden(), '¿Asistió? aparece después de elegir materias'
         await pg.click('#mwrap .opt[data-k="PRG-111 (P)|SIS"]'); await pg.click('#mwrap .opt[data-k="BDD-311 (P)|SIS"]')
+        assert '2 seleccionadas' in (await pg.inner_text('#mc')).lower()
         await pg.click('#mtg'); await pg.fill('#mq', 'gestion'); await pg.wait_for_timeout(400)
         assert await pg.locator('#mwrap .opt').count() == 1, 'búsqueda en todas las carreras'
-        await shot('04_materias')
-        await pg.click('#mtg'); await pg.wait_for_timeout(300)
-        await pg.click('#btnNext'); await pg.wait_for_timeout(1000)
-        assert await scr() == 'asis'
-        await pg.click('.duo .opt[data-v="Sí"]'); await pg.wait_for_timeout(1500)
-        assert await scr() == 'ses';
-        await pg.click('#btnNext'); await pg.wait_for_timeout(500)
-        assert await scr() == 'ses', 'sin horas no debe avanzar'
+        await pg.click('#mtg'); await pg.fill('#mq', ''); await pg.wait_for_timeout(300)
+        await pg.click('#btnOtro'); await pg.wait_for_timeout(500)
+        assert await scr() == 'ficha' and await pg.evaluate('S.items.length') == 0, 'no debe guardar sin asistencia'
+        await pg.click('[data-asis="Sí"]'); await pg.wait_for_timeout(600)
+        assert await pg.locator('#secSes').is_visible()
         await pg.fill('#fHi', '15:00'); await pg.fill('#fHf', '14:00'); await pg.wait_for_timeout(200)
         assert 'posterior' in await pg.inner_text('#dur')
         await pg.fill('#fHf', '16:30'); await pg.wait_for_timeout(200)
-        assert '1 h 30 min' in await pg.inner_text('#dur'); await shot('05_sesion')
-        await pg.click('#btnNext'); await pg.wait_for_timeout(1000)
-        assert await scr() == 'act'
+        assert '1 h 30 min' in await pg.inner_text('#dur')
         await pg.click('.achip[data-a="Repaso de contenidos"]'); await pg.click('.achip[data-a="Aclaración de dudas"]')
         assert await pg.input_value('#tAct') == 'Repaso de contenidos; Aclaración de dudas'
         await pg.click('.achip[data-a="Repaso de contenidos"]')
         assert await pg.input_value('#tAct') == 'Aclaración de dudas', await pg.input_value('#tAct')
-        await pg.fill('#tObs', 'Necesita más práctica.'); await shot('06_actividades')
-        await pg.click('#btnNext'); await pg.wait_for_timeout(1300)
-        assert await scr() == 'hub' and await pg.evaluate('S.items.length') == 1
+        await pg.fill('#tObs', 'Necesita más práctica.')
+        assert 'Todo listo' in await pg.inner_text('#fmsg')
+        await shot('04_ficha', True)
+        await pg.click('#btnOtro'); await pg.wait_for_timeout(1300)
+        assert await scr() == 'ficha' and await pg.evaluate('S.items.length') == 1, 'guardar y agregar otro'
 
         # ── el borrador sobrevive a recargar la página
         await pg.reload(); await pg.wait_for_timeout(1500)
         assert '1 estudiante' in await pg.inner_text('.resume')
         await pg.click('#cont'); await pg.wait_for_timeout(1200)
-        assert await scr() == 'hub' and await pg.evaluate('S.items.length') == 1
+        assert await scr() == 'ficha' and await pg.evaluate('S.items.length') == 1
 
-        # ── estudiante 2: por CI, no asistió → vuelve solo a la lista
-        await pg.click('#btnAdd'); await pg.wait_for_timeout(900)
+        # ── estudiante 2: por CI, no asistió (no pide nada más)
         await pg.fill('#q', '7788990'); await pg.press('#q', 'Enter'); await pg.wait_for_timeout(900)
-        await pg.click('#sres .opt'); await pg.wait_for_timeout(1500)
-        await pg.click('#mwrap .opt[data-k="IGC-111 (C)|NGE"]'); await pg.click('#btnNext'); await pg.wait_for_timeout(1000)
-        await pg.click('.duo .opt[data-v="No"]'); await pg.wait_for_timeout(1600)
-        assert await scr() == 'hub' and await pg.evaluate('S.items.length') == 2
+        await pg.click('#sres .opt'); await pg.wait_for_timeout(700)
+        await pg.click('#mwrap .opt[data-k="IGC-111 (C)|NGE"]')
+        await pg.click('[data-asis="No"]'); await pg.wait_for_timeout(400)
+        assert await pg.locator('#secSes').is_hidden() and 'Todo listo' in await pg.inner_text('#fmsg')
+        await pg.click('#btnOtro'); await pg.wait_for_timeout(1300)
+        assert await pg.evaluate('S.items.length') == 2
         # ── el mismo estudiante no puede repetirse
-        await pg.click('#btnAdd'); await pg.wait_for_timeout(900)
         await pg.fill('#q', 'ronald'); await pg.wait_for_timeout(1300); await pg.click('#sres .opt'); await pg.wait_for_timeout(500)
         assert 'ya está en la lista' in await pg.inner_text('#toast')
-        # ── estudiante 3: registrado a mano, copia fecha/horario y actividades del anterior
-        await pg.click('#tgMan'); await pg.fill('#mCi', '9876543'); await pg.fill('#mNom', 'Pedro Gomez Ruiz'); await pg.select_option('#mCar', 'NGE')
-        await shot('07_manual')
-        await pg.click('#btnNext'); await pg.wait_for_timeout(1000)
-        assert await scr() == 'mat'
-        await pg.click('#mwrap .opt[data-k="PIN-111 (P)|NGE"]'); await pg.click('#btnNext'); await pg.wait_for_timeout(1000)
-        await pg.click('.duo .opt[data-v="Sí"]'); await pg.wait_for_timeout(1500)
-        await pg.click('#cpy'); assert await pg.input_value('#fHi') == '15:00'
-        await pg.click('#btnNext'); await pg.wait_for_timeout(1000)
-        await pg.click('#cpy'); await pg.click('#btnNext'); await pg.wait_for_timeout(1300)
-        assert await pg.evaluate('S.items.length') == 3
+        # ── estudiante 3: registrado a mano; copia fecha, horario y actividades del anterior
+        await pg.click('#tgMan'); await pg.fill('#mCi', '9876543'); await pg.fill('#mNom', 'Pedro Gomez Ruiz'); await pg.select_option('#mCar', 'NGE'); await pg.wait_for_timeout(300)
+        await pg.click('#mwrap .opt[data-k="PIN-111 (P)|NGE"]')
+        await pg.click('[data-asis="Sí"]'); await pg.wait_for_timeout(500)
+        await pg.click('#cpy'); assert await pg.input_value('#fHi') == '15:00' and await pg.input_value('#tAct') == 'Aclaración de dudas'
+        await shot('05_manual', True)
+        await pg.click('#btnSave'); await pg.wait_for_timeout(1300)
+        assert await scr() == 'hub' and await pg.evaluate('S.items.length') == 3
         await shot('08_hub', True)
-        # ── editar el 2 (cambiar a «asistió») y volver a «No»: no deben quedar datos de sesión
+        # ── editar el 2: queda «No» y sin datos de sesión
         await pg.click('[data-ed="1"]'); await pg.wait_for_timeout(900)
-        assert await scr() == 'est'
-        await pg.click('#btnNext'); await pg.wait_for_timeout(900); await pg.click('#btnNext'); await pg.wait_for_timeout(900)
-        await pg.click('.duo .opt[data-v="No"]'); await pg.wait_for_timeout(1600)
+        assert await scr() == 'ficha' and 'Ana Maria' in await pg.inner_text('.selest')
+        await pg.click('#btnSave'); await pg.wait_for_timeout(1300)
         assert await scr() == 'hub' and await pg.evaluate('S.items.length') == 3
 
         await pg.click('#btnNext'); await pg.wait_for_timeout(1200)
