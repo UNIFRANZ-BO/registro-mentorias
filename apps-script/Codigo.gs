@@ -126,7 +126,7 @@ function crearConfig_() {
     ['Planes habilitados', '', 'Planes de los MENTORES que pueden ingresar. Ej.: 2026  ·  2017; 2026  ·  vacío = todos. Estudiantes y materias de cualquier plan se pueden registrar.'],
     ['Sedes habilitadas', '', 'Sedes de los mentores. Códigos: LPZ; EAT; CBB; SCZ  ·  vacío = todas'],
     ['Carreras habilitadas', '', 'Carreras de los mentores. Códigos, ej.: NGE; ICO  ·  vacío = todas'],
-    ['Buscar estudiantes de todas las sedes', 'NO', 'NO = al buscar por nombre, el mentor solo ve estudiantes de su sede (por CI los encuentra en cualquier sede). SÍ = todas las sedes.'],
+    ['Buscar estudiantes de todas las sedes', 'SÍ', 'SÍ = al buscar por nombre, el mentor ve estudiantes de todas las sedes. NO = solo de su sede (por CI los encuentra siempre en cualquier sede).'],
     ['Permitir estudiantes que no están en la base', 'SÍ', 'SÍ = si un estudiante no aparece, el mentor puede registrarlo a mano (CI, nombre y carrera). Esas filas quedan marcadas con «No» en «Estudiante en la base».'],
     ['Mensaje de registro cerrado', 'El registro de sesiones no está disponible en este momento.', 'Texto que ve el mentor cuando está cerrado.']
   ];
@@ -202,7 +202,7 @@ function config_() {
     estudiantes: pestanas(c['Pestañas de estudiantes'], 'BASEDEDATOSEST'),
     materias: pestanas(c['Pestañas de materias'], 'BASEDEDATOSMATERIAS'),
     planes: lista(c['Planes habilitados']), sedes: lista(c['Sedes habilitadas']), carreras: lista(c['Carreras habilitadas']),
-    todasSedes: si(c['Buscar estudiantes de todas las sedes'], 'NO'),
+    todasSedes: si(c['Buscar estudiantes de todas las sedes'], 'SÍ'),
     manual: si(c['Permitir estudiantes que no están en la base'], 'SÍ'),
     mensaje: String(c['Mensaje de registro cerrado'] || 'El registro de sesiones no está disponible en este momento.')
   };

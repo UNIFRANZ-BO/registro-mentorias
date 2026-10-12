@@ -34,7 +34,7 @@ Ahora: **un envío por grupo** (hito + N estudiantes), cada estudiante con **tod
   Programa: «Docente Tutor» por defecto; «Hermano Mayor» si AGREGADOS lo dice o el correo empieza con `est.`.
 - **Estudiantes:** `BASEDEDATOSEST` (sede, anho_plan_estudio, carrera, nombres/apellidos, ci, correo_institucional, celular; 1857).
   Nunca va al front: `?action=buscar` devuelve máx. 12 coincidencias (nombre, carrera, sede, plan, CI enmascarado `•••660`).
-  Por CI (≥5 dígitos) busca en todas las sedes; por nombre, solo en la sede del mentor salvo CONFIG «Buscar… todas las sedes = SÍ».
+  Por CI (≥5 dígitos) y por nombre busca en **todas las sedes** (decisión de Rafael, 11-oct-2026; CONFIG «Buscar estudiantes de todas las sedes», SÍ por defecto; con NO, por nombre solo su sede).
   Cada palabra escrita debe ser comienzo de una palabra del nombre. Si no aparece, el mentor puede **registrarlo a mano**
   (CI, nombre, carrera; CONFIG «Permitir estudiantes que no están en la base»), y la fila queda con «Estudiante en la base = No».
 - **Materias:** `BASEDEDATOSMATERIAS` (Facultad, Carrera, Sem., Código asignatura, Asignatura, Plan_estudios; 968 filas, 17 carreras, todo plan 2026).
@@ -84,11 +84,13 @@ Ahora: **un envío por grupo** (hito + N estudiantes), cada estudiante con **tod
   Hay una hoja vacía de más en la cuenta personal («Registro de Mentorías 2026», `1vorJLyJ-oRITRnQjjMEG5qrw47e-4nHtYf-npwGE8iA`): no se usa.
   El conector de Drive de Claude es de la cuenta personal: **no ve la hoja @unifranz**.
 - [x] **URL del script:** implementación `AKfycbxtZvLrQlpP…OICug` (11-oct-2026), incrustada en `API_URL_DEFECTO`; ping anónimo OK.
-- [x] **Repo** `UNIFRANZ-BO/registro-mentorias` (público, Pages en `main`) → enlace vigente **https://unifranz-bo.github.io/registro-mentorias/?v=1**. Ping desde la página publicada OK.
+- [x] **Repo** `UNIFRANZ-BO/registro-mentorias` (público, Pages en `main`) → enlace vigente **https://unifranz-bo.github.io/registro-mentorias/?v=2** (v=2: ejemplo de correo sin «doc.»). Ping desde la página publicada OK.
 - [ ] Rafael: importar `entregables/Base_registro_mentorias.xlsx` en la hoja @unifranz (Insertar hojas nuevas) y ejecutar
   `configuracionInicial` (o «Actualizar padrón»). Al 11-oct, `validar` con un docente real da `no_encontrado` → bases aún no cargadas.
 - [ ] Prueba real (R13 de la guía) y limpieza antes de difundir.
-- [ ] Por confirmar con Rafael: ¿los Hermanos Mayores también usarán la app?, ¿las sugerencias de actividades sirven?, ¿filtro de sede en la búsqueda?
+- [x] Rafael confirmó (11-oct): los **Hermanos Mayores también la usan** (vía AGREGADOS con Programa = Hermano Mayor, o una pestaña propia en «Pestañas de docentes»); búsqueda por nombre en todas las sedes.
+- [ ] En la hoja ya instalada, CONFIG quedó con «Buscar estudiantes de todas las sedes = NO» (valor viejo): Rafael debe cambiarlo a SÍ.
+- [ ] Por confirmar: ¿sirven las sugerencias de actividades?
 
 ## Comandos
 ```bash

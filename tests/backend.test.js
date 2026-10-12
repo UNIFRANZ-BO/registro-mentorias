@@ -81,7 +81,12 @@ if(v1.materias.find(m=>m[0]==='ANA-111 (P)')[3]!=='')fallo('semestre 46367 debe 
 console.log('validar mayúsc/espacios',get('validar',{correo:'doc.ana.rojas.va@unifranz.edu.bo'}).habilitado);
 console.log('validar desconocido',J(get('validar',{correo:'x.y@unifranz.edu.bo'})));
 // ── búsqueda de estudiantes
+const b0=get('buscar',{correo:M,q:'quispe'});console.log('buscar «quispe» de LPZ desde CBB (todas las sedes, por defecto)',J(b0.resultados.map(x=>x.nombre+' '+x.sede)));
+if(b0.resultados.length!==1)fallo('búsqueda en todas las sedes');
+ctx.setConfig_('Buscar estudiantes de todas las sedes','NO');
+if(get('buscar',{correo:M,q:'quispe'}).resultados.length!==0)fallo('filtro de sede con NO');
 const b1=get('buscar',{correo:M,q:'rojas'});console.log('buscar «rojas» (solo su sede CBB)',J(b1));
+ctx.setConfig_('Buscar estudiantes de todas las sedes','SÍ');
 if(b1.resultados.length!==2||J(b1).includes('7788990')||J(b1).includes('70000001'))fallo('buscar por nombre / filtro de sede / CI expuesto');
 const b2=get('buscar',{correo:M,q:'13755793'});console.log('buscar por CI (otra sede)',J(b2));
 if(b2.resultados.length!==1||b2.resultados[0].ci!=='•••793')fallo('buscar por CI');

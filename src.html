@@ -722,7 +722,7 @@ const MAIL_RE = /^[a-z0-9._%+-]+@unifranz\.edu\.bo$/;
 SCR.login = function (el) {
   const ok = !!S.perfil;
   el.innerHTML = `<div class="card login ${ok ? 'okd' : ''}">${qHead('@', 'Acceso seguro', 'Ingresa tu correo institucional', 'Usa tu correo @unifranz.edu.bo. Con él sabemos quién eres y en qué sede y carrera trabajas: no tienes que llenarlo.')}
-    <div class="mail"><span class="mi">${IC.mail}</span><input id="mailIn" type="email" inputmode="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="doc.nombre.apellido@unifranz.edu.bo" value="${esc(S.correo || '')}" data-autofocus><span class="scanln"></span><span class="mok">${IC.check}</span></div>
+    <div class="mail"><span class="mi">${IC.mail}</span><input id="mailIn" type="email" inputmode="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="nombre.apellido@unifranz.edu.bo" value="${esc(S.correo || '')}" data-autofocus><span class="scanln"></span><span class="mok">${IC.check}</span></div>
     <div class="mmsg" id="mailMsg" role="alert">${ok ? `<span class="good">Correo verificado. Puedes continuar.</span>` : ''}</div>
     <div class="nav"><button class="btn ghost" data-act="prev">${IC.arrowL}<span>Atrás</span></button><span class="kbd">Enter para verificar</span><button class="btn prime" id="btnVerify"><span>${ok ? 'Continuar' : 'Verificar'}</span>${IC.arrowR}</button></div></div>`;
   const inp = $('#mailIn', el), card = $('.card', el);
