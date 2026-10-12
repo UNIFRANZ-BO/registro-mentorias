@@ -79,11 +79,14 @@ Ahora: **un envío por grupo** (hito + N estudiantes), cada estudiante con **tod
 ## Estado y pendientes (11-oct-2026)
 - [x] App v1.0 y script v1.0; pruebas locales OK (390 px, 1366 px, hoja simulada en inglés y español, y con los datos reales del Excel).
 - [x] Guía PDF (`entregables/Guia_hoja_registro_mentorias.pdf`, 23 páginas) y base limpia `entregables/Base_registro_mentorias.xlsx`.
-- [x] Hoja creada (11-oct-2026) en la cuenta personal: «Registro de Mentorías 2026», id `1vorJLyJ-oRITRnQjjMEG5qrw47e-4nHtYf-npwGE8iA`.
-  Rafael probó antes en una hoja @unifranz (`1hGgjqS8HSv936lvWirtyc19TG2pZA1SBEwNUKlWmHA0`): su implementación
-  (`/a/macros/unifranz.edu.bo/…`) exige login de UNIFRANZ → **no sirve**; descartada.
-- [ ] Rafael: importar el xlsx en la hoja personal (Insertar hojas nuevas), pegar el script, `configuracionInicial`, implementar y pasar la URL /exec (debe ser `script.google.com/macros/s/…`, sin `/a/macros/unifranz.edu.bo`).
-- [ ] Incrustar la URL en `API_URL_DEFECTO`, crear `UNIFRANZ-BO/registro-mentorias` (público, Pages en `main`), enlace `?v=1`.
+- [x] **Hoja en uso:** la de la cuenta **@unifranz** de Rafael, id `1hGgjqS8HSv936lvWirtyc19TG2pZA1SBEwNUKlWmHA0`
+  (el dominio sí permite acceso «Cualquier persona»: al principio estaba restringido y la URL pedía login).
+  Hay una hoja vacía de más en la cuenta personal («Registro de Mentorías 2026», `1vorJLyJ-oRITRnQjjMEG5qrw47e-4nHtYf-npwGE8iA`): no se usa.
+  El conector de Drive de Claude es de la cuenta personal: **no ve la hoja @unifranz**.
+- [x] **URL del script:** implementación `AKfycbxtZvLrQlpP…OICug` (11-oct-2026), incrustada en `API_URL_DEFECTO`; ping anónimo OK.
+- [x] **Repo** `UNIFRANZ-BO/registro-mentorias` (público, Pages en `main`) → enlace vigente **https://unifranz-bo.github.io/registro-mentorias/?v=1**. Ping desde la página publicada OK.
+- [ ] Rafael: importar `entregables/Base_registro_mentorias.xlsx` en la hoja @unifranz (Insertar hojas nuevas) y ejecutar
+  `configuracionInicial` (o «Actualizar padrón»). Al 11-oct, `validar` con un docente real da `no_encontrado` → bases aún no cargadas.
 - [ ] Prueba real (R13 de la guía) y limpieza antes de difundir.
 - [ ] Por confirmar con Rafael: ¿los Hermanos Mayores también usarán la app?, ¿las sugerencias de actividades sirven?, ¿filtro de sede en la búsqueda?
 
