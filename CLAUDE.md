@@ -11,6 +11,12 @@ explican las lecciones, que se aplican todas). Creado el 11-oct-2026 desde la pl
 - Todo en **castellano neutro** (tú), nunca voseo.
 - Aspecto profesional en Sheets: encabezados gris oscuro `#3a3a3a`.
 
+## Interfaz (v1.1, 11-oct-2026, pedidos de Rafael)
+- Título de inicio: «Bitácora de nivelaciones Unifranz». Acceso: «Usa tu correo docente @unifranz.edu.bo.» Hito: «Seleccionar HITO» (sin ayuda).
+- **Ficha de estudiante en una sola pantalla** (`SCR.ficha`): 1 Estudiante · 2 Seleccionar materias · 3 ¿Asistió? · 4 Sesión (solo si asistió);
+  cada sección aparece al completar la anterior; aviso «Falta: …»; botones Guardar y **Guardar y agregar otro**; botón para copiar la sesión del estudiante anterior.
+- Tras validar el correo, la app lanza un `buscar` silencioso para que el servidor arme el índice de estudiantes en caché.
+
 ## El problema que resuelve
 **Las 3 bases son solo referencia** (aclaración de Rafael, 11-oct-2026): el docente registra únicamente a los estudiantes
 que no aprobaron (asistan o no); esa condición no está en ninguna base. No hay padrón de estudiantes «pendientes» ni
@@ -88,7 +94,7 @@ Ahora: **un envío por grupo** (hito + N estudiantes), cada estudiante con **tod
   Hay una hoja vacía de más en la cuenta personal («Registro de Mentorías 2026», `1vorJLyJ-oRITRnQjjMEG5qrw47e-4nHtYf-npwGE8iA`): no se usa.
   El conector de Drive de Claude es de la cuenta personal: **no ve la hoja @unifranz**.
 - [x] **URL del script:** implementación `AKfycbxtZvLrQlpP…OICug` (11-oct-2026), incrustada en `API_URL_DEFECTO`; ping anónimo OK.
-- [x] **Repo** `UNIFRANZ-BO/registro-mentorias` (público, Pages en `main`) → enlace vigente **https://unifranz-bo.github.io/registro-mentorias/?v=2** (v=2: ejemplo de correo sin «doc.»). Ping desde la página publicada OK.
+- [x] **Repo** `UNIFRANZ-BO/registro-mentorias` (público, Pages en `main`) → enlace vigente **https://unifranz-bo.github.io/registro-mentorias/?v=3** (v=3: ficha en una pantalla y textos «Bitácora de nivelaciones»). Ping desde la página publicada OK.
 - [ ] Rafael: importar `entregables/Base_registro_mentorias.xlsx` en la hoja @unifranz (Insertar hojas nuevas) y ejecutar
   `configuracionInicial` (o «Actualizar padrón»). Al 11-oct, `validar` con un docente real da `no_encontrado` → bases aún no cargadas.
 - [ ] Prueba real (R13 de la guía) y limpieza antes de difundir.
