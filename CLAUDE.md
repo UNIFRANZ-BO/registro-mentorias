@@ -12,6 +12,10 @@ explican las lecciones, que se aplican todas). Creado el 11-oct-2026 desde la pl
 - Aspecto profesional en Sheets: encabezados gris oscuro `#3a3a3a`.
 
 ## El problema que resuelve
+**Las 3 bases son solo referencia** (aclaración de Rafael, 11-oct-2026): el docente registra únicamente a los estudiantes
+que no aprobaron (asistan o no); esa condición no está en ninguna base. No hay padrón de estudiantes «pendientes» ni
+cobertura sobre los 1857; en PADRON, «Sin registros» puede ser normal (docente sin reprobados).
+
 En el Form había que llenar un formulario **por estudiante y por materia** (CI elegido de una lista), y también
 cuando el estudiante no asistió. Un docente con 30 estudiantes × 3 materias llenaba 90 formularios.
 Ahora: **un envío por grupo** (hito + N estudiantes), cada estudiante con **todas sus materias**, y si
