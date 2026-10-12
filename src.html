@@ -645,7 +645,7 @@ details.more ol li b{color:var(--txt)}
 // ⬇⬇⬇ Pega aquí la URL de tu implementación de Apps Script (termina en /exec) ⬇⬇⬇
 const API_URL_DEFECTO = 'https://script.google.com/macros/s/AKfycbxtZvLrQlpP8L8vUAq1RL007vjRpOfLbbK4f6SMLYEk-8VqrKbbeqvJi1f85OIICug/exec';
 // ⬆⬆⬆ ------------------------------------------------------------------------ ⬆⬆⬆
-const VERSION = '1.5';
+const VERSION = '1.6';
 const LS_DRAFT = 'regment_draft1', LS_COLA = 'regment_cola1';
 const LOGO_FULL = '__LOGO_FULL__';
 const LOGO_WORD = '__LOGO_WORD__';
@@ -904,7 +904,7 @@ function sesError(c) {
 // Primer dato que falta: [sección, mensaje], o null si la ficha está completa.
 function fichaError(c) {
   if (!S.hito) return ['hitoRow', 'Selecciona el hito.'];
-  if (!c.est) return ['secEst', 'Busca y elige al estudiante (o regístralo a mano).'];
+  if (!c.est) return ['secEst', 'Busca y elige al estudiante.'];
   if (repetido(c.est) >= 0) return ['secEst', 'Ese estudiante ya está en la lista.'];
   if (!c.mats.length) return ['secMat', 'Selecciona al menos una materia.'];
   if (!c.asis) return ['secAsis', 'Indica si asistió.'];
@@ -935,7 +935,6 @@ SCR.ficha = function (el) {
     const hb = t.closest('[data-hito]'); if (hb) { elegirHito(el, hb.dataset.hito); return refresh(el); }
     const tb = t.closest('#todaBase'); if (tb) return buscarAhora(el, true);
     if (t.closest('#cambiarEst')) { estAbierta = true; pintaEst(el); const q = $('#q', el); if (q) q.focus(); return; }
-    if (t.closest('#tgMan')) { const mb = $('#manBox', el); mb.classList.toggle('on'); if (mb.classList.contains('on')) $('#mCi', el).focus(); return; }
     const r = t.closest('#sres .opt'); if (r) return elegirEst(el, r, ev);
     if (!t.closest('#msel')) abrirMat(el, false);
     if (t.closest('#mchev')) { abrirMat(el, $('#mpanel', el).hidden); return; }
@@ -957,12 +956,10 @@ SCR.ficha = function (el) {
     const id = ev.target.id, v = ev.target.value;
     if (id === 'q') { clearTimeout(buscaT); buscaT = setTimeout(() => buscarAhora(el), S.ests ? 120 : 350); }
     else if (id === 'mq') { filtroMat = v; pintarMat(el); abrirMat(el, true); }
-    else if (id === 'mCi' || id === 'mNom') leerManual(el);
     else if (id === 'fF' || id === 'fHi' || id === 'fHf') { c[{fF:'fecha', fHi:'hi', fHf:'hf'}[id]] = v; refresh(el); }
     else if (id === 'tAct') { c.act = v; refresh(el); }
     else if (id === 'tObs') { c.obs = v; refresh(el); }
   });
-  el.addEventListener('change', ev => { if (ev.target.id === 'mCar') leerManual(el); });
   el.addEventListener('keydown', ev => { if (ev.target.id === 'mq' && ev.key === 'Escape') abrirMat(el, false); if (ev.target.id === 'q' && ev.key === 'Enter') { ev.preventDefault(); clearTimeout(buscaT); buscarAhora(el); } });
 };
 function guardarFicha(el, otro) {
@@ -1007,12 +1004,7 @@ function pintaEst(el) {
     return;
   }
   bd.innerHTML = `<div class="search">${IC.search}<input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="CI o nombre y apellido" data-autofocus></div>
-    <div class="sres" id="sres"></div>
-    ${S.cfg.manual ? `<button class="linkbtn" id="tgMan">¿No aparece en la lista? <u>Regístralo a mano</u></button>
-    <div class="manualbox ${man ? 'on' : ''}" id="manBox"><p>Usa esta opción solo si el estudiante no aparece al buscarlo. Quedará marcado para que la dirección lo revise.</p>
-      <div class="fgrid"><label class="fld">CI<input id="mCi" inputmode="numeric" maxlength="20" value="${man ? esc(c.est.ci) : ''}" placeholder="Ej.: 1234567"></label>
-      <label class="fld">Carrera<span class="selw"><select id="mCar">${S.carreras.map(k => `<option value="${esc(k.cod)}" ${(man ? c.est.carrera_cod : S.perfil.carrera_cod) === k.cod ? 'selected' : ''}>${esc(k.nombre)}</option>`).join('')}</select></span></label>
-      <label class="fld full">Nombre completo<input id="mNom" maxlength="120" value="${man ? esc(c.est.nombre) : ''}" placeholder="Nombres y apellidos"></label></div></div>` : ''}`;
+    <div class="sres" id="sres"></div>`;
   pintarRes(el, [], {t:'Escribe al menos 3 letras del nombre o el CI completo.'});
 }
 // «CI 6530660 · 3er semestre · Plan 2026 · Cochabamba» (el semestre aparece si la base de estudiantes lo trae)
@@ -1039,7 +1031,7 @@ async function buscarAhora(el, todo) {
   if (seq !== buscaSeq || !$('#q', el)) return;
   if (!r || !r.ok) return pintarRes(el, [], {t: r && r.motivo === 'cerrada' ? 'El registro se cerró.' : 'No pudimos buscar. Revisa tu conexión e inténtalo de nuevo.'});
   const otra = r.local ? ` <button class="linkbtn inl" id="todaBase"><u>Buscar en toda la base</u></button>` : '';
-  if (!r.resultados.length) return pintarRes(el, [], {t:`No encontramos a nadie con «${esc(t)}»${r.local && alcance() ? ' en ' + esc(alcance()) : ''}.${otra}` + (S.cfg.manual ? '<br>Si no aparece en ningún lado, regístralo a mano.' : '')});
+  if (!r.resultados.length) return pintarRes(el, [], {t:`No encontramos a nadie con «${esc(t)}»${r.local && alcance() ? ' en ' + esc(alcance()) : ''}.${otra}` + '<br>Si no aparece en ningún lado, pide al administrador que lo agregue a la base de estudiantes.'});
   pintarRes(el, r.resultados, r.mas ? {t:`Hay más de ${r.resultados.length} resultados: escribe también el apellido.`} : (r.local ? {t:`¿No es ninguno?${otra}`} : null));
 }
 function elegirEst(el, b, ev) {
@@ -1053,16 +1045,6 @@ function elegirEst(el, b, ev) {
   pintaEst(el); pintaMatSec(el); refresh(el);
   abrirMat(el, true);
   setTimeout(() => $('#secMat', el).scrollIntoView({behavior: REDUCED ? 'auto' : 'smooth', block:'start'}), 120);
-}
-function leerManual(el) {
-  const c = S.cur, ci = $('#mCi', el).value.trim(), nom = $('#mNom', el).value.trim().replace(/\s+/g, ' '), car = $('#mCar', el).value;
-  const k = S.carreras.find(x => x.cod === car);
-  if (ci.replace(/\D/g, '').length >= 4 && nom.split(' ').length >= 2) {
-    const misma = c.est && c.est.manual && c.est.carrera_cod === car;
-    c.est = {id:null, manual:true, ci, nombre:nom, carrera_cod:car, carrera:k ? k.nombre : car, sede:S.perfil.sede, sede_nombre:S.perfil.sede_nombre, plan:''};
-    if (!misma) { c.mats = []; filtroMat = ''; verTodas = !propias().length; pintaMatSec(el); }
-  } else if (c.est && c.est.manual) c.est = null;
-  refresh(el);
 }
 const MAX_RES = 12;
 // Búsqueda en la lista del docente (llega al entrar): por nombre, cada palabra es comienzo de un nombre o apellido;

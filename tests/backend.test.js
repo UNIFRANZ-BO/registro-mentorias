@@ -107,6 +107,7 @@ const pl={id:'ME-AAAAA-BBBBBB',correo:M,hito:3,movil:true,version:'1.0',fecha_lo
  {est:'est.ronald.mendoza.va@unifranz.edu.bo',materias:[{cod:'PRG-211 (P)',car:'SIS'},{cod:'BDD-311 (P)',car:'SIS'},{cod:'PRG-211 (P)',car:'SIS'}],asistio:'Sí',fecha:iso(hoy),hi:'14:00',hf:'15:30',act:'=Repaso de contenidos',obs:''},
  {est:'est.anamaria.rojas.va@unifranz.edu.bo',materias:[{cod:'IGC-111 (C)',car:'NGE'}],asistio:'No'},
  {manual:{ci:'9876543 LP',nombre:'pedro gomez',carrera_cod:'ICO',sede:'CBB'},materias:[{cod:'PIN-111 (P)',car:'ICO'}],asistio:'Sí',fecha:iso(hoy),hi:'9:00',hf:'10:00',act:'Resolución de ejercicios',obs:'Llegó tarde'}]};
+ctx.setConfig_('Permitir estudiantes que no están en la base','SÍ');   // la app ya no lo ofrece, pero el servidor lo sigue aceptando si se habilita
 const post=d=>JSON.parse(ctx.doPost({postData:{contents:J({action:'guardar',data:d})}}).t);
 const g1=post(pl);console.log('guardar',J(g1));
 if(!g1.ok||g1.filas!==4||g1.estudiantes!==3)fallo('guardar');

@@ -128,7 +128,7 @@ function crearConfig_() {
     ['Carreras habilitadas', '', 'Carreras de los mentores. Códigos, ej.: NGE; ICO  ·  vacío = todas'],
     ['Buscar estudiantes de todas las sedes', 'SÍ', 'SÍ = al buscar por nombre, el mentor ve estudiantes de todas las sedes. NO = solo de su sede (por CI los encuentra siempre en cualquier sede).'],
     ['Buscar estudiantes solo de la carrera del docente', 'SÍ', 'SÍ = al buscar por nombre, el mentor ve solo estudiantes de su(s) carrera(s) (si dicta en varias, de todas ellas) y la búsqueda es instantánea. Por CI, o con el botón «Buscar en toda la base», encuentra a cualquiera. NO = todas las carreras.'],
-    ['Permitir estudiantes que no están en la base', 'SÍ', 'SÍ = si un estudiante no aparece, el mentor puede registrarlo a mano (CI, nombre y carrera). Esas filas quedan marcadas con «No» en «Estudiante en la base».'],
+    ['Permitir estudiantes que no están en la base', 'NO', 'La app ya no ofrece registrar estudiantes a mano: solo el administrador agrega estudiantes a la base. Déjalo en NO.'],
     ['Mensaje de registro cerrado', 'El registro de sesiones no está disponible en este momento.', 'Texto que ve el mentor cuando está cerrado.']
   ];
   if (!sh) {
@@ -205,7 +205,7 @@ function config_() {
     planes: lista(c['Planes habilitados']), sedes: lista(c['Sedes habilitadas']), carreras: lista(c['Carreras habilitadas']),
     todasSedes: si(c['Buscar estudiantes de todas las sedes'], 'SÍ'),
     soloCarrera: si(c['Buscar estudiantes solo de la carrera del docente'], 'SÍ'),
-    manual: si(c['Permitir estudiantes que no están en la base'], 'SÍ'),
+    manual: si(c['Permitir estudiantes que no están en la base'], 'NO'),
     mensaje: String(c['Mensaje de registro cerrado'] || 'El registro de sesiones no está disponible en este momento.')
   };
 }

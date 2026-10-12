@@ -17,7 +17,8 @@ CARR = [{'cod': 'SIS', 'nombre': 'Ingeniería de Sistemas'}, {'cod': 'NGE', 'nom
 MATS = [['PRG-111 (P)', 'Fundamentos de Programación', 'SIS', 1, 2026], ['PIN-111 (P)', 'Proyecto Integrador I', 'SIS', 1, 2026], ['BDD-311 (P)', 'Bases de Datos', 'SIS', 3, 2026],
         ['IGC-111 (C)', 'Introducción a la Gestión Cuantitativa', 'NGE', 1, 2026], ['PIN-111 (P)', 'Proyecto Integrador I', 'NGE', 1, 2026], ['ANA-111 (P)', 'Anatomía Humana', 'MED', '', 2026]]
 EST = [{'id': 'est.ronald.mendoza.va@unifranz.edu.bo', 'nombre': 'Ronald Mendoza Vargas', 'ci': '6530660', 'semestre': 3, 'sede': 'CBB', 'sede_nombre': 'Cochabamba', 'carrera_cod': 'SIS', 'carrera': 'Ingeniería de Sistemas', 'plan': 2026, '_ci': '6530660'},
-       {'id': 'est.anamaria.rojas.va@unifranz.edu.bo', 'nombre': 'Ana Maria Rojas Vargas', 'ci': '7788990', 'sede': 'CBB', 'sede_nombre': 'Cochabamba', 'carrera_cod': 'NGE', 'carrera': 'Negocios y Gestión Empresarial', 'plan': 2026, '_ci': '7788990'}]
+       {'id': 'est.anamaria.rojas.va@unifranz.edu.bo', 'nombre': 'Ana Maria Rojas Vargas', 'ci': '7788990', 'sede': 'CBB', 'sede_nombre': 'Cochabamba', 'carrera_cod': 'NGE', 'carrera': 'Negocios y Gestión Empresarial', 'plan': 2026, '_ci': '7788990'},
+       {'id': 'est.pedro.gomez.ru@unifranz.edu.bo', 'nombre': 'Pedro Gomez Ruiz', 'ci': '9876543', 'sede': 'CBB', 'sede_nombre': 'Cochabamba', 'carrera_cod': 'NGE', 'carrera': 'Negocios y Gestión Empresarial', 'plan': 2026, '_ci': '9876543'}]
 norm = lambda s: unicodedata.normalize('NFD', s.lower()).encode('ascii', 'ignore').decode()
 
 async def backend(route, req):
@@ -122,14 +123,14 @@ async def main():
         await pg.fill('#q', 'ronald'); await pg.wait_for_timeout(1300); await pg.click('#sres .opt'); await pg.wait_for_timeout(500)
         assert 'ya está en la lista' in await pg.inner_text('#toast')
         # ── fuera de su carrera: no aparece en la lista local; «Buscar en toda la base» lo encuentra
-        await pg.fill('#q', 'ana rojas'); await pg.wait_for_timeout(400)
+        assert await pg.locator('#tgMan').count() == 0, 'sin registro a mano'
+        await pg.fill('#q', 'pedro gomez'); await pg.wait_for_timeout(400)
         assert 'Buscar en toda la base' in await pg.inner_text('#sres') and await pg.locator('#sres .opt').count() == 0
         await pg.click('#todaBase'); await pg.wait_for_timeout(900)
         assert await pg.locator('#sres .opt').count() == 1, 'búsqueda en toda la base'
-        await pg.fill('#q', ''); await pg.wait_for_timeout(200)
-        # ── estudiante 3: registrado a mano; copia fecha, horario y actividades del anterior
-        await pg.click('#tgMan'); await pg.fill('#mCi', '9876543'); await pg.fill('#mNom', 'Pedro Gomez Ruiz'); await pg.select_option('#mCar', 'NGE'); await pg.wait_for_timeout(300)
-        await pg.click('#mq'); await pg.click('#mwrap .mopt[data-k="PIN-111 (P)|NGE"]')
+        # ── estudiante 3: encontrado en toda la base; copia fecha, horario y actividades del anterior
+        await pg.click('#sres .opt'); await pg.wait_for_timeout(700)
+        await pg.click('#mwrap .mopt[data-k="PIN-111 (P)|NGE"]')
         await pg.click('[data-asis="Sí"]'); await pg.wait_for_timeout(500)
         await pg.click('#cpy'); assert await pg.input_value('#fHi') == '15:00' and await pg.input_value('#tAct') == 'Aclaración de dudas'
         await shot('05_manual', True)
@@ -152,7 +153,7 @@ async def main():
         assert i1['est'] == EST[0]['id'] and [m['cod'] for m in i1['materias']] == ['PRG-111 (P)', 'BDD-311 (P)'] and i1['asistio'] == 'Sí'
         assert i1['hi'] == '15:00' and i1['hf'] == '16:30' and i1['act'] == 'Aclaración de dudas' and i1['obs'] == 'Necesita más práctica.'
         assert i2['asistio'] == 'No' and 'fecha' not in i2 and 'act' not in i2
-        assert 'est' not in i3 and i3['manual']['ci'] == '9876543' and i3['manual']['carrera_cod'] == 'NGE' and i3['hi'] == '15:00' and i3['act'] == 'Aclaración de dudas'
+        assert i3['est'] == EST[2]['id'] and 'manual' not in i3 and i3['hi'] == '15:00' and i3['act'] == 'Aclaración de dudas'
         assert await pg.evaluate("localStorage.getItem('regment_draft1')") is None, 'el borrador debe borrarse al enviar'
         await pg.click('#otro'); await pg.wait_for_timeout(1200)
         assert await scr() == 'ficha' and await pg.evaluate('S.items.length') == 0 and await pg.evaluate('S.hito') == '3'
