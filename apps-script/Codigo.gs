@@ -392,9 +392,8 @@ function leerEstudiantes_(cfg) {
   return out;
 }
 const ciNorm_ = s => String(s || '').toLowerCase().replace(/[^0-9a-z]/g, '');
-const ciMask_ = s => { const d = String(s || '').replace(/\D/g, ''); return d ? '•••' + d.slice(-3) : ''; };
 function estPublico_(e, nombres) {
-  return { id: e.clave, nombre: e.nombre, ci: ciMask_(e.ci), sede: e.sede, sede_nombre: SEDES[e.sede] || e.sede, carrera_cod: e.carrera, carrera: nombres[e.carrera] || e.carrera, plan: Number(e.plan) || e.plan };
+  return { id: e.clave, nombre: e.nombre, ci: e.ci, semestre: Number(e.semestre) || e.semestre || '', sede: e.sede, sede_nombre: SEDES[e.sede] || e.sede, carrera_cod: e.carrera, carrera: nombres[e.carrera] || e.carrera, plan: Number(e.plan) || e.plan };
 }
 // Por CI (solo dígitos, ≥ 5): coincidencia exacta en cualquier sede. Por nombre: cada palabra
 // escrita debe ser el comienzo de una palabra del nombre (ej.: «ana rojas», «rojas v»).
@@ -468,11 +467,11 @@ function cacheLista_(pref, fn) {
 }
 // Catálogo de materias para la app (sin datos personales).
 function catalogoMaterias_(cfg) { return cacheLista_('mat', () => leerMaterias_(cfg).lista); }
-// Índice de estudiantes para buscar rápido: [clave, nombre, ci, sede, carrera, plan, correo]. Sin celulares.
+// Índice de estudiantes para buscar rápido: [clave, nombre, ci, sede, carrera, plan, correo, semestre]. Sin celulares.
 // Nunca sale entero de la hoja: la app solo recibe resultados de búsqueda.
 function indiceEst_(cfg) {
-  return cacheLista_('est', () => leerEstudiantes_(cfg).map(e => [e.clave, e.nombre, e.ci, e.sede, e.carrera, e.plan, e.correo]))
-    .map(r => ({ clave: r[0], nombre: r[1], ci: r[2], sede: r[3], carrera: r[4], plan: r[5], correo: r[6] }));
+  return cacheLista_('est', () => leerEstudiantes_(cfg).map(e => [e.clave, e.nombre, e.ci, e.sede, e.carrera, e.plan, e.correo, e.semestre]))
+    .map(r => ({ clave: r[0], nombre: r[1], ci: r[2], sede: r[3], carrera: r[4], plan: r[5], correo: r[6], semestre: r[7] }));
 }
 function limpiarCache_() {
   const cache = CacheService.getScriptCache();

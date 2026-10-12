@@ -87,9 +87,9 @@ ctx.setConfig_('Buscar estudiantes de todas las sedes','NO');
 if(get('buscar',{correo:M,q:'quispe'}).resultados.length!==0)fallo('filtro de sede con NO');
 const b1=get('buscar',{correo:M,q:'rojas'});console.log('buscar «rojas» (solo su sede CBB)',J(b1));
 ctx.setConfig_('Buscar estudiantes de todas las sedes','SÍ');
-if(b1.resultados.length!==2||J(b1).includes('7788990')||J(b1).includes('70000001'))fallo('buscar por nombre / filtro de sede / CI expuesto');
+if(b1.resultados.length!==2||J(b1).includes('70000001'))fallo('buscar por nombre / filtro de sede / celular expuesto');
 const b2=get('buscar',{correo:M,q:'13755793'});console.log('buscar por CI (otra sede)',J(b2));
-if(b2.resultados.length!==1||b2.resultados[0].ci!=='•••793')fallo('buscar por CI');
+if(b2.resultados.length!==1||b2.resultados[0].ci!=='13755793')fallo('buscar por CI');
 console.log('buscar corto',J(get('buscar',{correo:M,q:'ro'})),'| sin mentor',J(get('buscar',{correo:'x@unifranz.edu.bo',q:'rojas'})));
 // ── guardar un envío: 3 estudiantes (uno no asistió, uno registrado a mano)
 const hoy=new Date(),iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');

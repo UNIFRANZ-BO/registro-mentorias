@@ -11,10 +11,16 @@ explican las lecciones, que se aplican todas). Creado el 11-oct-2026 desde la pl
 - Todo en **castellano neutro** (tú), nunca voseo.
 - Aspecto profesional en Sheets: encabezados gris oscuro `#3a3a3a`.
 
-## Interfaz (v1.1, 11-oct-2026, pedidos de Rafael)
-- Título de inicio: «Bitácora de nivelaciones Unifranz». Acceso: «Usa tu correo docente @unifranz.edu.bo.» Hito: «Seleccionar HITO» (sin ayuda).
-- **Ficha de estudiante en una sola pantalla** (`SCR.ficha`): 1 Estudiante · 2 Seleccionar materias · 3 ¿Asistió? · 4 Sesión (solo si asistió);
-  cada sección aparece al completar la anterior; aviso «Falta: …»; botones Guardar y **Guardar y agregar otro**; botón para copiar la sesión del estudiante anterior.
+## Interfaz (v1.2, 11-oct-2026, pedidos de Rafael: «es un formulario, no encuesta: muy práctico»)
+- Inicio: solo logo y «Bitácora de nivelaciones» + botón. Sin cinta inferior (ticker), sin chips ni textos.
+- Acceso: «Usa tu correo docente @unifranz.edu.bo.» Hito: «Seleccionar HITO».
+- Flujo: correo → hito → **ficha del estudiante 1 directo** → … → «Estudiantes registrados» (lista con editar/quitar/agregar) → Enviar. Ya no hay pantalla intermedia de lista (`hub`).
+- **Ficha en una sola pantalla** (`SCR.ficha`): 1 Estudiante (al elegirlo muestra CI completo, semestre si la base lo trae, plan y sede) ·
+  2 Seleccionar materias (**lista desplegable con búsqueda** de las materias de su carrera y plan; «Buscar en otras carreras») ·
+  3 ¿Asistió? · 4 Sesión (solo si asistió: fecha, horas, actividades y observaciones, sin sugerencias ni textos de ejemplo; botón para copiar la sesión del anterior).
+  Botones: **«Guardar y agregar otro estudiante»** y **«No tengo más estudiantes · Enviar»** (va a la lista final); al editar, «Guardar cambios».
+- `buscar` devuelve el **CI completo** (pedido de Rafael) y `semestre` (la base actual NO tiene columna de semestre: si se agrega
+  `semestre` o `semestre_pertenencia` a BASEDEDATOSEST, aparece solo). Nunca devuelve celulares.
 - Tras validar el correo, la app lanza un `buscar` silencioso para que el servidor arme el índice de estudiantes en caché.
 
 ## El problema que resuelve
@@ -43,7 +49,7 @@ Ahora: **un envío por grupo** (hito + N estudiantes), cada estudiante con **tod
 - **Mentores:** base de docentes (`BASEDEDATOSDOC`: Docente, CI, Sede, Carrera, Email, Plan_estudios; 239 al 11-oct-2026).
   Programa: «Docente Tutor» por defecto; «Hermano Mayor» si AGREGADOS lo dice o el correo empieza con `est.`.
 - **Estudiantes:** `BASEDEDATOSEST` (sede, anho_plan_estudio, carrera, nombres/apellidos, ci, correo_institucional, celular; 1857).
-  Nunca va al front: `?action=buscar` devuelve máx. 12 coincidencias (nombre, carrera, sede, plan, CI enmascarado `•••660`).
+  Nunca va al front completa: `?action=buscar` devuelve máx. 12 coincidencias (nombre, carrera, sede, plan, semestre, CI completo).
   Por CI (≥5 dígitos) y por nombre busca en **todas las sedes** (decisión de Rafael, 11-oct-2026; CONFIG «Buscar estudiantes de todas las sedes», SÍ por defecto; con NO, por nombre solo su sede).
   Cada palabra escrita debe ser comienzo de una palabra del nombre. Si no aparece, el mentor puede **registrarlo a mano**
   (CI, nombre, carrera; CONFIG «Permitir estudiantes que no están en la base»), y la fila queda con «Estudiante en la base = No».
@@ -94,7 +100,7 @@ Ahora: **un envío por grupo** (hito + N estudiantes), cada estudiante con **tod
   Hay una hoja vacía de más en la cuenta personal («Registro de Mentorías 2026», `1vorJLyJ-oRITRnQjjMEG5qrw47e-4nHtYf-npwGE8iA`): no se usa.
   El conector de Drive de Claude es de la cuenta personal: **no ve la hoja @unifranz**.
 - [x] **URL del script:** implementación `AKfycbxtZvLrQlpP…OICug` (11-oct-2026), incrustada en `API_URL_DEFECTO`; ping anónimo OK.
-- [x] **Repo** `UNIFRANZ-BO/registro-mentorias` (público, Pages en `main`) → enlace vigente **https://unifranz-bo.github.io/registro-mentorias/?v=3** (v=3: ficha en una pantalla y textos «Bitácora de nivelaciones»). Ping desde la página publicada OK.
+- [x] **Repo** `UNIFRANZ-BO/registro-mentorias` (público, Pages en `main`) → enlace vigente **https://unifranz-bo.github.io/registro-mentorias/?v=4** (v=4: interfaz v1.2). Ping desde la página publicada OK.
 - [ ] Rafael: importar `entregables/Base_registro_mentorias.xlsx` en la hoja @unifranz (Insertar hojas nuevas) y ejecutar
   `configuracionInicial` (o «Actualizar padrón»). Al 11-oct, `validar` con un docente real da `no_encontrado` → bases aún no cargadas.
 - [ ] Prueba real (R13 de la guía) y limpieza antes de difundir.

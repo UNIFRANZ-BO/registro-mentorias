@@ -54,8 +54,8 @@ button{font:inherit;color:inherit}
 .corner{position:absolute;width:34px;height:34px;border-color:rgba(0,229,255,.55);border-style:solid;border-width:0;opacity:.8}
 .corner.tl{top:14px;left:14px;border-top-width:2px;border-left-width:2px}
 .corner.tr{top:14px;right:14px;border-top-width:2px;border-right-width:2px;border-color:rgba(255,107,26,.6)}
-.corner.bl{bottom:40px;left:14px;border-bottom-width:2px;border-left-width:2px;border-color:rgba(255,43,214,.5)}
-.corner.br{bottom:40px;right:14px;border-bottom-width:2px;border-right-width:2px}
+.corner.bl{bottom:14px;left:14px;border-bottom-width:2px;border-left-width:2px;border-color:rgba(255,43,214,.5)}
+.corner.br{bottom:14px;right:14px;border-bottom-width:2px;border-right-width:2px}
 .rings{position:absolute;width:300px;height:300px;right:-90px;top:90px;opacity:.5}
 .rings.l{left:-110px;right:auto;top:auto;bottom:90px;width:260px;height:260px;opacity:.35}
 .rings circle{fill:none;transform-origin:150px 150px}
@@ -70,7 +70,7 @@ button{font:inherit;color:inherit}
 .ticker .track b{color:var(--o);font-weight:600}
 .ticker .track i{color:var(--c);font-style:normal}
 @keyframes tick{to{transform:translateX(-50%)}}
-#ver{position:fixed;right:10px;bottom:36px;z-index:5;font:500 10px var(--fm);color:var(--dim);letter-spacing:.12em;opacity:.7;user-select:none;cursor:default;padding:4px}
+#ver{position:fixed;right:10px;bottom:8px;z-index:5;font:500 10px var(--fm);color:var(--dim);letter-spacing:.12em;opacity:.7;user-select:none;cursor:default;padding:4px}
 
 /* ============ CABECERA ============ */
 #top{position:sticky;top:0;z-index:20;padding:14px 18px 10px;background:linear-gradient(180deg,rgba(4,5,13,.92),rgba(4,5,13,.6) 70%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:transform .5s,opacity .5s}
@@ -458,10 +458,6 @@ details.more ol li b{color:var(--txt)}
 .copybtn{display:flex;align-items:center;gap:10px;width:100%;margin:0 0 16px;padding:12px 14px;border-radius:14px;border:1px dashed rgba(255,160,77,.55);background:rgba(255,107,26,.07);color:var(--txt);font:600 13.5px/1.4 var(--fb);cursor:pointer;text-align:left}
 .copybtn:hover{background:rgba(255,107,26,.13)}
 .copybtn svg{flex:none;width:18px;height:18px;stroke:var(--o2);fill:none;stroke-width:2}
-.achips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
-.achip{padding:9px 13px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--txt);font:600 13px var(--fb);cursor:pointer;transition:all .2s}
-.achip:hover{border-color:rgba(0,229,255,.5)}
-.achip.on{border-color:var(--c);background:rgba(0,229,255,.13);color:var(--c);box-shadow:0 0 16px -6px var(--c)}
 .lbl2{display:block;margin:20px 0 8px;font:600 10.5px var(--fm);letter-spacing:.18em;text-transform:uppercase;color:var(--mut)}
 .lbl2.ob{color:var(--o2)}
 
@@ -548,6 +544,38 @@ details.more ol li b{color:var(--txt)}
 .fnav .big{grid-column:1/-1}
 .fnav .btn.wait{opacity:.55}
 .fsec.shake{animation:shake .45s}
+
+/* materias: lista desplegable con búsqueda */
+.selbox .vacio{font-size:13px;color:var(--dim);padding:2px}
+.mbox{display:flex;align-items:center;border-radius:14px;border:1px solid rgba(0,229,255,.35);background:rgba(4,5,13,.6);transition:border-color .25s,box-shadow .25s}
+.mbox.open{border-color:var(--c);border-radius:14px 14px 4px 4px;box-shadow:0 0 0 3px rgba(0,229,255,.12)}
+.mbox .mico{flex:none;width:44px;display:grid;place-items:center}
+.mbox .mico svg{width:18px;height:18px;stroke:var(--c);fill:none;stroke-width:2}
+.mbox input{flex:1;min-width:0;padding:15px 0;border:0;background:transparent;color:var(--txt);font:500 15px var(--fb);outline:none}
+.mbox input::placeholder{color:var(--dim)}
+.mchev{flex:none;width:48px;height:48px;border:0;background:none;color:var(--c);font-size:18px;cursor:pointer}
+.mpanel{margin-top:4px;border:1px solid rgba(0,229,255,.5);border-radius:4px 4px 14px 14px;background:rgba(6,8,22,.95);padding:6px 6px 8px;animation:optIn .25s both}
+.mpanel[hidden]{display:none}
+.mpinfo{font:600 10.5px var(--fm);letter-spacing:.14em;text-transform:uppercase;color:var(--mut);padding:6px 8px 4px}
+.mpanel .mscroll{max-height:300px}
+.mpanel .fac{margin:10px 8px 4px}
+.mopt{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px;border-radius:10px;border:0;background:none;color:var(--txt);cursor:pointer;font:500 14px/1.3 var(--fb)}
+.mopt:hover{background:rgba(0,229,255,.08)}
+.mopt .mck{flex:none;width:20px;height:20px;border-radius:6px;border:1.5px solid rgba(255,255,255,.3);display:grid;place-items:center;font-size:12px;font-weight:800;color:transparent}
+.mopt.sel{background:rgba(0,229,255,.12)}
+.mopt.sel .mck{background:var(--c);border-color:var(--c);color:#04050d}
+.mopt .mn{flex:1;min-width:0}
+.mopt .mc{flex:none;font:500 10.5px var(--fm);color:var(--dim)}
+.mpfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:6px;padding:8px 4px 0;border-top:1px solid var(--line)}
+.mpfoot .mtoggle{margin:0;padding:7px 12px;font-size:12.5px}
+.selest .dat{color:var(--txt);font-weight:600}
+.fnav{grid-template-columns:1fr}
+.fnav .btn.fin{border-color:rgba(0,229,255,.45);color:var(--c);background:rgba(0,229,255,.06)}
+.fnav .cancel{text-align:center;margin:4px 0 0}
+
+/* inicio: solo logo, título y botón, centrados */
+.hero{min-height:calc(100dvh - 70px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 0 4vh}
+.hero .htitle{margin:26px auto 34px;font-size:clamp(34px,9vw,58px)}
 </style>
 </head>
 <body>
@@ -563,7 +591,6 @@ details.more ol li b{color:var(--txt)}
   <svg class="rings" viewBox="0 0 300 300"><circle class="r1" cx="150" cy="150" r="140"/><circle class="r2" cx="150" cy="150" r="118"/><circle class="r3" cx="150" cy="150" r="96"/><circle class="r4" cx="150" cy="150" r="76"/></svg>
   <svg class="rings l" viewBox="0 0 300 300"><circle class="r2" cx="150" cy="150" r="138"/><circle class="r1" cx="150" cy="150" r="112"/><circle class="r4" cx="150" cy="150" r="90"/></svg>
 </div>
-<div class="ticker" aria-hidden="true"><div class="track" id="tickTrack"></div></div>
 
 <header id="top" class="off">
   <div class="topin">
@@ -607,7 +634,7 @@ details.more ol li b{color:var(--txt)}
 // ⬇⬇⬇ Pega aquí la URL de tu implementación de Apps Script (termina en /exec) ⬇⬇⬇
 const API_URL_DEFECTO = 'https://script.google.com/macros/s/AKfycbxtZvLrQlpP8L8vUAq1RL007vjRpOfLbbK4f6SMLYEk-8VqrKbbeqvJi1f85OIICug/exec';
 // ⬆⬆⬆ ------------------------------------------------------------------------ ⬆⬆⬆
-const VERSION = '1.1';
+const VERSION = '1.2';
 const LS_DRAFT = 'regment_draft1', LS_COLA = 'regment_cola1';
 const LOGO_FULL = '__LOGO_FULL__';
 const LOGO_WORD = '__LOGO_WORD__';
@@ -639,8 +666,6 @@ const fmtDur = n => n >= 60 ? Math.floor(n / 60) + ' h' + (n % 60 ? ' ' + (n % 6
 const SEDES = [{n:'La Paz', c:'LPZ'}, {n:'El Alto', c:'EAT'}, {n:'Cochabamba', c:'CBB'}, {n:'Santa Cruz', c:'SCZ'}];
 const SEDE_N = Object.fromEntries(SEDES.map(x => [x.c, x.n]));
 const ORD = {1:'1er', 2:'2do', 3:'3er', 4:'4to', 5:'5to', 6:'6to', 7:'7mo', 8:'8vo', 9:'9no', 10:'10mo'};
-// Sugerencias para «Actividad(es) realizada(s)»: al tocarlas se agregan al texto, que el mentor puede editar.
-const ACTS = ['Repaso de contenidos', 'Resolución de ejercicios', 'Aclaración de dudas', 'Preparación para la evaluación', 'Revisión de trabajos o tareas', 'Orientación en técnicas de estudio'];
 const MAX_EST = 80, MAX_MAT = 20;
 // Solo para el modo de prueba (sin base conectada). Las listas reales llegan desde la hoja.
 const DEMO = {
@@ -695,12 +720,12 @@ function updateTop() {
   const sc = S.scr, top = $('#top');
   top.classList.toggle('off', !sc);
   if (!sc) return;
-  const pos = sc === 'login' ? 8 : sc === 'hito' ? 18 : sc === 'hub' ? (S.items.length ? 70 : 30) : sc === 'review' ? 100 : 50;
+  const pos = sc === 'login' ? 8 : sc === 'hito' ? 18 : sc === 'review' ? 100 : 50;
   $('#barFill').style.width = pos + '%';
   $('#pct').textContent = pos + '%';
   const seg = sc === 'login' ? 1 : sc === 'hito' ? 2 : sc === 'review' ? 4 : 3;
   $('#modLbl').innerHTML = sc === 'login' ? '<b>Acceso</b> · Correo institucional' : sc === 'hito' ? '<b>Paso 2</b> · Hito' : sc === 'review' ? '<b>Revisión</b> · antes de enviar'
-    : sc === 'hub' ? `<b>Hito ${esc(S.hito)}</b> · ${S.items.length} estudiante${S.items.length === 1 ? '' : 's'}` : `<b>Estudiante ${nItem()}</b> · Hito ${esc(S.hito)}`;
+    : `<b>Estudiante ${nItem()}</b> · Hito ${esc(S.hito)}`;
   $$('#modsBar i').forEach((el, k) => { el.className = k + 1 < seg ? 'done' : (k + 1 === seg ? 'on' : ''); });
 }
 
@@ -762,7 +787,7 @@ SCR.login = function (el) {
   tilt(card);
 };
 let verifying = false;
-const trasLogin = () => go(hitoUnico() || S.hito ? 'hub' : 'hito');
+const trasLogin = () => (hitoUnico() || S.hito) ? aLista() : go('hito');
 async function verify(el) {
   if (verifying) return;
   const inp = $('#mailIn', el), msg = $('#mailMsg', el), card = $('.card', el), btn = $('#btnVerify', el);
@@ -816,9 +841,9 @@ SCR.hito = function (el) {
     S.hito = b.dataset.v;
     $$('.opt', el).forEach(x => { const on = x === b; x.classList.toggle('sel', on); x.setAttribute('aria-pressed', on); });
     ripple(b, e); FX.burst(e.clientX, e.clientY);
-    saveDraft(); setNextOk(el, true); autoNext(() => go('hub'));
+    saveDraft(); setNextOk(el, true); autoNext(() => aLista());
   });
-  bindNav(el, () => S.hito ? go('hub') : (shake(el), toast('Elige el hito para continuar')), () => go('login', true));
+  bindNav(el, () => S.hito ? aLista() : (shake(el), toast('Elige el hito para continuar')), () => go('login', true));
   tilt($('.card', el));
 };
 
@@ -830,26 +855,8 @@ function itemHtml(it, i, conBotones = true) {
     <div class="mchips">${it.mats.map(m => `<span class="mchip">${esc(m.n)}</span>`).join('')}</div>${ses}
     ${conBotones ? `<div class="acts"><button class="sbtn" data-ed="${i}">Editar</button><button class="sbtn del" data-del="${i}">Quitar</button></div>` : ''}</div>`;
 }
-SCR.hub = function (el) {
-  S.ret = 'hub';
-  const n = S.items.length, P = S.perfil;
-  el.innerHTML = `<div class="card">${qHead(pad(n), 'Hito ' + S.hito + ' · ' + (P.programa || 'Docente Tutor'), 'Estudiantes que acompañaste', 'Agrega a cada estudiante con <b>todas</b> sus materias. Si no asistió, solo marca «No». Al final envías todo junto.', null)}
-    <div class="ctx"><span>Mentor: <b>${esc(P.nombre_completo || P.nombre)}</b></span>${hitoUnico() ? '' : '<button data-cambiar>Cambiar hito</button>'}</div>
-    ${n ? `<div class="items">${S.items.map((it, i) => itemHtml(it, i)).join('')}</div>` : '<div class="empty">Todavía no agregaste estudiantes.<br>Toca el botón para empezar.</div>'}
-    ${n < MAX_EST ? `<button class="add" id="btnAdd" data-autofocus>${IC.plus}<span>${n ? 'Agregar otro estudiante' : 'Agregar estudiante'}</span></button>` : `<div class="empty">Llegaste al máximo de ${MAX_EST} estudiantes por envío. Envía este registro y empieza otro.</div>`}
-    ${navHtml(n ? `Revisar y enviar (${n})` : 'Revisar y enviar', n > 0)}</div>`;
-  el.addEventListener('click', e => {
-    if (e.target.closest('#btnAdd')) return startFicha(-1);
-    if (e.target.closest('[data-cambiar]')) return go('hito', true);
-    const ed = e.target.closest('[data-ed]'); if (ed) return startFicha(+ed.dataset.ed);
-    const del = e.target.closest('[data-del]');
-    if (del) {
-      if (!del.classList.contains('conf')) { del.classList.add('conf'); del.textContent = '¿Quitar?'; setTimeout(() => { if (del.isConnected) { del.classList.remove('conf'); del.textContent = 'Quitar'; } }, 3000); return; }
-      S.items.splice(+del.dataset.del, 1); saveDraft(); toast('Estudiante quitado de la lista'); return go('hub');
-    }
-  });
-  bindNav(el, () => n ? go('review') : (shake(el), toast('Agrega al menos un estudiante')), () => go(hitoUnico() ? 'login' : 'hito', true));
-};
+// Después del hito: si ya hay estudiantes, la lista para revisar y enviar; si no, la ficha del primero.
+function aLista(back) { if (S.items.length) go('review', back); else startFicha(-1); }
 
 /* ---------- ficha de un estudiante: todo en una sola pantalla ---------- */
 // Secciones: 1 Estudiante · 2 Materias · 3 ¿Asistió? · 4 Sesión (solo si asistió). Cada una aparece
@@ -869,10 +876,10 @@ function commitFicha(otro) {
   const nom = firstName(c.est.nombre), msg = c.asis === 'No' ? `${nom}: registrado como «No asistió»` : `${nom} quedó en la lista ✓`;
   S.cur = null; S.curIdx = -1;
   if (otro && S.items.length < MAX_EST) { S.cur = nueva(); go('ficha'); }
-  else go(S.ret === 'review' ? 'review' : 'hub', true);
+  else go('review', true);
   toast(msg);
 }
-function cancelFicha() { S.cur = null; S.curIdx = -1; go(S.ret === 'review' ? 'review' : 'hub', true); }
+function cancelFicha() { S.cur = null; S.curIdx = -1; if (S.items.length) go('review', true); else go(hitoUnico() ? 'login' : 'hito', true); }
 const claveEst = e => e ? (e.manual ? 'ci:' + norm(e.ci).replace(/[^0-9a-z]/g, '') : e.id) : '';
 function repetido(e) { const k = claveEst(e); return S.items.findIndex((it, i) => i !== S.curIdx && claveEst(it.est) === k); }
 const anterior = () => { const lst = S.items.filter((it, i) => i !== S.curIdx && it.asis === 'Sí'); return lst.length ? lst[lst.length - 1] : null; };
@@ -908,19 +915,25 @@ SCR.ficha = function (el) {
       <p class="fnote" id="noteNo">Si no asistió, no hace falta nada más: guarda y sigue con el siguiente estudiante.</p></div></section>
     <section class="fsec" id="secSes"><div class="fhd"><b>4</b>Sesión</div><div class="fbd" id="bdSes"></div></section>
     <div class="fmsg" id="fmsg"></div>
-    <div class="fnav"><button class="btn ghost" data-act="prev">${IC.arrowL}<span>Cancelar</span></button><button class="btn" id="btnSave"><span>Guardar</span>${IC.check}</button>
-      <button class="btn prime big" id="btnOtro"><span>Guardar y agregar otro</span>${IC.plus}</button></div></div>`;
+    <div class="fnav">${S.curIdx >= 0 ? `<button class="btn prime big" id="btnFin"><span>Guardar cambios</span>${IC.check}</button>`
+      : `<button class="btn prime big" id="btnOtro"><span>Guardar y agregar otro estudiante</span>${IC.plus}</button>
+      <button class="btn big fin" id="btnFin"><span>No tengo más estudiantes · Enviar</span>${IC.send}</button>`}
+      <button class="linkbtn cancel" data-act="prev">${S.items.length ? 'Cancelar y volver a la lista' : 'Cancelar'}</button></div></div>`;
   pintaEst(el); pintaMatSec(el); pintaSes(el); refresh(el);
 
   el.addEventListener('click', ev => {
     const t = ev.target;
     if (t.closest('[data-act=prev]')) return cancelFicha();
-    if (t.closest('#btnSave')) return guardarFicha(el, false);
+    if (t.closest('#btnFin')) return guardarFicha(el, false);
     if (t.closest('#btnOtro')) return guardarFicha(el, true);
     if (t.closest('#cambiarEst')) { estAbierta = true; pintaEst(el); const q = $('#q', el); if (q) q.focus(); return; }
     if (t.closest('#tgMan')) { const mb = $('#manBox', el); mb.classList.toggle('on'); if (mb.classList.contains('on')) $('#mCi', el).focus(); return; }
     const r = t.closest('#sres .opt'); if (r) return elegirEst(el, r, ev);
-    const m = t.closest('#mwrap .opt, #selbox button'); if (m) return toggleMat(el, m, ev);
+    if (!t.closest('#msel')) abrirMat(el, false);
+    if (t.closest('#mchev')) { abrirMat(el, $('#mpanel', el).hidden); return; }
+    if (t.closest('#mlisto')) { abrirMat(el, false); return; }
+    if (t.closest('#mq')) { abrirMat(el, true); return; }
+    const m = t.closest('#mwrap .mopt, #selbox button'); if (m) return toggleMat(el, m, ev);
     if (t.closest('#mtg')) { verTodas = !verTodas; pintarMat(el); return; }
     const a = t.closest('[data-asis]');
     if (a) {
@@ -931,25 +944,18 @@ SCR.ficha = function (el) {
       return;
     }
     if (t.closest('#cpy')) { const p = anterior(); Object.assign(c, {fecha:p.fecha, hi:p.hi, hf:p.hf, act:p.act}); pintaSes(el); refresh(el); FX.burst(innerWidth / 2, 240, 14); return; }
-    const ch = t.closest('.achip');
-    if (ch) {
-      const s = ch.dataset.a;
-      if (c.act.toLowerCase().includes(s.toLowerCase())) c.act = c.act.replace(new RegExp('(;\\s*)?' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(;\\s*)?', 'i'), (x, p1, p2) => p1 && p2 ? '; ' : '').trim();
-      else c.act = (c.act.trim() ? c.act.trim().replace(/[;.,]$/, '') + '; ' : '') + s;
-      c.act = c.act.slice(0, 1000); $('#tAct', el).value = c.act; refresh(el);
-    }
   });
   el.addEventListener('input', ev => {
     const id = ev.target.id, v = ev.target.value;
     if (id === 'q') { clearTimeout(buscaT); buscaT = setTimeout(() => buscarAhora(el), 350); }
-    else if (id === 'mq') { filtroMat = v; pintarMat(el); }
+    else if (id === 'mq') { filtroMat = v; pintarMat(el); abrirMat(el, true); }
     else if (id === 'mCi' || id === 'mNom') leerManual(el);
     else if (id === 'fF' || id === 'fHi' || id === 'fHf') { c[{fF:'fecha', fHi:'hi', fHf:'hf'}[id]] = v; refresh(el); }
     else if (id === 'tAct') { c.act = v; refresh(el); }
     else if (id === 'tObs') { c.obs = v; refresh(el); }
   });
   el.addEventListener('change', ev => { if (ev.target.id === 'mCar') leerManual(el); });
-  el.addEventListener('keydown', ev => { if (ev.target.id === 'q' && ev.key === 'Enter') { ev.preventDefault(); clearTimeout(buscaT); buscarAhora(el); } });
+  el.addEventListener('keydown', ev => { if (ev.target.id === 'mq' && ev.key === 'Escape') abrirMat(el, false); if (ev.target.id === 'q' && ev.key === 'Enter') { ev.preventDefault(); clearTimeout(buscaT); buscarAhora(el); } });
 };
 function guardarFicha(el, otro) {
   const er = fichaError(S.cur);
@@ -975,12 +981,11 @@ function refresh(el) {
     const err = sesError(c), d = $('#dur', el);
     if (d) { d.classList.toggle('err', !!err && !!(c.hi && c.hf)); d.innerHTML = err ? (c.hi && c.hf ? esc(err) : 'Indica la hora de inicio y la de conclusión.') : `Duración: <b>${fmtDur(minutos(c.hf) - minutos(c.hi))}</b>`; }
     const cA = $('#cA', el); if (cA) { cA.textContent = c.act.length; $('#cO', el).textContent = c.obs.length; }
-    $$('.achip', el).forEach(b => b.classList.toggle('on', c.act.toLowerCase().includes(b.dataset.a.toLowerCase())));
   }
   const m = $('#fmsg', el);
   m.className = 'fmsg' + (er ? '' : ' ok');
   m.textContent = er ? 'Falta: ' + er[1].charAt(0).toLowerCase() + er[1].slice(1) : '✓ Todo listo para guardar.';
-  $('#btnSave', el).classList.toggle('wait', !!er); $('#btnOtro', el).classList.toggle('wait', !!er);
+  $$('#btnFin, #btnOtro', el).forEach(b => b.classList.toggle('wait', !!er));
   saveDraft();
 }
 
@@ -990,7 +995,7 @@ function pintaEst(el) {
   const c = S.cur, bd = $('#bdEst', el), man = !!(c.est && c.est.manual);
   if (c.est && !estAbierta) {
     const e = c.est;
-    bd.innerHTML = `<div class="selest"><div><b>${esc(e.nombre)}</b><span>${esc(e.carrera || e.carrera_cod)} · ${esc(e.sede_nombre || SEDE_N[e.sede] || e.sede || '')}${e.ci ? ' · CI ' + esc(e.ci) : ''}${e.plan ? ' · Plan ' + esc(e.plan) : ''}${man ? ' · <em>registrado a mano</em>' : ''}</span></div><button class="sbtn" id="cambiarEst">Cambiar</button></div>`;
+    bd.innerHTML = `<div class="selest"><div><b>${esc(e.nombre)}</b><span>${esc(e.carrera || e.carrera_cod)}</span><span class="dat">${datosEst(e)}${man ? ' · <em>registrado a mano</em>' : ''}</span></div><button class="sbtn" id="cambiarEst">Cambiar</button></div>`;
     return;
   }
   bd.innerHTML = `<div class="search">${IC.search}<input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="CI o nombre y apellido" data-autofocus></div>
@@ -1002,10 +1007,12 @@ function pintaEst(el) {
       <label class="fld full">Nombre completo<input id="mNom" maxlength="120" value="${man ? esc(c.est.nombre) : ''}" placeholder="Nombres y apellidos"></label></div></div>` : ''}`;
   pintarRes(el, [], {t:'Escribe al menos 3 letras del nombre o el CI completo.'});
 }
+// «CI 6530660 · 3er semestre · Plan 2026 · Cochabamba» (el semestre aparece si la base de estudiantes lo trae)
+const datosEst = e => [e.ci ? 'CI ' + esc(e.ci) : '', +e.semestre ? (ORD[e.semestre] || e.semestre + '°') + ' semestre' : '', e.plan ? 'Plan ' + esc(e.plan) : '', esc(e.sede_nombre || SEDE_N[e.sede] || e.sede || '')].filter(String).join(' · ');
 function pintarRes(el, lista, info) {
   ultimos = lista || [];
   const res = $('#sres', el); if (!res) return;
-  res.innerHTML = ultimos.map((x, i) => `<button class="opt" data-k="${esc(x.id)}" ${optDelay(i)}><span class="key">${keyL(i)}</span><span class="lbl">${esc(x.nombre)}<span class="sub">${esc(x.carrera || x.carrera_cod)} · ${esc(x.sede_nombre || SEDE_N[x.sede] || x.sede || '')}${x.ci ? ' · CI ' + esc(x.ci) : ''}${x.plan ? ' · Plan ' + esc(x.plan) : ''}</span></span><span class="chk">${IC.check}</span></button>`).join('')
+  res.innerHTML = ultimos.map((x, i) => `<button class="opt" data-k="${esc(x.id)}" ${optDelay(i)}><span class="key">${keyL(i)}</span><span class="lbl">${esc(x.nombre)}<span class="sub">${esc(x.carrera || x.carrera_cod)} · ${datosEst(x)}</span></span><span class="chk">${IC.check}</span></button>`).join('')
     + (info ? `<div class="sinfo ${info.load ? 'load' : ''}">${info.t}</div>` : '');
 }
 async function buscarAhora(el) {
@@ -1029,6 +1036,7 @@ function elegirEst(el, b, ev) {
   ripple(b, ev); FX.burst(ev.clientX, ev.clientY, 14);
   estAbierta = false; filtroMat = ''; verTodas = !propias().length;
   pintaEst(el); pintaMatSec(el); refresh(el);
+  abrirMat(el, true);
   setTimeout(() => $('#secMat', el).scrollIntoView({behavior: REDUCED ? 'auto' : 'smooth', block:'start'}), 120);
 }
 function leerManual(el) {
@@ -1061,12 +1069,17 @@ function propias() {
 function pintaMatSec(el) {
   const bd = $('#bdMat', el);
   if (!S.cur.est) { bd.innerHTML = ''; return; }
-  bd.innerHTML = `<div class="selbox" id="selbox"></div>
-    <div class="search">${IC.search}<input id="mq" type="search" autocomplete="off" spellcheck="false" placeholder="Filtrar por nombre o código"></div>
-    <div class="mscroll" id="mwrap"></div>
-    ${propias().length ? `<button class="mtoggle" id="mtg"></button>` : ''}`;
+  bd.innerHTML = `<div class="msel" id="msel">
+    <div class="selbox" id="selbox"></div>
+    <div class="mbox" id="mbox"><span class="mico">${IC.search}</span><input id="mq" type="search" autocomplete="off" spellcheck="false" placeholder="Buscar y agregar materia…"><button class="mchev" id="mchev" aria-label="Ver la lista de materias">▾</button></div>
+    <div class="mpanel" id="mpanel" hidden>
+      <div class="mpinfo" id="mpinfo"></div>
+      <div class="mscroll" id="mwrap"></div>
+      <div class="mpfoot">${propias().length ? '<button class="mtoggle" id="mtg"></button>' : '<span></span>'}<button class="sbtn" id="mlisto">Listo</button></div>
+    </div></div>`;
   pintarSel(el); pintarMat(el);
 }
+function abrirMat(el, on) { const p = $('#mpanel', el); if (!p) return; p.hidden = !on; $('#mbox', el).classList.toggle('open', on); }
 function toggleMat(el, b, ev) {
   const c = S.cur, k = b.dataset.k, i = c.mats.findIndex(m => m.c + '|' + m.k === k);
   if (i >= 0) c.mats.splice(i, 1);
@@ -1075,25 +1088,26 @@ function toggleMat(el, b, ev) {
     const m = S.materias.find(x => mKey(x) === k); if (!m) return;
     if (c.mats.some(x => x.c === m[0])) { shake(b); return toast('Esa materia ya está marcada (con otra carrera)'); }
     c.mats.push({c:m[0], n:m[1], k:m[2], s:m[3]});
-    if (b.classList.contains('opt')) { ripple(b, ev); FX.burst(ev.clientX, ev.clientY, 10); }
+    if (b.classList.contains('mopt')) FX.burst(ev.clientX, ev.clientY, 8);
   }
   pintarSel(el);
-  $$('#mwrap .opt', el).forEach(o => { const on = c.mats.some(m => m.c + '|' + m.k === o.dataset.k); o.classList.toggle('sel', on); o.setAttribute('aria-pressed', on); });
+  $$('#mwrap .mopt', el).forEach(o => { const on = c.mats.some(m => m.c + '|' + m.k === o.dataset.k); o.classList.toggle('sel', on); o.setAttribute('aria-pressed', on); });
   refresh(el);
 }
 function pintarSel(el) {
-  $('#selbox', el).innerHTML = S.cur.mats.map(m => `<button data-k="${esc(m.c + '|' + m.k)}" title="Quitar">${esc(m.n)} <i>×</i></button>`).join('');
+  $('#selbox', el).innerHTML = S.cur.mats.length ? S.cur.mats.map(m => `<button data-k="${esc(m.c + '|' + m.k)}" title="Quitar">${esc(m.n)} <i>×</i></button>`).join('') : '<span class="vacio">Todavía no seleccionaste materias.</span>';
 }
 function pintarMat(el) {
   const c = S.cur, e = c.est, own = propias(), q = norm(filtroMat), wrap = $('#mwrap', el), tg = $('#mtg', el);
   if (!wrap) return;
-  if (tg) tg.textContent = verTodas ? `Ver solo las materias de ${e.carrera || e.carrera_cod}` : 'Buscar en materias de todas las carreras';
+  if (tg) tg.textContent = verTodas ? `Solo ${e.carrera || e.carrera_cod}` : 'Buscar en otras carreras';
+  const inf = $('#mpinfo', el); if (inf) inf.textContent = verTodas ? 'Todas las carreras' : `${e.carrera || e.carrera_cod}${e.plan ? ' · Plan ' + e.plan : ''}`;
   const match = m => !q || norm(m[1] + ' ' + m[0]).includes(q);
   let html = '';
   if (!verTodas) {
     const lista = own.filter(match), grupos = {};
     lista.forEach(m => { const g = m[3] || 0; (grupos[g] = grupos[g] || []).push(m); });
-    html = Object.keys(grupos).sort((a, b) => (+a || 99) - (+b || 99)).map(g => `<div class="fac">${+g ? (ORD[g] || g + '°') + ' semestre' : 'Sin semestre'}</div><div class="clist mlist">${grupos[g].map(optMat).join('')}</div>`).join('');
+    html = Object.keys(grupos).sort((a, b) => (+a || 99) - (+b || 99)).map(g => `<div class="fac">${+g ? (ORD[g] || g + '°') + ' semestre' : 'Sin semestre'}</div>${grupos[g].map(optMat).join('')}`).join('');
     if (!lista.length) html = `<div class="sinfo">${q ? `Ninguna materia de ${esc(e.carrera || e.carrera_cod)} coincide con «${esc(filtroMat)}». Prueba en todas las carreras.` : 'No hay materias cargadas para esta carrera.'}</div>`;
   } else {
     const nota = own.length ? '' : `<div class="mnote">No hay materias cargadas para ${esc(e.carrera || e.carrera_cod)}${e.plan ? ' plan ' + esc(e.plan) : ''}. Búscalas entre todas las carreras.</div>`;
@@ -1101,15 +1115,15 @@ function pintarMat(el) {
     else {
       const lista = S.materias.filter(match), N = 60, nom = Object.fromEntries(S.carreras.map(k => [k.cod, k.nombre])), grupos = {};
       lista.slice(0, N).forEach(m => { (grupos[m[2]] = grupos[m[2]] || []).push(m); });
-      html = nota + (lista.length ? Object.keys(grupos).sort().map(k => `<div class="fac">${esc(nom[k] || k)}</div><div class="clist mlist">${grupos[k].map(optMat).join('')}</div>`).join('') + (lista.length > N ? `<div class="sinfo">Se muestran ${N} de ${lista.length}. Escribe más para afinar.</div>` : '')
+      html = nota + (lista.length ? Object.keys(grupos).sort().map(k => `<div class="fac">${esc(nom[k] || k)}</div>${grupos[k].map(optMat).join('')}`).join('') + (lista.length > N ? `<div class="sinfo">Se muestran ${N} de ${lista.length}. Escribe más para afinar.</div>` : '')
         : `<div class="sinfo">Ninguna materia coincide con «${esc(filtroMat)}».</div>`);
     }
   }
   wrap.innerHTML = html;
 }
-function optMat(m, i) {
+function optMat(m) {
   const on = S.cur.mats.some(x => x.c === m[0] && x.k === m[2]);
-  return `<button class="opt sq ${on ? 'sel' : ''}" data-k="${esc(mKey(m))}" aria-pressed="${on}" ${optDelay(i)}><span class="lbl">${esc(m[1])}<span class="sub">${esc(m[0])}${verTodas && m[3] ? ' · ' + (ORD[m[3]] || m[3]) + ' sem.' : ''}</span></span><span class="chk">${IC.check}</span></button>`;
+  return `<button class="mopt ${on ? 'sel' : ''}" data-k="${esc(mKey(m))}" aria-pressed="${on}"><span class="mck">✓</span><span class="mn">${esc(m[1])}</span><span class="mc">${esc(m[0])}${verTodas && m[3] ? ' · ' + (ORD[m[3]] || m[3]) + ' sem.' : ''}</span></button>`;
 }
 
 /* 4 · sesión: fecha, horario, actividades y observaciones */
@@ -1122,10 +1136,9 @@ function pintaSes(el) {
     <label class="fld">Hora de conclusión<input id="fHf" type="time" value="${esc(c.hf)}"></label></div>
     <div class="durbox" id="dur"></div>
     <span class="lbl2 ob">Actividad(es) realizada(s)</span>
-    <div class="achips">${ACTS.map(a => `<button class="achip" data-a="${esc(a)}">${esc(a)}</button>`).join('')}</div>
-    <div class="tx"><textarea id="tAct" class="short" maxlength="1000" placeholder="Toca una sugerencia o escribe lo que trabajaron…">${esc(c.act)}</textarea><span class="cnt"><span id="cA">${c.act.length}</span> / 1000</span></div>
+    <div class="tx"><textarea id="tAct" class="short" maxlength="1000">${esc(c.act)}</textarea><span class="cnt"><span id="cA">${c.act.length}</span> / 1000</span></div>
     <span class="lbl2">Observaciones y comentarios · opcional</span>
-    <div class="tx"><textarea id="tObs" class="short" maxlength="1000" placeholder="Algo que la dirección deba saber (opcional)…">${esc(c.obs)}</textarea><span class="cnt"><span id="cO">${c.obs.length}</span> / 1000</span></div>`;
+    <div class="tx"><textarea id="tObs" class="short" maxlength="1000">${esc(c.obs)}</textarea><span class="cnt"><span id="cO">${c.obs.length}</span> / 1000</span></div>`;
 }
 
 /* ---------- revisión ---------- */
@@ -1133,9 +1146,9 @@ SCR.review = function (el) {
   S.ret = 'review';
   const nMat = S.items.reduce((n, it) => n + it.mats.length, 0), nNo = S.items.filter(it => it.asis === 'No').length;
   el.innerHTML = `<div class="card"><div class="notch"></div>
-    <div class="qhead"><div class="qnum" data-n="OK">OK</div><div class="qmeta"><span class="tag">Revisión final</span><span class="req">Hito ${esc(S.hito)} · ${S.items.length} estudiante${S.items.length === 1 ? '' : 's'}</span></div></div>
-    <h2 class="qtitle">${splitWords('Revisa el registro antes de enviar')}</h2>
-    <p class="qhint">Registras como <b style="color:var(--c)">${esc(S.perfil.nombre_completo || S.perfil.nombre)}</b> (${esc(S.correo)}). Se guardarán <b>${nMat}</b> fila${nMat === 1 ? '' : 's'}: una por estudiante y materia${nNo ? `; ${nNo} estudiante${nNo === 1 ? '' : 's'} sin asistencia` : ''}. Puedes editar cualquier estudiante.</p>
+    <div class="qhead"><div class="qnum" data-n="OK">OK</div><div class="qmeta"><span class="tag">Hito ${esc(S.hito)}</span><span class="req">${S.items.length} estudiante${S.items.length === 1 ? '' : 's'} · ${nMat} materia${nMat === 1 ? '' : 's'}${nNo ? ' · ' + nNo + ' sin asistencia' : ''}</span></div></div>
+    <h2 class="qtitle">${splitWords('Estudiantes registrados')}</h2>
+    <p class="qhint">Revisa la lista y envía. Puedes editar o quitar cualquiera, o agregar otro.</p>
     <div class="items">${S.items.map((it, i) => itemHtml(it, i)).join('')}</div>
     ${S.items.length < MAX_EST ? `<button class="add" id="btnAdd">${IC.plus}<span>Agregar otro estudiante</span></button>` : ''}
     ${navHtml('Enviar registro', true, '', IC.send)}</div>`;
@@ -1145,10 +1158,10 @@ SCR.review = function (el) {
     const del = e.target.closest('[data-del]');
     if (del) {
       if (!del.classList.contains('conf')) { del.classList.add('conf'); del.textContent = '¿Quitar?'; setTimeout(() => { if (del.isConnected) { del.classList.remove('conf'); del.textContent = 'Quitar'; } }, 3000); return; }
-      S.items.splice(+del.dataset.del, 1); saveDraft(); return go(S.items.length ? 'review' : 'hub');
+      S.items.splice(+del.dataset.del, 1); saveDraft(); return S.items.length ? go('review') : startFicha(-1);
     }
   });
-  bindNav(el, () => S.items.length ? submit() : go('hub'), () => go('hub', true));
+  bindNav(el, () => S.items.length ? submit() : startFicha(-1), () => go(hitoUnico() ? 'login' : 'hito', true));
 };
 
 /* ---------- envío ---------- */
@@ -1280,7 +1293,7 @@ function showDone(p, ok, sinUrl, j) {
   }
   const per = {correo:S.correo, perfil:S.perfil, cfg:S.cfg, materias:S.materias, carreras:S.carreras, hito:S.hito};
   const ot = $('#otro');
-  if (ot) ot.onclick = () => { S = {...fresh(), ...per, id:nuevoId(), t0:Date.now()}; S.previos = {}; stage.innerHTML = ''; go('hub'); };
+  if (ot) ot.onclick = () => { S = {...fresh(), ...per, id:nuevoId(), t0:Date.now()}; S.previos = {}; stage.innerHTML = ''; startFicha(-1); };
   $('#fin').onclick = () => { S = fresh(); showWelcome(); };
 }
 
@@ -1289,7 +1302,7 @@ function showWelcome(back) {
   S.scr = null; $('#top').classList.add('off');
   const d = lsGet(LS_DRAFT, null);
   const hasDraft = d && d.id && d.perfil && d.v === VERSION;
-  const words = [['Bitácora', 0], ['de', 0], ['nivelaciones', 0], ['Unifranz', 1]];
+  const words = [['Bitácora', 0], ['de', 0], ['nivelaciones', 1]];
   let ci = 0;
   const NG = words.filter(w => w[1]).reduce((n, w) => n + w[0].length, 0); let gi = 0;
   const title = words.map(([w, g]) => `<span class="wd${g ? ' grad' : ''}">` + w.split('').map(c => `<span class="ch" style="animation-delay:${200 + (ci++) * 26}ms${g ? `;background-position:${(gi++ / (NG - 1) * 100).toFixed(1)}% 0` : ''}">${c}</span>`).join('') + '</span>').join(' ');
@@ -1298,22 +1311,17 @@ function showWelcome(back) {
   const nd = hasDraft ? (d.items || []).length : 0;
   el.innerHTML = `<div class="hero">
     <div class="logoStage"><div class="orbit"></div><div class="orbit o2"></div><div class="logoWrap"><img src="${LOGO_FULL}" alt="UNIFRANZ · Universidad Privada Franz Tamayo"><div class="shine" id="shine"></div></div></div>
-    <div class="kicker">Docentes Tutores · Hermanos Mayores · 2026</div>
     <h1 class="htitle">${title}</h1>
-    <p class="hsub">Registra en un solo envío a todos los estudiantes que acompañaste en el hito, cada uno con todas sus materias. Si alguien no asistió, basta con marcarlo.</p>
-    <div class="chips"><span class="chip">${IC.mail}Con tu correo UNIFRANZ</span><span class="chip">${IC.users}Varios estudiantes, <b>1</b> envío</span><span class="chip">${IC.books}Varias materias por estudiante</span><span class="chip">${IC.clock}<b>≈1</b> min por estudiante</span></div>
     ${hasDraft ? `<div class="resume">Tienes un registro sin enviar en este equipo (hito ${esc(d.hito || '–')} · ${nd} estudiante${nd === 1 ? '' : 's'}).<div class="row"><button class="btn prime" id="cont"><span>Continuar donde lo dejé</span>${IC.arrowR}</button><button class="btn ghost" id="fresh">Empezar de nuevo</button></div></div>`
       : `<button class="btn prime big" id="start" data-autofocus><span>Comenzar registro</span>${IC.arrowR}</button>`}
-    <div class="hfoot">Universidad Privada Franz Tamayo · Nivelaciones</div>
   </div>`;
   const sh = $('#shine', el); sh.style.webkitMaskImage = sh.style.maskImage = `url(${LOGO_FULL})`;
   const start = () => { S = {...fresh(), id:nuevoId(), t0:Date.now()}; go('login'); };
   if (hasDraft) {
     $('#cont', el).onclick = () => {
       S = {...fresh(), ...d}; delete S.v;
-      const sc = S.scr === 'ficha' && S.cur ? 'ficha' : (S.scr === 'review' && S.items.length ? 'review' : (S.hito ? 'hub' : 'hito'));
-      if (sc !== 'ficha') { S.cur = null; S.curIdx = -1; }
-      go(sc);
+      if (S.scr === 'ficha' && S.cur) go('ficha');
+      else { S.cur = null; S.curIdx = -1; S.hito ? aLista() : go('hito'); }
     };
     $('#fresh', el).onclick = () => { lsDel(LS_DRAFT); start(); };
   } else $('#start', el).onclick = start;
@@ -1456,9 +1464,6 @@ const FX = (() => {
 (function init() {
   $('#topLogo').src = LOGO_WORD;
   $('#ver').textContent = 'v' + VERSION;
-  const tk = ['<b>UNIFRANZ</b>', 'BITÁCORA DE NIVELACIONES', '<i>DOCENTES TUTORES</i>', 'HERMANOS MAYORES', '<i>HITOS 2 · 3 · 4</i>', 'ACOMPAÑAMIENTO ACADÉMICO', '<i>UN SOLO ENVÍO</i>', '<b>LA PAZ · EL ALTO · COCHABAMBA · SANTA CRUZ</b>'];
-  const seq = tk.map(t => `<span>◆ ${t}</span>`).join('');
-  $('#tickTrack').innerHTML = seq + seq;
   if (!API_OK) $('#bannerSlot').innerHTML = '<div class="banner"><div>Modo de prueba: el registro aún no está conectado a la base de datos. Cualquier correo @unifranz.edu.bo entra con datos ficticios y los envíos se guardan solo en este equipo.</div></div>';
   showWelcome();
   if (API_OK && cola().length) setTimeout(() => flushCola(), 2500);
