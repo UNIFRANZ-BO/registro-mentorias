@@ -79,7 +79,10 @@ Ahora: **un envío por grupo** (hito + N estudiantes), cada estudiante con **tod
 ## Estado y pendientes (11-oct-2026)
 - [x] App v1.0 y script v1.0; pruebas locales OK (390 px, 1366 px, hoja simulada en inglés y español, y con los datos reales del Excel).
 - [x] Guía PDF (`entregables/Guia_hoja_registro_mentorias.pdf`, 23 páginas) y base limpia `entregables/Base_registro_mentorias.xlsx`.
-- [ ] Rafael: crear la hoja en Google Sheets (cuenta aramayorafael@gmail.com) importando el xlsx, pegar el script, `configuracionInicial`, implementar y pasar la URL /exec.
+- [x] Hoja creada (11-oct-2026) en la cuenta personal: «Registro de Mentorías 2026», id `1vorJLyJ-oRITRnQjjMEG5qrw47e-4nHtYf-npwGE8iA`.
+  Rafael probó antes en una hoja @unifranz (`1hGgjqS8HSv936lvWirtyc19TG2pZA1SBEwNUKlWmHA0`): su implementación
+  (`/a/macros/unifranz.edu.bo/…`) exige login de UNIFRANZ → **no sirve**; descartada.
+- [ ] Rafael: importar el xlsx en la hoja personal (Insertar hojas nuevas), pegar el script, `configuracionInicial`, implementar y pasar la URL /exec (debe ser `script.google.com/macros/s/…`, sin `/a/macros/unifranz.edu.bo`).
 - [ ] Incrustar la URL en `API_URL_DEFECTO`, crear `UNIFRANZ-BO/registro-mentorias` (público, Pages en `main`), enlace `?v=1`.
 - [ ] Prueba real (R13 de la guía) y limpieza antes de difundir.
 - [ ] Por confirmar con Rafael: ¿los Hermanos Mayores también usarán la app?, ¿las sugerencias de actividades sirven?, ¿filtro de sede en la búsqueda?
