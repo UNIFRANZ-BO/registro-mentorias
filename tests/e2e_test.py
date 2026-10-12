@@ -77,7 +77,7 @@ async def main():
         await pg.click('#mtg'); await pg.fill('#mq', ''); await pg.wait_for_timeout(300)
         await shot('03b_materias', True)
         await pg.click('#mlisto'); assert await pg.locator('#mpanel').is_hidden()
-        await pg.click('#btnOtro'); await pg.wait_for_timeout(500)
+        await pg.click('#btnFin'); await pg.wait_for_timeout(500)
         assert await scr() == 'ficha' and await pg.evaluate('S.items.length') == 0, 'no debe guardar sin asistencia'
         await pg.click('[data-asis="Sí"]'); await pg.wait_for_timeout(600)
         assert await pg.locator('#secSes').is_visible()
@@ -90,14 +90,15 @@ async def main():
         await pg.fill('#tObs', 'Necesita más práctica.')
         assert 'Todo listo' in await pg.inner_text('#fmsg')
         await shot('04_ficha', True)
-        await pg.click('#btnOtro'); await pg.wait_for_timeout(1300)
-        assert await scr() == 'ficha' and await pg.evaluate('S.items.length') == 1, 'guardar y agregar otro'
+        await pg.click('#btnFin'); await pg.wait_for_timeout(1300)
+        assert await scr() == 'review' and await pg.evaluate('S.items.length') == 1, 'Guardar → lista'
 
         # ── el borrador sobrevive a recargar la página
         await pg.reload(); await pg.wait_for_timeout(1500)
         assert '1 estudiante' in await pg.inner_text('.resume')
         await pg.click('#cont'); await pg.wait_for_timeout(1200)
-        assert await scr() == 'ficha' and await pg.evaluate('S.items.length') == 1
+        assert await scr() == 'review' and await pg.evaluate('S.items.length') == 1
+        await pg.click('#btnAdd'); await pg.wait_for_timeout(900)
 
         # ── estudiante 2: por CI, no asistió (no pide nada más)
         await pg.fill('#q', '7788990'); await pg.press('#q', 'Enter'); await pg.wait_for_timeout(900)
@@ -105,8 +106,9 @@ async def main():
         await pg.click('#mwrap .mopt[data-k="IGC-111 (C)|NGE"]')
         await pg.click('[data-asis="No"]'); await pg.wait_for_timeout(400)
         assert await pg.locator('#secSes').is_hidden() and 'Todo listo' in await pg.inner_text('#fmsg')
-        await pg.click('#btnOtro'); await pg.wait_for_timeout(1300)
-        assert await pg.evaluate('S.items.length') == 2
+        await pg.click('#btnFin'); await pg.wait_for_timeout(1300)
+        assert await scr() == 'review' and await pg.evaluate('S.items.length') == 2
+        await pg.click('#btnAdd'); await pg.wait_for_timeout(900)
         # ── el mismo estudiante no puede repetirse
         await pg.fill('#q', 'ronald'); await pg.wait_for_timeout(1300); await pg.click('#sres .opt'); await pg.wait_for_timeout(500)
         assert 'ya está en la lista' in await pg.inner_text('#toast')
@@ -117,7 +119,7 @@ async def main():
         await pg.click('#cpy'); assert await pg.input_value('#fHi') == '15:00' and await pg.input_value('#tAct') == 'Aclaración de dudas'
         await shot('05_manual', True)
         await pg.click('#btnFin'); await pg.wait_for_timeout(1300)
-        assert await scr() == 'review' and await pg.evaluate('S.items.length') == 3, 'No tengo más estudiantes → lista para enviar'
+        assert await scr() == 'review' and await pg.evaluate('S.items.length') == 3
         await shot('08_lista', True)
         # ── editar el 2: queda «No» y sin datos de sesión
         await pg.click('[data-ed="1"]'); await pg.wait_for_timeout(900)

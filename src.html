@@ -634,7 +634,7 @@ details.more ol li b{color:var(--txt)}
 // ⬇⬇⬇ Pega aquí la URL de tu implementación de Apps Script (termina en /exec) ⬇⬇⬇
 const API_URL_DEFECTO = 'https://script.google.com/macros/s/AKfycbxtZvLrQlpP8L8vUAq1RL007vjRpOfLbbK4f6SMLYEk-8VqrKbbeqvJi1f85OIICug/exec';
 // ⬆⬆⬆ ------------------------------------------------------------------------ ⬆⬆⬆
-const VERSION = '1.2';
+const VERSION = '1.3';
 const LS_DRAFT = 'regment_draft1', LS_COLA = 'regment_cola1';
 const LOGO_FULL = '__LOGO_FULL__';
 const LOGO_WORD = '__LOGO_WORD__';
@@ -915,9 +915,7 @@ SCR.ficha = function (el) {
       <p class="fnote" id="noteNo">Si no asistió, no hace falta nada más: guarda y sigue con el siguiente estudiante.</p></div></section>
     <section class="fsec" id="secSes"><div class="fhd"><b>4</b>Sesión</div><div class="fbd" id="bdSes"></div></section>
     <div class="fmsg" id="fmsg"></div>
-    <div class="fnav">${S.curIdx >= 0 ? `<button class="btn prime big" id="btnFin"><span>Guardar cambios</span>${IC.check}</button>`
-      : `<button class="btn prime big" id="btnOtro"><span>Guardar y agregar otro estudiante</span>${IC.plus}</button>
-      <button class="btn big fin" id="btnFin"><span>No tengo más estudiantes · Enviar</span>${IC.send}</button>`}
+    <div class="fnav"><button class="btn prime big" id="btnFin"><span>${S.curIdx >= 0 ? 'Guardar cambios' : 'Guardar'}</span>${IC.check}</button>
       <button class="linkbtn cancel" data-act="prev">${S.items.length ? 'Cancelar y volver a la lista' : 'Cancelar'}</button></div></div>`;
   pintaEst(el); pintaMatSec(el); pintaSes(el); refresh(el);
 
@@ -1148,10 +1146,11 @@ SCR.review = function (el) {
   el.innerHTML = `<div class="card"><div class="notch"></div>
     <div class="qhead"><div class="qnum" data-n="OK">OK</div><div class="qmeta"><span class="tag">Hito ${esc(S.hito)}</span><span class="req">${S.items.length} estudiante${S.items.length === 1 ? '' : 's'} · ${nMat} materia${nMat === 1 ? '' : 's'}${nNo ? ' · ' + nNo + ' sin asistencia' : ''}</span></div></div>
     <h2 class="qtitle">${splitWords('Estudiantes registrados')}</h2>
-    <p class="qhint">Revisa la lista y envía. Puedes editar o quitar cualquiera, o agregar otro.</p>
+    <p class="qhint">¿Tienes más estudiantes? Agrégalos. Si ya no hay más, envía el registro.</p>
     <div class="items">${S.items.map((it, i) => itemHtml(it, i)).join('')}</div>
     ${S.items.length < MAX_EST ? `<button class="add" id="btnAdd">${IC.plus}<span>Agregar otro estudiante</span></button>` : ''}
-    ${navHtml('Enviar registro', true, '', IC.send)}</div>`;
+    <div class="fnav"><button class="btn prime big" data-act="next" id="btnNext"><span>Enviar registro</span>${IC.send}</button>
+      ${hitoUnico() ? '' : `<button class="linkbtn cancel" data-act="prev">Cambiar hito (ahora: hito ${esc(S.hito)})</button>`}</div></div>`;
   el.addEventListener('click', e => {
     if (e.target.closest('#btnAdd')) return startFicha(-1);
     const ed = e.target.closest('[data-ed]'); if (ed) return startFicha(+ed.dataset.ed);
