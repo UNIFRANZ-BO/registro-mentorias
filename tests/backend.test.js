@@ -59,7 +59,8 @@ const doc=ss.insertSheet('BASEDEDATOSDOC');
 doc.d=[['Docente','CI','Sede','Carrera','Email','Plan_estudios'],
  ['JUAN CARLOS PEREZ LOPEZ',111,'CBB','SIS','doc.juancarlos.perez.lo@unifranz.edu.bo',2026],
  ['ANA ROJAS VARGAS',222,'LPZ','ICO','DOC.ana.rojas.va@unifranz.edu.bo ',2026],
- ['MARIA DIAZ CRUZ',444,'SCZ','ARQ','doc.maria.diaz.cr@unifranz.edu.bo',2017]];
+ ['MARIA DIAZ CRUZ',444,'SCZ','ARQ','doc.maria.diaz.cr@unifranz.edu.bo',2017],
+ ['ANA ROJAS VARGAS',222,'LPZ','MED','doc.ana.rojas.va@unifranz.edu.bo',2026]];
 ss.insertSheet('Hoja 2').d=[['', 'Genérico']];   // otras pestañas de la hoja: no se usan
 vm.createContext(ctx);vm.runInContext(code,ctx);
 const J=o=>JSON.stringify(o);
@@ -68,19 +69,28 @@ const cfg=ctx.config_();
 console.log('CONFIG bases',cfg.docentes,cfg.estudiantes,cfg.materias,'hitos',cfg.hitos);
 if(cfg.hitos.join()!=='2,3,4')fallo('hitos de CONFIG');
 const PAD=ss.getSheetByName('PADRON');
-console.log('PADRON',PAD.getLastRow()-1,J(PAD.d[1]),'| fórmulas',PAD.formulas['2,11'],PAD.formulas['2,12']);
+console.log('PADRON',PAD.getLastRow()-1,J(PAD.d[1]),'| fórmulas',PAD.formulas['2,12'],PAD.formulas['2,13']);
 if(PAD.getLastRow()-1!==3)fallo('padrón');
-if(SEP===';'&&!/;/.test(PAD.formulas['2,11']))fallo('fórmula del padrón sin «;»');
+if(SEP===';'&&!/;/.test(PAD.formulas['2,12']))fallo('fórmula del padrón sin «;»');
 const get=(a,extra)=>JSON.parse(ctx.doGet({parameter:Object.assign({action:a},extra||{})}).t);
 const M='doc.juancarlos.perez.lo@unifranz.edu.bo';
 const v1=get('validar',{correo:M});
 console.log('validar',J({...v1,materias:v1.materias.length+' materias',carreras:v1.carreras.length+' carreras'}));
-if(!v1.habilitado||v1.mentor.nombre!=='Juan'||v1.mentor.programa!=='Docente Tutor'||J(v1).includes('6530660')||J(v1).includes('111,'))fallo('validar');
+if(!v1.habilitado||v1.mentor.nombre!=='Juan'||v1.mentor.programa!=='Docente Tutor'||J(v1).includes('111,'))fallo('validar');
+// lista para búsqueda instantánea: solo estudiantes de su carrera (SIS), sin celulares
+console.log('lista del mentor',J(v1.estudiantes));
+if(!v1.estudiantes||v1.estudiantes.length!==1||v1.estudiantes[0][1]!=='Ronald Mendoza Vargas'||J(v1).includes('67443917'))fallo('lista del mentor');
+const va=get('validar',{correo:'doc.ana.rojas.va@unifranz.edu.bo'});console.log('docente en 2 carreras',J(va.mentor.carreras),J(va.estudiantes.map(e=>e[1]+' '+e[4])));
+if(J(va.mentor.carreras)!=='["ICO","MED"]'||va.estudiantes.length!==2)fallo('docente con dos carreras');
+if(!PAD.d.some(r=>r[0]==='doc.ana.rojas.va@unifranz.edu.bo'&&r[10]==='MED'))fallo('«Otras carreras» en PADRON');
 if(v1.materias.length!==7)fallo('catálogo de materias: '+v1.materias.length);
 if(v1.materias.find(m=>m[0]==='ANA-111 (P)')[3]!=='')fallo('semestre 46367 debe quedar vacío');
-console.log('validar mayúsc/espacios',get('validar',{correo:'doc.ana.rojas.va@unifranz.edu.bo'}).habilitado);
 console.log('validar desconocido',J(get('validar',{correo:'x.y@unifranz.edu.bo'})));
 // ── búsqueda de estudiantes
+const bc=get('buscar',{correo:M,q:'rojas'});console.log('buscar «rojas» con filtro de carrera (SIS): ',bc.resultados.length,'| en toda la base:',get('buscar',{correo:M,q:'rojas',todo:'1'}).resultados.length);
+if(bc.resultados.length!==0||get('buscar',{correo:M,q:'rojas',todo:'1'}).resultados.length!==2)fallo('filtro de carrera / toda la base');
+ctx.setConfig_('Buscar estudiantes solo de la carrera del docente','NO');
+if(get('validar',{correo:M}).estudiantes!==null)fallo('sin filtros no se manda lista');
 const b0=get('buscar',{correo:M,q:'quispe'});console.log('buscar «quispe» de LPZ desde CBB (todas las sedes, por defecto)',J(b0.resultados.map(x=>x.nombre+' '+x.sede)));
 if(b0.resultados.length!==1)fallo('búsqueda en todas las sedes');
 ctx.setConfig_('Buscar estudiantes de todas las sedes','NO');

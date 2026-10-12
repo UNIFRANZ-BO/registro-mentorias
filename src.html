@@ -576,6 +576,17 @@ details.more ol li b{color:var(--txt)}
 /* inicio: solo logo, título y botón, centrados */
 .hero{min-height:calc(100dvh - 70px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 0 4vh}
 .hero .htitle{margin:26px auto 34px;font-size:clamp(34px,9vw,58px)}
+
+/* hito en la misma pantalla */
+.hitorow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 18px;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.03)}
+.hitorow .hl{font:600 11px var(--fm);letter-spacing:.18em;text-transform:uppercase;color:var(--o2)}
+.hitorow .hbtns{display:flex;gap:8px;flex-wrap:wrap}
+.hbtn{min-width:52px;padding:10px 16px;border-radius:12px;border:1px solid rgba(0,229,255,.35);background:rgba(4,5,13,.55);color:var(--txt);font:800 16px var(--fd);cursor:pointer;transition:all .2s}
+.hbtn:hover{border-color:var(--c)}
+.hbtn.sel{background:linear-gradient(135deg,var(--o),var(--m));border-color:transparent;color:#fff;box-shadow:0 0 18px -4px rgba(255,107,26,.8)}
+.hitorow .hfix{font:800 18px var(--fd);color:var(--c)}
+.hitorow.shake{animation:shake .45s}
+.linkbtn.inl{display:inline;margin:0;padding:0 2px;font-size:14px}
 </style>
 </head>
 <body>
@@ -634,7 +645,7 @@ details.more ol li b{color:var(--txt)}
 // ⬇⬇⬇ Pega aquí la URL de tu implementación de Apps Script (termina en /exec) ⬇⬇⬇
 const API_URL_DEFECTO = 'https://script.google.com/macros/s/AKfycbxtZvLrQlpP8L8vUAq1RL007vjRpOfLbbK4f6SMLYEk-8VqrKbbeqvJi1f85OIICug/exec';
 // ⬆⬆⬆ ------------------------------------------------------------------------ ⬆⬆⬆
-const VERSION = '1.4';
+const VERSION = '1.5';
 const LS_DRAFT = 'regment_draft1', LS_COLA = 'regment_cola1';
 const LOGO_FULL = '__LOGO_FULL__';
 const LOGO_WORD = '__LOGO_WORD__';
@@ -680,7 +691,7 @@ const DEMO = {
 
 /* ---------- estado ---------- */
 // items: [{est:{id, nombre, ci, sede, sede_nombre, carrera_cod, carrera, plan, manual?}, mats:[{c, n, k, s}], asis:'Sí'|'No', fecha, hi, hf, act, obs}]
-const fresh = () => ({id:null, t0:null, correo:'', perfil:null, cfg:null, materias:[], carreras:[], previos:{}, hito:'', items:[], cur:null, curIdx:-1, ret:'hub', scr:null});
+const fresh = () => ({id:null, t0:null, correo:'', perfil:null, cfg:null, materias:[], carreras:[], previos:{}, hito:'', items:[], cur:null, curIdx:-1, ests:null, scr:null});
 let S = fresh();
 const nuevoId = () => {
   const r = (crypto.getRandomValues ? Array.from(crypto.getRandomValues(new Uint8Array(6))) : Array.from({length:6}, () => Math.random()*256|0))
@@ -720,12 +731,12 @@ function updateTop() {
   const sc = S.scr, top = $('#top');
   top.classList.toggle('off', !sc);
   if (!sc) return;
-  const pos = sc === 'login' ? 8 : sc === 'hito' ? 18 : sc === 'review' ? 100 : 50;
+  const pos = sc === 'login' ? 10 : sc === 'review' ? 100 : 50;
   $('#barFill').style.width = pos + '%';
   $('#pct').textContent = pos + '%';
-  const seg = sc === 'login' ? 1 : sc === 'hito' ? 2 : sc === 'review' ? 4 : 3;
-  $('#modLbl').innerHTML = sc === 'login' ? '<b>Acceso</b> · Correo institucional' : sc === 'hito' ? '<b>Paso 2</b> · Hito' : sc === 'review' ? '<b>Revisión</b> · antes de enviar'
-    : `<b>Estudiante ${nItem()}</b> · Hito ${esc(S.hito)}`;
+  const seg = sc === 'login' ? 1 : sc === 'review' ? 4 : 3;
+  $('#modLbl').innerHTML = sc === 'login' ? '<b>Acceso</b> · Correo institucional' : sc === 'review' ? '<b>Revisión</b> · antes de enviar'
+    : `<b>Estudiante ${nItem()}</b>${S.hito ? ' · Hito ' + esc(S.hito) : ''}`;
   $$('#modsBar i').forEach((el, k) => { el.className = k + 1 < seg ? 'done' : (k + 1 === seg ? 'on' : ''); });
 }
 
@@ -787,7 +798,7 @@ SCR.login = function (el) {
   tilt(card);
 };
 let verifying = false;
-const trasLogin = () => (hitoUnico() || S.hito) ? aLista() : go('hito');
+const trasLogin = () => aLista();
 async function verify(el) {
   if (verifying) return;
   const inp = $('#mailIn', el), msg = $('#mailMsg', el), card = $('.card', el), btn = $('#btnVerify', el);
@@ -802,13 +813,14 @@ async function verify(el) {
   if (r && r.ok && r.habilitado && r.mentor) {
     if (S.correo && S.correo !== correo) { S.items = []; S.cur = null; S.hito = ''; S.id = nuevoId(); S.t0 = Date.now(); }
     S.correo = correo; S.perfil = r.mentor;
-    S.cfg = {hitos:(r.hitos || []).map(String), manual:r.manual !== false, todas:!!r.todas_sedes, periodo:r.periodo || ''};
+    S.cfg = {hitos:(r.hitos || []).map(String), manual:r.manual !== false, todas:!!r.todas_sedes, solo:!!r.solo_carrera, periodo:r.periodo || ''};
+    S.ests = Array.isArray(r.estudiantes) ? r.estudiantes : null;   // lista del docente: búsqueda por nombre al instante
     S.materias = r.materias || []; S.carreras = r.carreras || []; S.previos = r.previos || {};
     if (hitoUnico()) S.hito = S.cfg.hitos[0];
     else if (S.hito && S.cfg.hitos.length && !S.cfg.hitos.includes(String(S.hito))) S.hito = '';
     card.classList.add('okd'); msg.innerHTML = `<span class="good">¡Hola, ${esc(firstName(r.mentor.nombre))}! Correo verificado.</span>`;
     const rc = inp.getBoundingClientRect(); FX.burst(rc.right - 30, rc.top + rc.height / 2, 26, '#39ffb0');
-    if (API_OK) jsonp({action:'buscar', correo, q:'zzzz'}, 30000).catch(() => {});   // prepara el índice de estudiantes en el servidor
+    if (API_OK && !S.ests) jsonp({action:'buscar', correo, q:'zzzz'}, 30000).catch(() => {});   // prepara el índice de estudiantes en el servidor
     saveDraft(); setTimeout(() => { if (S.scr === 'login') trasLogin(); }, 900);
     return;
   }
@@ -830,22 +842,17 @@ async function validarCorreo(correo) {
   return jsonp({action:'validar', correo}, 25000);
 }
 
-/* ---------- hito ---------- */
-SCR.hito = function (el) {
-  const hs = S.cfg.hitos.length ? S.cfg.hitos : ['2', '3', '4'];
-  el.innerHTML = `<div class="card">${qHead('02', 'Bitácora de nivelaciones', 'Seleccionar HITO', '')}
-    <div class="opts two hitos">${hs.map((h, i) => { const p = S.previos[h]; return `<button class="opt tile ${String(S.hito) === h ? 'sel' : ''}" data-v="${esc(h)}" aria-pressed="${String(S.hito) === h}" ${optDelay(i)} ${i === 0 ? 'data-autofocus' : ''}><span class="code">Hito ${esc(h)}</span><span class="lbl">${p ? `Ya registraste ${p} estudiante${p === 1 ? '' : 's'}` : 'Sin registros todavía'}</span><span class="chk">${IC.check}</span></button>`; }).join('')}</div>
-    ${navHtml('Siguiente', !!S.hito, `<span class="kbd">Teclas 1–${hs.length}</span>`)}</div>`;
-  el.addEventListener('click', e => {
-    const b = e.target.closest('.opt'); if (!b) return;
-    S.hito = b.dataset.v;
-    $$('.opt', el).forEach(x => { const on = x === b; x.classList.toggle('sel', on); x.setAttribute('aria-pressed', on); });
-    ripple(b, e); FX.burst(e.clientX, e.clientY);
-    saveDraft(); setNextOk(el, true); autoNext(() => aLista());
-  });
-  bindNav(el, () => S.hito ? aLista() : (shake(el), toast('Elige el hito para continuar')), () => go('login', true));
-  tilt($('.card', el));
-};
+/* ---------- hito: fila de botones dentro de la ficha y de la lista ---------- */
+const hitosCfg = () => (S.cfg && S.cfg.hitos && S.cfg.hitos.length) ? S.cfg.hitos : ['2', '3', '4'];
+function hitoRow() {
+  if (hitoUnico()) return `<div class="hitorow uno" id="hitoRow"><span class="hl">Hito</span><span class="hfix">${esc(S.hito)}</span></div>`;
+  return `<div class="hitorow" id="hitoRow"><span class="hl">Hito</span><div class="hbtns">${hitosCfg().map(h => `<button class="hbtn ${String(S.hito) === h ? 'sel' : ''}" data-hito="${esc(h)}" aria-pressed="${String(S.hito) === h}">${esc(h)}</button>`).join('')}</div></div>`;
+}
+function elegirHito(el, h) {
+  S.hito = h;
+  $$('[data-hito]', el).forEach(x => { const on = x.dataset.hito === h; x.classList.toggle('sel', on); x.setAttribute('aria-pressed', on); });
+  saveDraft(); updateTop();
+}
 
 /* ---------- lista de estudiantes del envío ---------- */
 function itemHtml(it, i, conBotones = true) {
@@ -855,7 +862,7 @@ function itemHtml(it, i, conBotones = true) {
     <div class="mchips">${it.mats.map(m => `<span class="mchip">${esc(m.n)}</span>`).join('')}</div>${ses}
     ${conBotones ? `<div class="acts"><button class="sbtn" data-ed="${i}">Editar</button><button class="sbtn del" data-del="${i}">Quitar</button></div>` : ''}</div>`;
 }
-// Después del hito: si ya hay estudiantes, la lista para revisar y enviar; si no, la ficha del primero.
+// Tras el correo: si ya hay estudiantes, la lista para revisar y enviar; si no, la ficha del primero.
 function aLista(back) { if (S.items.length) go('review', back); else startFicha(-1); }
 
 /* ---------- ficha de un estudiante: todo en una sola pantalla ---------- */
@@ -879,7 +886,7 @@ function commitFicha(otro) {
   else go('review', true);
   toast(msg);
 }
-function cancelFicha() { S.cur = null; S.curIdx = -1; if (S.items.length) go('review', true); else go(hitoUnico() ? 'login' : 'hito', true); }
+function cancelFicha() { S.cur = null; S.curIdx = -1; if (S.items.length) go('review', true); else go('login', true); }
 const claveEst = e => e ? (e.manual ? 'ci:' + norm(e.ci).replace(/[^0-9a-z]/g, '') : e.id) : '';
 function repetido(e) { const k = claveEst(e); return S.items.findIndex((it, i) => i !== S.curIdx && claveEst(it.est) === k); }
 const anterior = () => { const lst = S.items.filter((it, i) => i !== S.curIdx && it.asis === 'Sí'); return lst.length ? lst[lst.length - 1] : null; };
@@ -896,6 +903,7 @@ function sesError(c) {
 }
 // Primer dato que falta: [sección, mensaje], o null si la ficha está completa.
 function fichaError(c) {
+  if (!S.hito) return ['hitoRow', 'Selecciona el hito.'];
   if (!c.est) return ['secEst', 'Busca y elige al estudiante (o regístralo a mano).'];
   if (repetido(c.est) >= 0) return ['secEst', 'Ese estudiante ya está en la lista.'];
   if (!c.mats.length) return ['secMat', 'Selecciona al menos una materia.'];
@@ -907,7 +915,8 @@ function fichaError(c) {
 SCR.ficha = function (el) {
   const c = S.cur;
   estAbierta = !c.est; filtroMat = ''; verTodas = c.est ? !propias().length : false;
-  el.innerHTML = `<div class="card ficha">${qHead(pad(nItem()), 'Hito ' + S.hito + ' · Estudiante ' + nItem(), S.curIdx >= 0 ? 'Editar estudiante' : 'Registrar estudiante', '', null)}
+  el.innerHTML = `<div class="card ficha">${qHead(pad(nItem()), 'Estudiante ' + nItem(), S.curIdx >= 0 ? 'Editar estudiante' : 'Registrar estudiante', '', null)}
+    ${hitoRow()}
     <section class="fsec" id="secEst"><div class="fhd"><b>1</b>Estudiante</div><div class="fbd" id="bdEst"></div></section>
     <section class="fsec" id="secMat"><div class="fhd"><b>2</b>Seleccionar materias<span class="fcnt" id="mc"></span></div><div class="fbd" id="bdMat"></div></section>
     <section class="fsec" id="secAsis"><div class="fhd"><b>3</b>¿Asistió?</div><div class="fbd">
@@ -923,7 +932,8 @@ SCR.ficha = function (el) {
     const t = ev.target;
     if (t.closest('[data-act=prev]')) return cancelFicha();
     if (t.closest('#btnFin')) return guardarFicha(el, false);
-    if (t.closest('#btnOtro')) return guardarFicha(el, true);
+    const hb = t.closest('[data-hito]'); if (hb) { elegirHito(el, hb.dataset.hito); return refresh(el); }
+    const tb = t.closest('#todaBase'); if (tb) return buscarAhora(el, true);
     if (t.closest('#cambiarEst')) { estAbierta = true; pintaEst(el); const q = $('#q', el); if (q) q.focus(); return; }
     if (t.closest('#tgMan')) { const mb = $('#manBox', el); mb.classList.toggle('on'); if (mb.classList.contains('on')) $('#mCi', el).focus(); return; }
     const r = t.closest('#sres .opt'); if (r) return elegirEst(el, r, ev);
@@ -945,7 +955,7 @@ SCR.ficha = function (el) {
   });
   el.addEventListener('input', ev => {
     const id = ev.target.id, v = ev.target.value;
-    if (id === 'q') { clearTimeout(buscaT); buscaT = setTimeout(() => buscarAhora(el), 350); }
+    if (id === 'q') { clearTimeout(buscaT); buscaT = setTimeout(() => buscarAhora(el), S.ests ? 120 : 350); }
     else if (id === 'mq') { filtroMat = v; pintarMat(el); abrirMat(el, true); }
     else if (id === 'mCi' || id === 'mNom') leerManual(el);
     else if (id === 'fF' || id === 'fHi' || id === 'fHf') { c[{fF:'fecha', fHi:'hi', fHf:'hf'}[id]] = v; refresh(el); }
@@ -983,7 +993,7 @@ function refresh(el) {
   const m = $('#fmsg', el);
   m.className = 'fmsg' + (er ? '' : ' ok');
   m.textContent = er ? 'Falta: ' + er[1].charAt(0).toLowerCase() + er[1].slice(1) : '✓ Todo listo para guardar.';
-  $$('#btnFin, #btnOtro', el).forEach(b => b.classList.toggle('wait', !!er));
+  $$('#btnFin', el).forEach(b => b.classList.toggle('wait', !!er));
   saveDraft();
 }
 
@@ -1013,17 +1023,24 @@ function pintarRes(el, lista, info) {
   res.innerHTML = ultimos.map((x, i) => `<button class="opt" data-k="${esc(x.id)}" ${optDelay(i)}><span class="key">${keyL(i)}</span><span class="lbl">${esc(x.nombre)}<span class="sub">${esc(x.carrera || x.carrera_cod)} · ${datosEst(x)}</span></span><span class="chk">${IC.check}</span></button>`).join('')
     + (info ? `<div class="sinfo ${info.load ? 'load' : ''}">${info.t}</div>` : '');
 }
-async function buscarAhora(el) {
+// Alcance de la lista del docente, para los mensajes: «Ingeniería Comercial · Cochabamba».
+function alcance() {
+  const nom = Object.fromEntries(S.carreras.map(k => [k.cod, k.nombre])), P = S.perfil || {};
+  return [S.cfg.solo ? (P.carreras && P.carreras.length ? P.carreras : [P.carrera_cod]).map(k => nom[k] || k).join(', ') : '', S.cfg.todas ? '' : (P.sede_nombre || P.sede || '')].filter(String).join(' · ');
+}
+async function buscarAhora(el, todo) {
   const q = $('#q', el); if (!q) return;
   const t = q.value.trim(), seq = ++buscaSeq;
   if (norm(t).replace(/\s/g, '').length < 3) return pintarRes(el, [], {t:'Escribe al menos 3 letras del nombre o el CI completo.'});
-  pintarRes(el, [], {t:'Buscando…', load:true});
+  const local = !todo && !!S.ests && API_OK;
+  if (!local) pintarRes(el, [], {t: todo ? 'Buscando en toda la base…' : 'Buscando…', load:true});
   let r;
-  try { r = await buscarEst(t); } catch (e) { r = {ok:false, motivo:'red'}; }
+  try { r = await buscarEst(t, todo); } catch (e) { r = {ok:false, motivo:'red'}; }
   if (seq !== buscaSeq || !$('#q', el)) return;
   if (!r || !r.ok) return pintarRes(el, [], {t: r && r.motivo === 'cerrada' ? 'El registro se cerró.' : 'No pudimos buscar. Revisa tu conexión e inténtalo de nuevo.'});
-  if (!r.resultados.length) return pintarRes(el, [], {t:`No encontramos a nadie con «${esc(t)}».` + (S.cfg.todas ? '' : ' Si es de otra sede, búscalo por su CI.') + (S.cfg.manual ? ' Si no aparece, regístralo a mano.' : '')});
-  pintarRes(el, r.resultados, r.mas ? {t:`Hay más de ${r.resultados.length} resultados: escribe también el apellido.`} : null);
+  const otra = r.local ? ` <button class="linkbtn inl" id="todaBase"><u>Buscar en toda la base</u></button>` : '';
+  if (!r.resultados.length) return pintarRes(el, [], {t:`No encontramos a nadie con «${esc(t)}»${r.local && alcance() ? ' en ' + esc(alcance()) : ''}.${otra}` + (S.cfg.manual ? '<br>Si no aparece en ningún lado, regístralo a mano.' : '')});
+  pintarRes(el, r.resultados, r.mas ? {t:`Hay más de ${r.resultados.length} resultados: escribe también el apellido.`} : (r.local ? {t:`¿No es ninguno?${otra}`} : null));
 }
 function elegirEst(el, b, ev) {
   const c = S.cur, x = ultimos.find(y => y.id === b.dataset.k); if (!x) return;
@@ -1047,14 +1064,28 @@ function leerManual(el) {
   } else if (c.est && c.est.manual) c.est = null;
   refresh(el);
 }
-function buscarEst(t) {
+const MAX_RES = 12;
+// Búsqueda en la lista del docente (llega al entrar): por nombre, cada palabra es comienzo de un nombre o apellido;
+// por CI, coincidencia exacta.
+function buscarLocal(t) {
+  const qn = norm(t), dig = qn.replace(/\D/g, ''), esCI = dig.length >= 5 && dig.length >= qn.replace(/\s/g, '').length - 3;
+  const toks = qn.split(' ').filter(String), nom = Object.fromEntries(S.carreras.map(k => [k.cod, k.nombre]));
+  const r = S.ests.filter(e => esCI ? String(e[2]).replace(/\D/g, '') === dig : toks.every(w => norm(e[1]).split(' ').some(p => p.startsWith(w))));
+  return {esCI, total:r.length, resultados:r.slice(0, MAX_RES).map(e => ({id:e[0], nombre:e[1], ci:e[2], sede:e[3], sede_nombre:SEDE_N[e[3]] || e[3], carrera_cod:e[4], carrera:nom[e[4]] || e[4], plan:e[5], semestre:e[6]}))};
+}
+function buscarEst(t, todo) {
   if (!API_OK) {
     const qn = norm(t), dig = qn.replace(/\D/g, '');
-    const lista = DEMO.est.map(([nombre, ci, sede, car]) => ({id:'est.' + norm(nombre).replace(/\s/g, '.') + '@unifranz.edu.bo', nombre, ci:'•••' + ci.slice(-3), _ci:ci, sede, sede_nombre:SEDE_N[sede], carrera_cod:car, carrera:(DEMO.carreras.find(k => k.cod === car) || {}).nombre || car, plan:2026}));
-    const r = dig.length >= 5 ? lista.filter(x => x._ci === dig) : lista.filter(x => qn.split(' ').every(w => norm(x.nombre).split(' ').some(p => p.startsWith(w))));
-    return sleep(400).then(() => ({ok:true, resultados:r.map(({_ci, ...x}) => x), mas:false}));
+    const lista = DEMO.est.map(([nombre, ci, sede, car]) => ({id:'est.' + norm(nombre).replace(/\s/g, '.') + '@unifranz.edu.bo', nombre, ci, sede, sede_nombre:SEDE_N[sede], carrera_cod:car, carrera:(DEMO.carreras.find(k => k.cod === car) || {}).nombre || car, plan:2026}));
+    const r = dig.length >= 5 ? lista.filter(x => x.ci === dig) : lista.filter(x => qn.split(' ').every(w => norm(x.nombre).split(' ').some(p => p.startsWith(w))));
+    return sleep(400).then(() => ({ok:true, resultados:r, mas:false}));
   }
-  return jsonp({action:'buscar', correo:S.correo, q:t}, 20000);
+  if (!todo && S.ests) {
+    const l = buscarLocal(t);
+    if (l.total || !l.esCI) return Promise.resolve({ok:true, resultados:l.resultados, mas:l.total > MAX_RES, local:true});
+  }
+  // CI que no está en la lista del docente, o «Buscar en toda la base»: al servidor (sin filtros)
+  return jsonp(Object.assign({action:'buscar', correo:S.correo, q:t}, todo ? {todo:'1'} : {}), 20000);
 }
 
 /* 2 · materias */
@@ -1146,12 +1177,14 @@ SCR.review = function (el) {
   el.innerHTML = `<div class="card"><div class="notch"></div>
     <div class="qhead"><div class="qnum" data-n="OK">OK</div><div class="qmeta"><span class="tag">Hito ${esc(S.hito)}</span><span class="req">${S.items.length} estudiante${S.items.length === 1 ? '' : 's'} · ${nMat} materia${nMat === 1 ? '' : 's'}${nNo ? ' · ' + nNo + ' sin asistencia' : ''}</span></div></div>
     <h2 class="qtitle">${splitWords('Estudiantes registrados')}</h2>
+    ${hitoRow()}
     <p class="qhint">¿Tienes más estudiantes? Agrégalos. Si ya no hay más, envía el registro.</p>
     <div class="items">${S.items.map((it, i) => itemHtml(it, i)).join('')}</div>
     ${S.items.length < MAX_EST ? `<button class="add" id="btnAdd">${IC.plus}<span>Agregar otro estudiante</span></button>` : ''}
     <div class="fnav"><button class="btn prime big" data-act="next" id="btnNext"><span>Enviar registro</span>${IC.send}</button>
-      ${hitoUnico() ? '' : `<button class="linkbtn cancel" data-act="prev">Cambiar hito (ahora: hito ${esc(S.hito)})</button>`}</div></div>`;
+</div></div>`;
   el.addEventListener('click', e => {
+    const hb = e.target.closest('[data-hito]'); if (hb) return elegirHito(el, hb.dataset.hito);
     if (e.target.closest('#btnAdd')) return startFicha(-1);
     const ed = e.target.closest('[data-ed]'); if (ed) return startFicha(+ed.dataset.ed);
     const del = e.target.closest('[data-del]');
@@ -1160,7 +1193,7 @@ SCR.review = function (el) {
       S.items.splice(+del.dataset.del, 1); saveDraft(); return S.items.length ? go('review') : startFicha(-1);
     }
   });
-  bindNav(el, () => S.items.length ? submit() : startFicha(-1), () => go(hitoUnico() ? 'login' : 'hito', true));
+  bindNav(el, () => !S.hito ? (toast('Selecciona el hito'), $('#hitoRow', el).scrollIntoView({behavior:'smooth', block:'center'})) : S.items.length ? submit() : startFicha(-1), () => {});
 };
 
 /* ---------- envío ---------- */
@@ -1334,7 +1367,7 @@ function showWelcome(back) {
     $('#cont', el).onclick = () => {
       S = {...fresh(), ...d}; delete S.v;
       if (S.scr === 'ficha' && S.cur) go('ficha');
-      else { S.cur = null; S.curIdx = -1; S.hito ? aLista() : go('hito'); }
+      else { S.cur = null; S.curIdx = -1; aLista(); }
     };
     $('#fresh', el).onclick = () => { lsDel(LS_DRAFT); start(); };
   } else $('#start', el).onclick = start;
@@ -1364,7 +1397,6 @@ document.addEventListener('keydown', e => {
   const tag = (e.target.tagName || '').toLowerCase();
   if (tag === 'textarea' || tag === 'input' || tag === 'select') return;
   const el = stage.lastElementChild;
-  if (sc === 'hito' && /^[1-9]$/.test(e.key)) { const b = $$('.opt', el)[+e.key - 1]; if (b) b.click(); return; }
   if (e.key === 'Enter' && !e.target.closest('button') && sc !== 'review') { e.preventDefault(); const b = $('#btnNext', el); if (b) b.click(); }
 });
 

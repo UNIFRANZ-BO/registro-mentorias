@@ -127,6 +127,7 @@ function crearConfig_() {
     ['Sedes habilitadas', '', 'Sedes de los mentores. Códigos: LPZ; EAT; CBB; SCZ  ·  vacío = todas'],
     ['Carreras habilitadas', '', 'Carreras de los mentores. Códigos, ej.: NGE; ICO  ·  vacío = todas'],
     ['Buscar estudiantes de todas las sedes', 'SÍ', 'SÍ = al buscar por nombre, el mentor ve estudiantes de todas las sedes. NO = solo de su sede (por CI los encuentra siempre en cualquier sede).'],
+    ['Buscar estudiantes solo de la carrera del docente', 'SÍ', 'SÍ = al buscar por nombre, el mentor ve solo estudiantes de su(s) carrera(s) (si dicta en varias, de todas ellas) y la búsqueda es instantánea. Por CI, o con el botón «Buscar en toda la base», encuentra a cualquiera. NO = todas las carreras.'],
     ['Permitir estudiantes que no están en la base', 'SÍ', 'SÍ = si un estudiante no aparece, el mentor puede registrarlo a mano (CI, nombre y carrera). Esas filas quedan marcadas con «No» en «Estudiante en la base».'],
     ['Mensaje de registro cerrado', 'El registro de sesiones no está disponible en este momento.', 'Texto que ve el mentor cuando está cerrado.']
   ];
@@ -143,7 +144,7 @@ function crearConfig_() {
   sh.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#3a3a3a').setFontColor('#ffffff');
   sh.setColumnWidth(1, 270); sh.setColumnWidth(2, 260); sh.setColumnWidth(3, 560);
   sh.setFrozenRows(1);
-  ['Registro activo', 'Buscar estudiantes de todas las sedes', 'Permitir estudiantes que no están en la base'].forEach(k => {
+  ['Registro activo', 'Buscar estudiantes de todas las sedes', 'Buscar estudiantes solo de la carrera del docente', 'Permitir estudiantes que no están en la base'].forEach(k => {
     const f = buscarFila_(sh, k);
     if (f) sh.getRange(f, 2).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['SÍ', 'NO'], true).build());
   });
@@ -203,6 +204,7 @@ function config_() {
     materias: pestanas(c['Pestañas de materias'], 'BASEDEDATOSMATERIAS'),
     planes: lista(c['Planes habilitados']), sedes: lista(c['Sedes habilitadas']), carreras: lista(c['Carreras habilitadas']),
     todasSedes: si(c['Buscar estudiantes de todas las sedes'], 'SÍ'),
+    soloCarrera: si(c['Buscar estudiantes solo de la carrera del docente'], 'SÍ'),
     manual: si(c['Permitir estudiantes que no están en la base'], 'SÍ'),
     mensaje: String(c['Mensaje de registro cerrado'] || 'El registro de sesiones no está disponible en este momento.')
   };
@@ -252,7 +254,7 @@ function leerBase_(sh, req) {
 const nombreCompleto_ = e => [e.n1, e.n2, e.a1, e.a2].filter(String).map(titulo_).join(' ').replace(/\s+/g, ' ');
 
 /* ═════════════════════════ PADRÓN DE MENTORES ═════════════════════════ */
-const CAB_PADRON = ['Correo', 'Nombre completo', 'Primer nombre', 'Cód. sede', 'Sede', 'Cód. carrera', 'Carrera', 'Plan', 'Programa', 'Pestaña de origen', 'Registros', 'Estado'];
+const CAB_PADRON = ['Correo', 'Nombre completo', 'Primer nombre', 'Cód. sede', 'Sede', 'Cód. carrera', 'Carrera', 'Plan', 'Programa', 'Pestaña de origen', 'Otras carreras', 'Registros', 'Estado'];
 const N_FORMULAS_PADRON = 2;   // las dos últimas columnas son fórmulas vivas
 
 function cumple_(e, cfg) {
@@ -272,13 +274,15 @@ function programa_(e) {
 }
 function filaPadron_(e, nombres) {
   return [e.correo, nombreCompleto_(e), titulo_(String(e.n1).split(/\s+/)[0]), e.sede, SEDES[e.sede] || e.sede, e.carrera, nombres[e.carrera] || e.carrera,
-    Number(e.plan) || e.plan, programa_(e), e.origen];
+    Number(e.plan) || e.plan, programa_(e), e.origen, ''];
 }
+// Carreras del mentor: la principal más las de «Otras carreras» (separadas por «;»).
+const carrerasMentor_ = f => [f[5]].concat(String(f[10] || '').split(/[;,\s]+/)).map(x => String(x).trim().toUpperCase()).filter((x, i, a) => /^[A-Z]{2,6}$/.test(x) && a.indexOf(x) === i);   // solo códigos (si PADRON es de antes, la col. 11 trae un número)
 
 function generarPadron_() {
   const ss = SpreadsheetApp.getActive(), cfg = config_(), nombres = nombresCarreras_(), exc = excluidos_();
   const errores = [], vistos = {}, salida = [], codigos = {};
-  let leidos = 0, fueraFiltro = 0, nExcl = 0, dup = 0;
+  let leidos = 0, fueraFiltro = 0, nExcl = 0, dup = 0, multi = 0;
   cfg.docentes.concat([H.AGREGADOS]).forEach(nombre => {
     const sh = ss.getSheetByName(nombre);
     if (!sh) { if (nombre !== H.AGREGADOS) errores.push('No existe la pestaña de docentes «' + nombre + '»'); return; }
@@ -289,9 +293,15 @@ function generarPadron_() {
       const manual = nombre === H.AGREGADOS;          // los agregados a mano no pasan por los filtros
       if (!manual && !cumple_(e, cfg)) { fueraFiltro++; return; }
       if (exc[e.correo]) { nExcl++; return; }
-      if (vistos[e.correo]) { dup++; return; }
-      vistos[e.correo] = true; codigos[e.carrera] = true;
-      salida.push(filaPadron_(e, nombres));
+      codigos[e.carrera] = true;
+      const previo = vistos[e.correo];
+      if (previo) {          // mismo docente en otra fila: si es otra carrera, se suma a «Otras carreras»
+        const ya = carrerasMentor_(previo);
+        if (e.carrera && ya.indexOf(e.carrera) < 0) { previo[10] = ya.slice(1).concat([e.carrera]).join('; '); multi++; } else dup++;
+        return;
+      }
+      const fila = filaPadron_(e, nombres);
+      vistos[e.correo] = fila; salida.push(fila);
     });
   });
   // los códigos de carrera de estudiantes y materias también se registran en CARRERAS
@@ -320,7 +330,8 @@ function generarPadron_() {
   sh.setFrozenRows(1); sh.setColumnWidth(1, 300); sh.setColumnWidth(2, 260);
 
   const texto = 'Padrón: ' + salida.length + ' mentores habilitados.\n' +
-    'Filas leídas: ' + leidos + ' · fuera de los filtros: ' + fueraFiltro + ' · excluidos: ' + nExcl + ' · correos repetidos: ' + dup + '.\n' +
+    'Filas leídas: ' + leidos + ' · fuera de los filtros: ' + fueraFiltro + ' · excluidos: ' + nExcl + ' · correos repetidos: ' + dup +
+    (multi ? ' · docentes con más de una carrera: ' + multi : '') + '.\n' +
     'Estudiantes en las bases: ' + nEst + ' · materias: ' + mats.lista.length + '.' +
     (nuevos.length ? '\nCódigos de carrera nuevos sin nombre: ' + nuevos.join(', ') + ' (complétalos en CARRERAS).' : '') +
     (errores.length ? '\n\n⚠ ' + errores.join('\n⚠ ') : '');
@@ -370,7 +381,7 @@ function buscarMentor_(correo, cfg) {
   }
   return { motivo: fuera ? 'no_habilitado' : 'no_encontrado' };
 }
-const perfilMentor_ = (f, nombres) => ({ nombre: f[2], nombre_completo: f[1], sede: f[3], sede_nombre: f[4], carrera_cod: f[5], carrera: nombres[f[5]] || f[6], plan: f[7], programa: f[8] || PROGRAMAS[0] });
+const perfilMentor_ = (f, nombres) => ({ nombre: f[2], nombre_completo: f[1], sede: f[3], sede_nombre: f[4], carrera_cod: f[5], carrera: nombres[f[5]] || f[6], carreras: carrerasMentor_(f), plan: f[7], programa: f[8] || PROGRAMAS[0] });
 
 /* ═════════════════════════ ESTUDIANTES ═════════════════════════ */
 // Lee todas las pestañas de estudiantes. Nunca se envía completa a la app: solo resultados de búsqueda.
@@ -397,7 +408,22 @@ function estPublico_(e, nombres) {
 }
 // Por CI (solo dígitos, ≥ 5): coincidencia exacta en cualquier sede. Por nombre: cada palabra
 // escrita debe ser el comienzo de una palabra del nombre (ej.: «ana rojas», «rojas v»).
-function buscarEstudiantes_(q, mentor, cfg) {
+// ¿El estudiante entra en la lista del mentor? (sede y carrera, según CONFIG)
+function delMentor_(e, mentor, cfg) {
+  if (!cfg.todasSedes && mentor.sede && e.sede && e.sede !== mentor.sede) return false;
+  if (cfg.soloCarrera && mentor.carreras && mentor.carreras.length && mentor.carreras.indexOf(e.carrera) < 0) return false;
+  return true;
+}
+// Lista de estudiantes del mentor para buscar al instante en la app (sin celulares ni correos de otros):
+// solo si algún filtro está activo y la lista es razonable. [id, nombre, ci, sede, carrera, plan, semestre]
+const MAX_LISTA_MENTOR = 1200;
+function listaMentor_(mentor, cfg) {
+  if (cfg.todasSedes && !cfg.soloCarrera) return null;
+  const l = indiceEst_(cfg).filter(e => delMentor_(e, mentor, cfg));
+  if (!l.length || l.length > MAX_LISTA_MENTOR) return null;
+  return l.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')).map(e => [e.clave, e.nombre, e.ci, e.sede, e.carrera, Number(e.plan) || e.plan, Number(e.semestre) || e.semestre || '']);
+}
+function buscarEstudiantes_(q, mentor, cfg, todo) {
   const qn = norm_(q).replace(/\s+/g, ' ').trim(), digitos = qn.replace(/\D/g, '');
   const todos = indiceEst_(cfg), nombres = nombresCarreras_();
   let res;
@@ -407,7 +433,7 @@ function buscarEstudiantes_(q, mentor, cfg) {
     const toks = qn.split(' ').filter(String);
     if (qn.replace(/\s/g, '').length < 3) return { ok: true, resultados: [], corto: true };
     res = todos.filter(e => {
-      if (!cfg.todasSedes && mentor.sede && e.sede && e.sede !== mentor.sede) return false;
+      if (!todo && !delMentor_(e, mentor, cfg)) return false;
       const pals = norm_(e.nombre).split(/\s+/);
       return toks.every(t => pals.some(p => p.indexOf(t) === 0));
     });
@@ -550,7 +576,7 @@ function doGet(e) {
       const sh = SpreadsheetApp.getActive().getSheetByName(H.RESP), cfg = config_();
       out = { ok: true, servicio: 'registro-mentorias-2026', version_app: VERSION_APP, abierta: abierta_(cfg), periodo: cfg.periodo, hitos: cfg.hitos, respuestas: sh ? Math.max(0, sh.getLastRow() - 1) : 0 };
     } else if (accion === 'validar') out = validar_(p.correo);
-    else if (accion === 'buscar') out = buscar_(p.correo, p.q);
+    else if (accion === 'buscar') out = buscar_(p.correo, p.q, p.todo);
     else if (accion === 'verificar') out = { ok: true, id: p.id || '', existe: existeId_(String(p.id || '').toUpperCase()) };
     else if (accion === 'guardar') out = guardar_(JSON.parse(p.data || '{}'));
     else out = { ok: false, error: 'Acción desconocida' };
@@ -580,19 +606,20 @@ function validar_(correoIn) {
   const nombres = nombresCarreras_();
   return {
     ok: true, habilitado: true, mentor: perfilMentor_(r.fila, nombres),
-    hitos: cfg.hitos, manual: cfg.manual, todas_sedes: cfg.todasSedes, periodo: cfg.periodo,
+    hitos: cfg.hitos, manual: cfg.manual, todas_sedes: cfg.todasSedes, solo_carrera: cfg.soloCarrera, periodo: cfg.periodo,
+    estudiantes: listaMentor_({ sede: r.fila[3], carreras: carrerasMentor_(r.fila) }, cfg),
     previos: registrosPorHito_(correo),
     carreras: Object.keys(nombres).map(k => ({ cod: k, nombre: nombres[k] })).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
     materias: catalogoMaterias_(cfg)
   };
 }
-function buscar_(correoIn, q) {
+function buscar_(correoIn, q, todo) {
   const cfg = config_();
   if (!abierta_(cfg)) return { ok: false, motivo: 'cerrada', mensaje: cfg.mensaje };
   const correo = String(correoIn || '').trim().toLowerCase();
   const r = buscarMentor_(correo, cfg);
   if (!r.fila) return { ok: false, motivo: r.motivo };
-  return buscarEstudiantes_(String(q || '').slice(0, 80), { sede: r.fila[3] }, cfg);
+  return buscarEstudiantes_(String(q || '').slice(0, 80), { sede: r.fila[3], carreras: carrerasMentor_(r.fila) }, cfg, String(todo) === '1');
 }
 
 // Un envío = varios estudiantes, cada uno con varias materias. Todo se valida en el servidor:
@@ -722,6 +749,7 @@ function menuCerrar() { setConfig_('Registro activo', 'NO'); bitacora_('Cerrar r
 function avisoFechas_() { const c = config_(); return (c.apertura || c.cierre) ? '\n(Recuerda que también rigen las fechas de CONFIG.)' : ''; }
 
 function menuActualizarPadron() {
+  crearConfig_();          // agrega a CONFIG los parámetros nuevos (nunca pisa los existentes)
   const r = generarPadron_();
   limpiarCache_();
   bitacora_('Actualizar padrón', r.texto);

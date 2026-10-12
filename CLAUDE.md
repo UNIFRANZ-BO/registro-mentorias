@@ -71,6 +71,17 @@ Ahora: **un envío por grupo** (hito + N estudiantes), cada estudiante con **tod
 - Claves locales: `regment_draft1`, `regment_cola1`. IDs de envío `ME-…` (el mentor ve el código sin `ME-`).
 - Límites: 80 estudiantes por envío, 20 materias por estudiante.
 
+## Búsqueda y hito (v1.5, 12-oct-2026, pedidos de Rafael)
+- **Hito dentro de la ficha** (fila de botones 2 · 3 · 4 arriba, `hitoRow()`), también en la lista final; ya no hay pantalla de hito.
+  Guardar exige hito. Con un solo hito en CONFIG se muestra fijo.
+- **Búsqueda por carrera del docente**: CONFIG «Buscar estudiantes solo de la carrera del docente» (SÍ por defecto; «Actualizar padrón»
+  agrega la fila a CONFIG si falta). Con sede y/o carrera filtradas, `validar` manda `estudiantes` = lista del docente
+  `[id, nombre, ci, sede, carrera, plan, semestre]` (máx. 1200, sin celulares) y la app **busca por nombre al instante, sin servidor**.
+  CI que no esté en la lista → servidor (sin filtros). Botón **«Buscar en toda la base»** → `buscar&todo=1` (sin filtros).
+- Docentes con **varias carreras**: si un correo aparece en varias filas de la base de docentes, PADRON guarda las demás en la
+  columna nueva **«Otras carreras»** (`CAB_PADRON` tiene 13 columnas; Registros y Estado son la 12 y 13). `carrerasMentor_(fila)`.
+  Tras actualizar el script hay que correr «Actualizar padrón» (rehace PADRON con la columna nueva).
+
 ## Conexión (v1.4, 11-oct-2026)
 - Un dispositivo daba «No pudimos conectar con el servidor» mientras curl y otra PC funcionaban. Causa probable: las consultas
   JSONP (etiqueta `<script>`) envían las cookies de Google; con varias cuentas abiertas o sesión de UNIFRANZ, Google puede
@@ -107,7 +118,7 @@ Ahora: **un envío por grupo** (hito + N estudiantes), cada estudiante con **tod
   Hay una hoja vacía de más en la cuenta personal («Registro de Mentorías 2026», `1vorJLyJ-oRITRnQjjMEG5qrw47e-4nHtYf-npwGE8iA`): no se usa.
   El conector de Drive de Claude es de la cuenta personal: **no ve la hoja @unifranz**.
 - [x] **URL del script:** implementación `AKfycbxtZvLrQlpP…OICug` (11-oct-2026), incrustada en `API_URL_DEFECTO`; ping anónimo OK.
-- [x] **Repo** `UNIFRANZ-BO/registro-mentorias` (público, Pages en `main`) → enlace vigente **https://unifranz-bo.github.io/registro-mentorias/?v=6** (v=6: consultas por fetch sin cookies). Ping desde la página publicada OK.
+- [x] **Repo** `UNIFRANZ-BO/registro-mentorias` (público, Pages en `main`) → enlace vigente **https://unifranz-bo.github.io/registro-mentorias/?v=7** (v=7: hito en la ficha y búsqueda instantánea por carrera). Ping desde la página publicada OK.
 - [ ] Rafael: importar `entregables/Base_registro_mentorias.xlsx` en la hoja @unifranz (Insertar hojas nuevas) y ejecutar
   `configuracionInicial` (o «Actualizar padrón»). Al 11-oct, `validar` con un docente real da `no_encontrado` → bases aún no cargadas.
 - [ ] Prueba real (R13 de la guía) y limpieza antes de difundir.
