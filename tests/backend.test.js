@@ -70,7 +70,17 @@ console.log('CONFIG bases',cfg.docentes,cfg.estudiantes,cfg.materias,'hitos',cfg
 if(cfg.hitos.join()!=='2,3,4')fallo('hitos de CONFIG');
 const PAD=ss.getSheetByName('PADRON');
 console.log('PADRON',PAD.getLastRow()-1,J(PAD.d[1]),'| fórmulas',PAD.formulas['2,12'],PAD.formulas['2,13']);
-if(PAD.getLastRow()-1!==3)fallo('padrón');
+if(PAD.getLastRow()-1!==7)fallo('padrón: 3 docentes + 4 estudiantes');
+// Hermano Mayor: cualquier estudiante de la base entra con su correo y queda como «Hermano Mayor»
+const vh0=JSON.parse(ctx.doGet({parameter:{action:'validar',correo:'est.ronald.mendoza.va@unifranz.edu.bo'}}).t);
+console.log('Hermano Mayor',J(vh0.mentor),'| su lista',J((vh0.estudiantes||[]).map(e=>e[1])));
+if(!vh0.habilitado||vh0.mentor.programa!=='Hermano Mayor'||vh0.mentor.carreras.join()!=='SIS')fallo('Hermano Mayor');
+if((vh0.estudiantes||[]).some(e=>e[0]==='est.ronald.mendoza.va@unifranz.edu.bo'))fallo('el Hermano Mayor no debe verse a sí mismo');
+const yo=JSON.parse(ctx.doPost({postData:{contents:J({action:'guardar',data:{id:'ME-YO-XXXXXXX',correo:'est.ronald.mendoza.va@unifranz.edu.bo',hito:2,items:[{est:'est.ronald.mendoza.va@unifranz.edu.bo',materias:[{cod:'PRG-211 (P)',car:'SIS'}],asistio:'No'}]}})}}).t);
+console.log('registrarse a sí mismo',J(yo));if(yo.ok)fallo('no debe poder registrarse a sí mismo');
+ctx.setConfig_('Hermanos Mayores: cualquier estudiante de la base puede registrar','NO');ctx.menuActualizarPadron();
+if(PAD.getLastRow()-1!==3||JSON.parse(ctx.doGet({parameter:{action:'validar',correo:'est.ronald.mendoza.va@unifranz.edu.bo'}}).t).habilitado)fallo('Hermanos Mayores apagado');
+ctx.setConfig_('Hermanos Mayores: cualquier estudiante de la base puede registrar','SÍ');ctx.menuActualizarPadron();
 if(SEP===';'&&!/;/.test(PAD.formulas['2,12']))fallo('fórmula del padrón sin «;»');
 const get=(a,extra)=>JSON.parse(ctx.doGet({parameter:Object.assign({action:a},extra||{})}).t);
 const M='doc.juancarlos.perez.lo@unifranz.edu.bo';

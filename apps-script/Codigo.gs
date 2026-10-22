@@ -128,6 +128,7 @@ function crearConfig_() {
     ['Carreras habilitadas', '', 'Carreras de los mentores. Códigos, ej.: NGE; ICO  ·  vacío = todas'],
     ['Buscar estudiantes de todas las sedes', 'SÍ', 'SÍ = al buscar por nombre, el mentor ve estudiantes de todas las sedes. NO = solo de su sede (por CI los encuentra siempre en cualquier sede).'],
     ['Buscar estudiantes solo de la carrera del docente', 'SÍ', 'SÍ = al buscar por nombre, el mentor ve solo estudiantes de su(s) carrera(s) (si dicta en varias, de todas ellas) y la búsqueda es instantánea. Por CI, o con el botón «Buscar en toda la base», encuentra a cualquiera. NO = todas las carreras.'],
+    ['Hermanos Mayores: cualquier estudiante de la base puede registrar', 'SÍ', 'SÍ = cualquier estudiante de las pestañas de estudiantes entra con su correo como «Hermano Mayor» (luego se coteja con la lista de UNIFRANZ). NO = solo docentes y AGREGADOS.'],
     ['Permitir estudiantes que no están en la base', 'NO', 'La app ya no ofrece registrar estudiantes a mano: solo el administrador agrega estudiantes a la base. Déjalo en NO.'],
     ['Mensaje de registro cerrado', 'El registro de sesiones no está disponible en este momento.', 'Texto que ve el mentor cuando está cerrado.']
   ];
@@ -144,7 +145,7 @@ function crearConfig_() {
   sh.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#3a3a3a').setFontColor('#ffffff');
   sh.setColumnWidth(1, 270); sh.setColumnWidth(2, 260); sh.setColumnWidth(3, 560);
   sh.setFrozenRows(1);
-  ['Registro activo', 'Buscar estudiantes de todas las sedes', 'Buscar estudiantes solo de la carrera del docente', 'Permitir estudiantes que no están en la base'].forEach(k => {
+  ['Registro activo', 'Buscar estudiantes de todas las sedes', 'Buscar estudiantes solo de la carrera del docente', 'Hermanos Mayores: cualquier estudiante de la base puede registrar', 'Permitir estudiantes que no están en la base'].forEach(k => {
     const f = buscarFila_(sh, k);
     if (f) sh.getRange(f, 2).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['SÍ', 'NO'], true).build());
   });
@@ -205,6 +206,7 @@ function config_() {
     planes: lista(c['Planes habilitados']), sedes: lista(c['Sedes habilitadas']), carreras: lista(c['Carreras habilitadas']),
     todasSedes: si(c['Buscar estudiantes de todas las sedes'], 'SÍ'),
     soloCarrera: si(c['Buscar estudiantes solo de la carrera del docente'], 'SÍ'),
+    hermanos: si(c['Hermanos Mayores: cualquier estudiante de la base puede registrar'], 'SÍ'),
     manual: si(c['Permitir estudiantes que no están en la base'], 'NO'),
     mensaje: String(c['Mensaje de registro cerrado'] || 'El registro de sesiones no está disponible en este momento.')
   };
@@ -266,6 +268,12 @@ function excluidos_() {
   if (sh && sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues().forEach(r => { const c = String(r[0]).trim().toLowerCase(); if (c) s[c] = true; });
   return s;
 }
+// Pestañas de donde salen los mentores. Quien viene de una pestaña de estudiantes es «Hermano Mayor».
+function fuentesMentor_(cfg) {
+  const l = cfg.docentes.concat(cfg.hermanos ? cfg.estudiantes : []).concat([H.AGREGADOS]);
+  return l.filter((x, i) => l.indexOf(x) === i);
+}
+const esHermano_ = (hoja, cfg) => cfg.hermanos && cfg.estudiantes.indexOf(hoja) >= 0;
 function programa_(e) {
   const p = norm_(e.programa);
   if (p.indexOf('hermano') >= 0) return PROGRAMAS[1];
@@ -283,13 +291,15 @@ function generarPadron_() {
   const ss = SpreadsheetApp.getActive(), cfg = config_(), nombres = nombresCarreras_(), exc = excluidos_();
   const errores = [], vistos = {}, salida = [], codigos = {};
   let leidos = 0, fueraFiltro = 0, nExcl = 0, dup = 0, multi = 0;
-  cfg.docentes.concat([H.AGREGADOS]).forEach(nombre => {
+  let nHm = 0;
+  fuentesMentor_(cfg).forEach(nombre => {
     const sh = ss.getSheetByName(nombre);
-    if (!sh) { if (nombre !== H.AGREGADOS) errores.push('No existe la pestaña de docentes «' + nombre + '»'); return; }
-    const b = leerBase_(sh);
+    if (!sh) { if (nombre !== H.AGREGADOS && cfg.docentes.indexOf(nombre) >= 0) errores.push('No existe la pestaña de docentes «' + nombre + '»'); return; }
+    const b = leerBase_(sh), hm = esHermano_(nombre, cfg);
     if (b.error) { errores.push(b.error); return; }
     b.filas.filter(e => e.correo).forEach(e => {
       leidos++;
+      if (hm) { e.programa = PROGRAMAS[1]; nHm++; }
       const manual = nombre === H.AGREGADOS;          // los agregados a mano no pasan por los filtros
       if (!manual && !cumple_(e, cfg)) { fueraFiltro++; return; }
       if (exc[e.correo]) { nExcl++; return; }
@@ -329,7 +339,8 @@ function generarPadron_() {
   if (salida.length) { sh.getRange(2, 1, salida.length, salida[0].length).setValues(salida); ponerFormulasPadron_(sh, salida.length); }
   sh.setFrozenRows(1); sh.setColumnWidth(1, 300); sh.setColumnWidth(2, 260);
 
-  const texto = 'Padrón: ' + salida.length + ' mentores habilitados.\n' +
+  const nDoc = salida.filter(f => f[8] !== PROGRAMAS[1]).length;
+  const texto = 'Padrón: ' + salida.length + ' mentores habilitados (' + nDoc + ' docentes tutores' + (cfg.hermanos ? ' y ' + (salida.length - nDoc) + ' estudiantes que pueden registrar como Hermano Mayor' : '') + ').\n' +
     'Filas leídas: ' + leidos + ' · fuera de los filtros: ' + fueraFiltro + ' · excluidos: ' + nExcl + ' · correos repetidos: ' + dup +
     (multi ? ' · docentes con más de una carrera: ' + multi : '') + '.\n' +
     'Estudiantes en las bases: ' + nEst + ' · materias: ' + mats.lista.length + '.' +
@@ -365,7 +376,7 @@ function buscarMentor_(correo, cfg) {
   }
   let fuera = false;
   const nombres = nombresCarreras_();
-  const hojas = cfg.docentes.concat([H.AGREGADOS]);
+  const hojas = fuentesMentor_(cfg);
   for (let i = 0; i < hojas.length; i++) {
     const b = ss.getSheetByName(hojas[i]);
     if (!b || b.getLastRow() < 2) continue;
@@ -374,6 +385,7 @@ function buscarMentor_(correo, cfg) {
     const cab = cab_(b.getRange(1, 1, 1, b.getLastColumn()).getValues()[0]);
     const base = persona_(b.getRange(f.getRow(), 1, 1, b.getLastColumn()).getValues()[0], indices_(cab, COLS_BASE), b.getName());
     if (base.correo !== correo) continue;
+    if (esHermano_(hojas[i], cfg)) base.programa = PROGRAMAS[1];
     if (hojas[i] !== H.AGREGADOS && !cumple_(base, cfg)) { fuera = true; continue; }
     const fila = filaPadron_(base, nombres);
     if (sh) { sh.appendRow(fila); formulasPadronFila_(sh, sh.getLastRow()); }
@@ -410,6 +422,7 @@ function estPublico_(e, nombres) {
 // escrita debe ser el comienzo de una palabra del nombre (ej.: «ana rojas», «rojas v»).
 // ¿El estudiante entra en la lista del mentor? (sede y carrera, según CONFIG)
 function delMentor_(e, mentor, cfg) {
+  if (mentor.correo && e.correo === mentor.correo) return false;   // un Hermano Mayor no se ve a sí mismo
   if (!cfg.todasSedes && mentor.sede && e.sede && e.sede !== mentor.sede) return false;
   if (cfg.soloCarrera && mentor.carreras && mentor.carreras.length && mentor.carreras.indexOf(e.carrera) < 0) return false;
   return true;
@@ -428,12 +441,12 @@ function buscarEstudiantes_(q, mentor, cfg, todo) {
   const todos = indiceEst_(cfg), nombres = nombresCarreras_();
   let res;
   if (digitos.length >= 5 && digitos.length >= qn.replace(/\s/g, '').length - 3) {
-    res = todos.filter(e => e.ci && ciNorm_(e.ci).replace(/\D/g, '') === digitos);
+    res = todos.filter(e => e.ci && ciNorm_(e.ci).replace(/\D/g, '') === digitos && e.correo !== mentor.correo);
   } else {
     const toks = qn.split(' ').filter(String);
     if (qn.replace(/\s/g, '').length < 3) return { ok: true, resultados: [], corto: true };
     res = todos.filter(e => {
-      if (!todo && !delMentor_(e, mentor, cfg)) return false;
+      if (e.correo === mentor.correo || (!todo && !delMentor_(e, mentor, cfg))) return false;
       const pals = norm_(e.nombre).split(/\s+/);
       return toks.every(t => pals.some(p => p.indexOf(t) === 0));
     });
@@ -607,7 +620,7 @@ function validar_(correoIn) {
   return {
     ok: true, habilitado: true, mentor: perfilMentor_(r.fila, nombres),
     hitos: cfg.hitos, manual: cfg.manual, todas_sedes: cfg.todasSedes, solo_carrera: cfg.soloCarrera, periodo: cfg.periodo,
-    estudiantes: listaMentor_({ sede: r.fila[3], carreras: carrerasMentor_(r.fila) }, cfg),
+    estudiantes: listaMentor_({ correo: correo, sede: r.fila[3], carreras: carrerasMentor_(r.fila) }, cfg),
     previos: registrosPorHito_(correo),
     carreras: Object.keys(nombres).map(k => ({ cod: k, nombre: nombres[k] })).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
     materias: catalogoMaterias_(cfg)
@@ -619,7 +632,7 @@ function buscar_(correoIn, q, todo) {
   const correo = String(correoIn || '').trim().toLowerCase();
   const r = buscarMentor_(correo, cfg);
   if (!r.fila) return { ok: false, motivo: r.motivo };
-  return buscarEstudiantes_(String(q || '').slice(0, 80), { sede: r.fila[3], carreras: carrerasMentor_(r.fila) }, cfg, String(todo) === '1');
+  return buscarEstudiantes_(String(q || '').slice(0, 80), { correo: correo, sede: r.fila[3], carreras: carrerasMentor_(r.fila) }, cfg, String(todo) === '1');
 }
 
 // Un envío = varios estudiantes, cada uno con varias materias. Todo se valida en el servidor:
@@ -648,7 +661,7 @@ function guardar_(d) {
       if (!r.fila) return { ok: false, codigo: r.motivo };
       mentor = r.fila;
     }
-    const v = validarEnvio_(d, cfg, prueba);
+    const v = validarEnvio_(d, cfg, prueba, correo);
     if (v.error) return { ok: false, codigo: 'datos_invalidos', detalle: v.error };
     const filas = [], dupes = clavesExistentes_(sh), ahora = new Date();
     const extra = [cfg.periodo, d.movil ? 'Móvil' : 'Computadora', txt_(d.fecha_local, 40), txt_(d.version, 10)];
@@ -679,7 +692,7 @@ function clavesExistentes_(sh) {
   });
   return out;
 }
-function validarEnvio_(d, cfg, prueba) {
+function validarEnvio_(d, cfg, prueba, correoMentor) {
   const hito = String(d.hito === undefined || d.hito === null ? '' : d.hito).trim();
   if (!hito || (!prueba && cfg.hitos.length && cfg.hitos.indexOf(hito) < 0)) return { error: 'Hito no habilitado: ' + hito };
   const items = Array.isArray(d.items) ? d.items : [];
@@ -699,6 +712,7 @@ function validarEnvio_(d, cfg, prueba) {
       if (!ci || ciNorm_(ci).length < 4 || nom.split(/\s+/).length < 2) return { error: n + 'faltan el CI o el nombre completo' };
       est = { ci: ci, nombre: nom, correo: '', sede: String(m.sede || '').toUpperCase().slice(0, 5), carrera: car, carrera_nombre: nombres[car] || car, plan: Number(m.plan) || '', enBase: false };
     } else return { error: n + 'no se encontró en la base' };
+    if (est.correo && est.correo === correoMentor) return { error: n + 'no puedes registrarte a ti mismo' };
     const kEst = ciNorm_(est.ci) || norm_(est.nombre);
     if (usados[kEst]) return { error: n + 'está repetido en el envío' };
     usados[kEst] = true;
@@ -770,7 +784,7 @@ function menuEstado() {
     '\nFiltros de mentores → planes: ' + (cfg.planes.join(', ') || 'todos') + ' · sedes: ' + (cfg.sedes.join(', ').toUpperCase() || 'todas') +
     ' · carreras: ' + (cfg.carreras.join(', ').toUpperCase() || 'todas') +
     '\nBases → docentes: ' + cfg.docentes.join(', ') + ' · estudiantes: ' + cfg.estudiantes.join(', ') + ' · materias: ' + cfg.materias.join(', ') +
-    '\n\nMentores en el padrón: ' + nPad + '\nMentores que ya registraron: ' + nM + (nPad ? ' (' + Math.round(nM / nPad * 100) + '%)' : '') +
+    '\n\nMentores en el padrón: ' + nPad + (cfg.hermanos ? ' (docentes y estudiantes que pueden registrar como Hermano Mayor)' : '') + '\nMentores que ya registraron: ' + nM +
     '\nEnvíos recibidos: ' + Object.keys(envios).length + ' · filas (estudiante × materia): ' + nFilas);
 }
 // Diagnóstico de las bases de estudiantes y materias (no modifica nada).
@@ -941,17 +955,23 @@ function crearResumen_() {
   push(['Registros sin asistencia', cnt(AS + ',"No"')], 'total');
   push(['% de asistencia (registros)', '=IFERROR(B7/B4,0)'], 'totalpct');
   push(['Horas de mentoría', hrs('')], 'totalh');
-  push(['Mentores en el padrón', '=COUNTA(' + P('A') + ')'], 'total');
-  push(['Mentores que ya registraron', '=COUNTIF(' + P(PE) + ',"Con registros")'], 'total');
+  const PG = P('I');      // columna «Programa» de PADRON
+  push(['Docentes tutores en el padrón', '=COUNTIF(' + PG + ',"' + PROGRAMAS[0] + '")'], 'total');
+  push(['Docentes tutores que ya registraron', '=COUNTIFS(' + PG + ',"' + PROGRAMAS[0] + '",' + P(PE) + ',"Con registros")'], 'total');
+  push(['Hermanos Mayores que ya registraron', '=COUNTIFS(' + PG + ',"' + PROGRAMAS[1] + '",' + P(PE) + ',"Con registros")'], 'total');
   push(['']);
   const hitos = cfg.hitos.length ? cfg.hitos : ['2', '3', '4'];
   const qh = h => /^\d+$/.test(h) ? h : '"' + h + '"';
+  const PR = R(col('Programa de apoyo'));
+  push(['POR PROGRAMA DE APOYO', 'Registros', 'Estudiantes', 'Asistieron', 'No asistieron', '% asistencia', 'Horas'], 'cab');
+  PROGRAMAS.forEach(g => { const r = rows.length + 1, c = PR + ',"' + g + '"'; push([g, cnt(c), uni(c), cnt(c + ',' + AS + ',"Sí"'), cnt(c + ',' + AS + ',"No"'), '=IFERROR(D' + r + '/B' + r + ',0)', hrs(c)], 'fila'); });
+  push(['']);
   push(['POR HITO', 'Registros', 'Estudiantes', 'Asistieron', 'No asistieron', '% asistencia', 'Horas'], 'cab');
   hitos.forEach(h => { const r = rows.length + 1, c = HI + ',' + qh(h); push(['Hito ' + h, cnt(c), uni(c), cnt(c + ',' + AS + ',"Sí"'), cnt(c + ',' + AS + ',"No"'), '=IFERROR(D' + r + '/B' + r + ',0)', hrs(c)], 'fila'); });
   push(['']);
-  push(['POR SEDE DEL ESTUDIANTE', 'Registros', 'Estudiantes', 'Asistieron', 'No asistieron', '% asistencia', 'Horas', 'Mentores con registros / en padrón'], 'cab');
+  push(['POR SEDE DEL ESTUDIANTE', 'Registros', 'Estudiantes', 'Asistieron', 'No asistieron', '% asistencia', 'Horas', 'Mentores de la sede con registros'], 'cab');
   sedes.forEach(s => { const r = rows.length + 1, c = SE + ',"' + s + '"'; push([SEDES[s], cnt(c), uni(c), cnt(c + ',' + AS + ',"Sí"'), cnt(c + ',' + AS + ',"No"'), '=IFERROR(D' + r + '/B' + r + ',0)', hrs(c),
-    '=COUNTIFS(' + P('D') + ',"' + s + '",' + P(PE) + ',"Con registros")&" / "&COUNTIF(' + P('D') + ',"' + s + '")'], 'fila'); });
+    '=COUNTIFS(' + P('D') + ',"' + s + '",' + P(PE) + ',"Con registros")'], 'fila'); });
   push(['']);
   push(['POR CARRERA DEL ESTUDIANTE', 'Registros', 'Estudiantes', 'Asistieron', 'No asistieron', '% asistencia', 'Horas'], 'cab');
   const shC = ss.getSheetByName(H.CARRERAS);

@@ -71,6 +71,17 @@ Ahora: **un envío por grupo** (hito + N estudiantes), cada estudiante con **tod
 - Claves locales: `regment_draft1`, `regment_cola1`. IDs de envío `ME-…` (el mentor ve el código sin `ME-`).
 - Límites: 80 estudiantes por envío, 20 materias por estudiante.
 
+## Hoja institucional y Hermanos Mayores (v1.7, 22-oct-2026)
+- **Hoja nueva** (cuenta **rafael.aramayo@unifranz.edu.bo**): «Formulario Nivelaciones Unifranz», id `1vewoz9wt61HArnFJu4Xe4BlO1slPuMe3RA9GzM6WAe0`.
+  Las 3 bases se copiaron desde «NIVELACIONES UNIFRANZ» con `copy_sheet_to_another_spreadsheet` (sin pasar datos por el chat).
+  **Los conectores de Drive/Sheets de Claude ahora usan la cuenta institucional** (ven y editan esa hoja).
+  Pendiente: Rafael corre «Actualizar padrón» y pasa la URL /exec de su implementación → cambiar `API_URL_DEFECTO` (hoy la app
+  sigue apuntando a la hoja anterior, implementación `AKfycbxtZv…OICug`).
+- **Hermanos Mayores = cualquier estudiante de la base** (Rafael: UNIFRANZ genera la lista y se coteja después; no se carga lista ni
+  asignaciones). CONFIG «Hermanos Mayores: cualquier estudiante de la base puede registrar» (SÍ por defecto). `fuentesMentor_` =
+  docentes + estudiantes + AGREGADOS; quien viene de una pestaña de estudiantes queda con Programa «Hermano Mayor». Llenan lo mismo.
+  Nadie se ve ni se registra a sí mismo. RESUMEN separa docentes y Hermanos Mayores («POR PROGRAMA DE APOYO»).
+
 ## Sin registro a mano (v1.6, 12-oct-2026)
 - Rafael: «solo el admin podrá añadir o quitar» estudiantes. La app ya no ofrece «Regístralo a mano»; si no aparece, el mensaje dice
   que pida al administrador que lo agregue a la base. CONFIG «Permitir estudiantes que no están en la base» = NO por defecto en
@@ -124,7 +135,7 @@ Ahora: **un envío por grupo** (hito + N estudiantes), cada estudiante con **tod
   Hay una hoja vacía de más en la cuenta personal («Registro de Mentorías 2026», `1vorJLyJ-oRITRnQjjMEG5qrw47e-4nHtYf-npwGE8iA`): no se usa.
   El conector de Drive de Claude es de la cuenta personal: **no ve la hoja @unifranz**.
 - [x] **URL del script:** implementación `AKfycbxtZvLrQlpP…OICug` (11-oct-2026), incrustada en `API_URL_DEFECTO`; ping anónimo OK.
-- [x] **Repo** `UNIFRANZ-BO/registro-mentorias` (público, Pages en `main`) → enlace vigente **https://unifranz-bo.github.io/registro-mentorias/?v=8** (v=8: sin registro de estudiantes a mano). Ping desde la página publicada OK.
+- [x] **Repo** `UNIFRANZ-BO/registro-mentorias` (público, Pages en `main`) → enlace vigente **https://unifranz-bo.github.io/registro-mentorias/?v=9** (v=9: acceso también para Hermanos Mayores). Ping desde la página publicada OK.
 - [ ] Rafael: importar `entregables/Base_registro_mentorias.xlsx` en la hoja @unifranz (Insertar hojas nuevas) y ejecutar
   `configuracionInicial` (o «Actualizar padrón»). Al 11-oct, `validar` con un docente real da `no_encontrado` → bases aún no cargadas.
 - [ ] Prueba real (R13 de la guía) y limpieza antes de difundir.
