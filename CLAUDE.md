@@ -75,8 +75,8 @@ Ahora: **un envío por grupo** (hito + N estudiantes), cada estudiante con **tod
 - **Hoja nueva** (cuenta **rafael.aramayo@unifranz.edu.bo**): «Formulario Nivelaciones Unifranz», id `1vewoz9wt61HArnFJu4Xe4BlO1slPuMe3RA9GzM6WAe0`.
   Las 3 bases se copiaron desde «NIVELACIONES UNIFRANZ» con `copy_sheet_to_another_spreadsheet` (sin pasar datos por el chat).
   **Los conectores de Drive/Sheets de Claude ahora usan la cuenta institucional** (ven y editan esa hoja).
-  Pendiente: Rafael corre «Actualizar padrón» y pasa la URL /exec de su implementación → cambiar `API_URL_DEFECTO` (hoy la app
-  sigue apuntando a la hoja anterior, implementación `AKfycbxtZv…OICug`).
+  **URL del script (vigente desde 22-oct-2026):** implementación `AKfycbxwv1mH1KPy…DyDq8Q`, incrustada en `API_URL_DEFECTO`
+  (ping anónimo OK). La hoja anterior «NIVELACIONES UNIFRANZ» (`AKfycbxtZv…OICug`) ya no se usa.
 - **Hermanos Mayores = cualquier estudiante de la base** (Rafael: UNIFRANZ genera la lista y se coteja después; no se carga lista ni
   asignaciones). CONFIG «Hermanos Mayores: cualquier estudiante de la base puede registrar» (SÍ por defecto). `fuentesMentor_` =
   docentes + estudiantes + AGREGADOS; quien viene de una pestaña de estudiantes queda con Programa «Hermano Mayor». Llenan lo mismo.
@@ -135,7 +135,7 @@ Ahora: **un envío por grupo** (hito + N estudiantes), cada estudiante con **tod
   Hay una hoja vacía de más en la cuenta personal («Registro de Mentorías 2026», `1vorJLyJ-oRITRnQjjMEG5qrw47e-4nHtYf-npwGE8iA`): no se usa.
   El conector de Drive de Claude es de la cuenta personal: **no ve la hoja @unifranz**.
 - [x] **URL del script:** implementación `AKfycbxtZvLrQlpP…OICug` (11-oct-2026), incrustada en `API_URL_DEFECTO`; ping anónimo OK.
-- [x] **Repo** `UNIFRANZ-BO/registro-mentorias` (público, Pages en `main`) → enlace vigente **https://unifranz-bo.github.io/registro-mentorias/?v=9** (v=9: acceso también para Hermanos Mayores). Ping desde la página publicada OK.
+- [x] **Repo** `UNIFRANZ-BO/registro-mentorias` (público, Pages en `main`) → enlace vigente **https://unifranz-bo.github.io/registro-mentorias/?v=10** (v=10: conectada a la hoja «Formulario Nivelaciones Unifranz»). Ping desde la página publicada OK.
 - [ ] Rafael: importar `entregables/Base_registro_mentorias.xlsx` en la hoja @unifranz (Insertar hojas nuevas) y ejecutar
   `configuracionInicial` (o «Actualizar padrón»). Al 11-oct, `validar` con un docente real da `no_encontrado` → bases aún no cargadas.
 - [ ] Prueba real (R13 de la guía) y limpieza antes de difundir.
