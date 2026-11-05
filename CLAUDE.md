@@ -71,6 +71,16 @@ Envío → **un código por estudiante** `XXXXX-YYYYYY-NN` (en la hoja `ME-…-N
   datos con la cabecera vieja las renombra «RESPUESTAS v1 (fecha)». Avisa qué pestañas viejas sobran (PADRON, EXCLUIDOS, AGREGADOS, BASEDEDATOS*).
 - RESUMEN: totales, DT/HM que registraron, sin asignación, por programa/hito/sede/facultad/carrera, ranking de asignaturas y de mentores.
 
+## v2.1 · Hoja simple (05-nov-2026, pedido de Rafael: «hay demasiadas pestañas, debe ser más simple»)
+- Visibles: RESPUESTAS · RESUMEN · SIN ASIGNACIÓN · el SIAR · CONFIG · CARRERAS (`ordenarPestanas_`). Ocultas: PAPELERA, BITACORA,
+  «RESPUESTAS/PAPELERA …» (menú «Ver u ocultar papelera y bitácora»). `configuracionInicial` borra `OBSOLETAS` (PADRON, EXCLUIDOS,
+  AGREGADOS, BASEDEDATOSDOC/EST/MATERIAS, FACULTADES).
+- **Sin pestaña FACULTADES:** CARRERAS col C = **nombre** de la facultad (desplegable); la facultad se identifica por su nombre en
+  inicio/lista/RESPUESTAS (el `cod` que recibe la app es el nombre). Migra siglas → nombres. CONFIG «Facultades habilitadas» acepta nombres o siglas.
+- **El SIAR se reconoce por columnas** (`hojasSiar_`: tratamiento + detalle + c.i.), el nombre no importa: en la hoja real se llama
+  **«BASEDEDATOS»**. Ya no existe el parámetro «Pestaña del SIAR». Si hay varias, usa la de más a la derecha y avisa.
+- 05-nov: borré por conector las pestañas viejas de la hoja real; «RESPUESTAS v1 (2026-11-05)» (5 filas reales del 27-oct) quedó oculta.
+
 ## Historia v1.x (11 al 27-oct-2026, ya reemplazada)
 - v1: correo docente validado contra BASEDEDATOSDOC, ficha por estudiante con materias del catálogo, un envío por grupo.
 - v1.4: GET por `fetch` con `credentials:'omit'` (JSONP de respaldo) — dispositivos con varias cuentas Google fallaban con JSONP. **Sigue vigente.**
@@ -83,8 +93,7 @@ Envío → **un código por estudiante** `XXXXX-YYYYYY-NN` (en la hoja `ME-…-N
 - [x] v2.0 local: pruebas del script (SEP «,» y «;»), simulación con el SIAR real, e2e 390 y 1366 OK. Commit local `81db1e4`+.
 - [ ] Rafael: importar el Excel del SIAR en la hoja (Archivo → Importar → Insertar hojas nuevas), pegar script v2.0,
   `configuracionInicial`, **Nueva versión** de la implementación. Confirmar nombres de FACULTADES y el código de acceso.
-- [ ] **No publicar el front v2.0 (push) hasta que el ping de la hoja diga `version_app:'2.0'`**: la app v2 llama a `inicio`/`lista`
-  y rompería el enlace vigente. Luego push y enlace `?v=11`.
+- [x] Front v2.1 publicado (`?v=11`) el 05-nov. Falta que Rafael pegue el script v2.1 y lo implemente como Nueva versión.
 - [ ] Prueba real y actualizar la guía PDF (`docs/tutorial/`) al flujo SIAR.
 
 ## Comandos

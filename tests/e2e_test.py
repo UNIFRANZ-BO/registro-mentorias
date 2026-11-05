@@ -33,9 +33,9 @@ async def backend(route, req):
     if a == 'inicio':
         out = ({'ok': False, 'motivo': 'clave', 'requiere_clave': True} if clave != CLAVE else
                {'ok': True, 'abierta': True, 'hitos': ['2', '3', '4'], 'sedes': [{'cod': 'LPZ', 'nombre': 'La Paz'}, {'cod': 'CBB', 'nombre': 'Cochabamba'}],
-                'facultades': [{'cod': 'FCS', 'nombre': 'Ciencias de la Salud'}, {'cod': 'FI', 'nombre': 'Ingeniería'}], 'conteo': {'LPZ|FCS': 4, 'CBB|FI': 1}})
+                'facultades': [{'cod': 'Ciencias de la Salud', 'nombre': 'Ciencias de la Salud'}, {'cod': 'Ingeniería', 'nombre': 'Ingeniería'}], 'conteo': {'LPZ|Ciencias de la Salud': 4, 'CBB|Ingeniería': 1}})
     elif a == 'lista':
-        out = {'ok': True, 'registros': REGS} if clave == CLAVE and q.get('sede') == ['LPZ'] and q.get('fac') == ['FCS'] else {'ok': False, 'motivo': 'clave'}
+        out = {'ok': True, 'registros': REGS} if clave == CLAVE and q.get('sede') == ['LPZ'] and q.get('fac') == ['Ciencias de la Salud'] else {'ok': False, 'motivo': 'clave'}
     else:
         out = {'ok': True, 'existe': q.get('id', [''])[0] in DB}
     if not cb:
@@ -61,7 +61,7 @@ async def main():
         assert await pg.locator('#cClave').count() == 0 and await pg.locator('[data-sede]').count() == 2
         await pg.click('[data-sede="LPZ"]'); await pg.wait_for_timeout(200)
         assert await pg.locator('[data-fac]').count() == 1, 'solo facultades con registros en esa sede'
-        await pg.click('[data-fac="FCS"]'); await shot('01_inicio')
+        await pg.click('[data-fac="Ciencias de la Salud"]'); await shot('01_inicio')
         await pg.click('#btnNext'); await pg.wait_for_timeout(1500)
         assert await scr() == 'mentor'
         # ── ¿quién eres?
@@ -106,7 +106,7 @@ async def main():
         assert len(DB) == 1, 'el registro no llegó al backend'
         d = list(DB.values())[0]
         print(json.dumps(d, ensure_ascii=False)[:1200])
-        assert d['clave'] == 'niv2026' and d['sede'] == 'LPZ' and d['fac'] == 'FCS' and d['hito'] == '3'
+        assert d['clave'] == 'niv2026' and d['sede'] == 'LPZ' and d['fac'] == 'Ciencias de la Salud' and d['hito'] == '3'
         assert d['mentor'] == {'nombre': 'Rafael Aramayo', 'programa': 'Docente Tutor'}
         it = {tuple(x['keys']): x for x in d['items']}
         a, g = it[('101|Docente Tutor',)], it[('201|Docente Tutor', '202|Docente Tutor')]

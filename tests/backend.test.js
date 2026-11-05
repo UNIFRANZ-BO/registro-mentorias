@@ -5,7 +5,7 @@ const SEP=process.env.SEP||',';
 const code=fs.readFileSync(require('path').join(__dirname,'..','apps-script','Codigo.gs'),'utf8');
 function Sheet(name){this.name=name;this.d=[];this.formulas={};}
 Sheet.prototype={
- getName(){return this.name},setName(n){this.name=n;return this},
+ getName(){return this.name},isSheetHidden(){return !!this._hid},hideSheet(){this._hid=true},showSheet(){this._hid=false},setName(n){this.name=n;return this},
  get(r,c){const row=this.d[r-1];return row&&row[c-1]!==undefined?row[c-1]:''},
  set(r,c,v){while(this.d.length<r)this.d.push([]);const row=this.d[r-1];while(row.length<c)row.push('');row[c-1]=v},
  getLastRow(){for(let i=this.d.length;i>0;i--)if(this.d[i-1].some(v=>v!==''&&v!==null))return i;return 0},
@@ -35,12 +35,12 @@ Object.assign(Range.prototype,{
  createTextFinder(t){const self=this;let entire=false;return{matchEntireCell(x){entire=x;return this},findNext(){for(let i=0;i<self.nr;i++)for(let j=0;j<self.nc;j++){const v=String(self.sh.get(self.r+i,self.c+j)).toLowerCase(),q=String(t).toLowerCase();if(entire?v===q:v.includes(q))return new Range(self.sh,self.r+i,self.c+j,1,1)}return null}}}
 });
 const ss={_sheets:[],_active:null,getSheetByName(n){return this._sheets.find(s=>s.name===n)||null},insertSheet(n,i){const s=new Sheet(n);if(i===0)this._sheets.unshift(s);else this._sheets.push(s);return s},getSheets(){return this._sheets},setSpreadsheetTimeZone(){},
- setActiveSheet(s){this._active=s},getActiveSheet(){return this._active},getActiveRangeList(){return this._active&&this._active._sel?{getRanges:()=>[this._active._sel]}:null}};
+ setActiveSheet(s){this._active=s},moveActiveSheet(i){const s=this._active;this._sheets.splice(this._sheets.indexOf(s),1);this._sheets.splice(i-1,0,s)},deleteSheet(s){this._sheets.splice(this._sheets.indexOf(s),1)},getActiveSheet(){return this._active},getActiveRangeList(){return this._active&&this._active._sel?{getRanges:()=>[this._active._sel]}:null}};
 const cache={};
 const ui={alert:(t,m)=>{console.log('[ALERT]',t,'|',String(m).replace(/\n/g,' / '));return 'YES'},prompt:(t,m)=>({getSelectedButton:()=> 'OK',getResponseText:()=>ctx.__answers.shift()}),ButtonSet:{OK:1,YES_NO:2,OK_CANCEL:3},Button:{YES:'YES',OK:'OK'},createMenu(){const m={addItem(){return m},addSeparator(){return m},addToUi(){}};return m}};
 const props={};
 const ctx={PropertiesService:{getScriptProperties:()=>({getProperty:k=>props[k]||null,setProperty:(k,v)=>props[k]=v})},
- SpreadsheetApp:{flush(){},getActive:()=>ss,getActiveSpreadsheet:()=>ss,getUi:()=>ui,newDataValidation:()=>({requireValueInList(){return this},build(){return{}}})},
+ SpreadsheetApp:{flush(){},getActive:()=>ss,getActiveSpreadsheet:()=>ss,getUi:()=>ui,newDataValidation:()=>({requireValueInList(){return this},setAllowInvalid(){return this},build(){return{}}})},
  LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){}})},CacheService:{getScriptCache:()=>({get:k=>cache[k]===undefined?null:cache[k],put:(k,v)=>cache[k]=v,remove:k=>delete cache[k],getAll:ks=>Object.fromEntries(ks.filter(k=>k in cache).map(k=>[k,cache[k]])),putAll:o=>Object.assign(cache,o),removeAll:ks=>ks.forEach(k=>delete cache[k])})},
  Session:{getActiveUser:()=>({getEmail:()=>'rafael@unifranz.edu.bo'})},Utilities:{formatDate:(d)=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},
  ContentService:{createTextOutput:t=>({t,setMimeType(){return this}}),MimeType:{JSON:1,JAVASCRIPT:2}},Logger:{log:console.log},console,__answers:[]};
@@ -52,7 +52,10 @@ ss.insertSheet('RESPUESTAS').d=[['Marca temporal','ID envío','Correo del mentor
 // ── SIAR ficticio con las mismas columnas que el reporte real (incluye columnas que no se usan)
 const CAB=['Ficha ID','Detalle ID','Hito','Gestión','Sede','Creador(a)','Seguimiento','Estado final','C.I.','Nombre estudiante','Correo','Celular','Carrera','cod. carrera','Semestre','Docente','Paralelo','Materia','Código materia','Necesidades','Tratamiento','Resultado','Detalle','Det. diagnostico'];
 const fila=(f,d,h,sede,ci,nom,car,cod,sem,doc,par,mat,mc,trat,asig)=>[f,d,h,'II/2026',sede,'Dir','Seguimiento H2','Cierre pendiente',ci,nom,'est.'+nom.split(' ')[0].toLowerCase()+'@unifranz.edu.bo','70000000',car,cod,String(sem),doc,par,mat,mc,'x',trat,'En proceso',asig,'texto largo'];
-ss.insertSheet('SIAR').d=[CAB,
+ss.insertSheet('PADRON').d=[['Correo']];ss.insertSheet('AGREGADOS').d=[['Email']];
+ss.insertSheet('FACULTADES').d=[['Código','Nombre que se ve en la app'],['FCS','Ciencias de la Salud'],['FI','Ingeniería y Tecnología']];
+ss.insertSheet('CARRERAS').d=[['Código','Nombre que se ve en la app','Facultad'],['MED','Medicina','FCS'],['SIS','Ingeniería de Sistemas','FI']];
+ss.insertSheet('BASEDEDATOS').d=[CAB,
  fila(1,101,2,'La Paz','60715469','ANA ELIZABETH OJEDA GUERRERO','Medicina','MED',1,'VITO RIVAS VARGAS','105','Anatomía Humana','AHU-211 (P)','Docente Tutor','RAFAEL ARAMAYO'),
  fila(1,102,2,'La Paz','60715469','ANA ELIZABETH OJEDA GUERRERO','Medicina','MED',1,'DORCAS OLIDEN','105','Histología','HIS-211 (P)','Apoyo Hermano mayor','JOSEPH MAMANI COPA'),
  fila(1,103,2,'La Paz','60715469','ANA ELIZABETH OJEDA GUERRERO','Medicina','MED',1,'ERIKA QUISBERT','105','Embriología Médica','EME-211 (P)','Ayudantia','ALGUIEN'),
@@ -67,7 +70,11 @@ const cfg=ctx.config_();
 console.log('CONFIG',J(ss.getSheetByName('CONFIG').d.map(r=>r[0]+'='+r[1])));
 if(ss.getSheetByName('CONFIG').d.some(r=>r[0]==='Pestañas de docentes'))fallo('parámetro viejo no se borró');
 if(!ss._sheets.some(s=>/^RESPUESTAS v1/.test(s.name)))fallo('RESPUESTAS vieja con datos debía archivarse');
-if(cfg.clave!=='NIV2026'||cfg.siar!=='SIAR')fallo('CONFIG por defecto');
+if(cfg.clave!=='NIV2026')fallo('CONFIG por defecto');
+if(['PADRON','AGREGADOS','FACULTADES'].some(n=>ss.getSheetByName(n)))fallo('pestañas viejas sin borrar');
+{const c=k=>(ss.getSheetByName('CARRERAS').d.find(r=>r[0]===k)||[])[2];if(c('MED')!=='Ciencias de la Salud'||c('SIS')!=='Ingeniería y Tecnología'||c('ADM')!=='Ciencias Económicas y Empresariales')fallo('facultad: sigla → nombre '+[c('MED'),c('SIS'),c('ADM')])}
+{const vis=ss._sheets.filter(s=>!s._hid).map(s=>s.name).join();console.log('pestañas visibles',vis);if(vis!=='RESPUESTAS,RESUMEN,SIN ASIGNACIÓN,BASEDEDATOS,CONFIG,CARRERAS')fallo('orden de pestañas');
+ if(!ss.getSheetByName('PAPELERA')._hid||!ss.getSheetByName('BITACORA')._hid||!ss._sheets.find(s=>/^RESPUESTAS v1/.test(s.name))._hid)fallo('papelera/bitácora/archivo deberían estar ocultas')}
 const CAR=ss.getSheetByName('CARRERAS');console.log('CARRERAS últimas',J(CAR.d.slice(-2)));
 if(!CAR.d.some(r=>r[0]==='XYZ'&&r[1]==='Carrera Nueva'))fallo('carrera nueva en amarillo');
 const SA=ss.getSheetByName('SIN ASIGNACIÓN');console.log('SIN ASIGNACIÓN',J(SA.d));
@@ -77,9 +84,9 @@ console.log('ping',J(get('ping')));
 // ── inicio y lista
 if(get('inicio',{clave:'mal'}).motivo!=='clave')fallo('código de acceso');
 const ini=get('inicio',{clave:'niv2026'});console.log('inicio',J(ini));
-if(!ini.ok||ini.sedes.map(s=>s.cod).join()!=='LPZ,EAT,CBB'||ini.conteo['LPZ|FCS']!==4)fallo('inicio');
-if(get('lista',{clave:'x',sede:'LPZ',fac:'FCS'}).ok)fallo('lista sin código');
-const L=get('lista',{clave:'NIV2026',sede:'LPZ',fac:'FCS'});console.log('lista LPZ·FCS',J(L.registros));
+if(!ini.ok||ini.sedes.map(s=>s.cod).join()!=='LPZ,EAT,CBB'||ini.conteo['LPZ|Ciencias de la Salud']!==4)fallo('inicio');
+if(get('lista',{clave:'x',sede:'LPZ',fac:'Ciencias de la Salud'}).ok)fallo('lista sin código');
+const L=get('lista',{clave:'NIV2026',sede:'LPZ',fac:'Ciencias de la Salud'});console.log('lista LPZ·FCS',J(L.registros));
 if(L.registros.length!==4||J(L).includes('60715469')||J(L).includes('@unifranz')||J(L).includes('70000000'))fallo('lista: cantidad o datos sensibles');
 const reg=(nom,mat)=>L.registros.find(r=>r[1].startsWith(nom)&&r[6]===mat);
 if(reg('Guina','AHU-211 (P)')[12]!=='Rafael Aramayo'||reg('Guina','EME-211 (P)')[12]!=='')fallo('asignado');
@@ -116,7 +123,7 @@ ctx.__answers=['AAAAA-BBBBBB-02'];ctx.menuRestaurar();if(R.getLastRow()-1!==5)fa
 ctx.__answers=['ME-AAAAA-BBBBBB','envío equivocado'];ctx.menuAnular();if(R.getLastRow()-1!==2)fallo('anular envío');
 // ── filtros de CONFIG: facultad
 ctx.setConfig_('Facultades habilitadas','FCS');ctx.menuActualizarSiar();
-const ini2=get('inicio',{clave:'NIV2026'});if(ini2.conteo['EAT|FCEE'])fallo('filtro de facultad');
+const ini2=get('inicio',{clave:'NIV2026'});if(ini2.conteo['EAT|Ciencias Económicas y Empresariales']||!ini2.conteo['LPZ|Ciencias de la Salud'])fallo('filtro de facultad');
 ctx.setConfig_('Facultades habilitadas','');ctx.menuActualizarSiar();
 // ── pruebas y tope
 const pr=i=>post({id:'PRUEBA-T'+i+'XYZ-TEST1',mentor:{nombre:'Prueba Tecnica',programa:'Docente Tutor'},hito:2,items:[{prueba:true,asistio:'No'}]});
@@ -126,6 +133,6 @@ ctx.menuEstado();ctx.menuBorrarPruebas();
 ctx.__answers=['I-2027'];ctx.menuNuevoPeriodo();
 const rs=ss.getSheetByName('RESUMEN');for(let r=1;r<=rs.getLastRow();r++){const t=[1,2].map(c=>String(rs.get(r,c)).slice(0,150)).join(' || ');if(t.replace(/[ |]/g,''))console.log(r,t)}
 if(SEP===';'){const f=String(rs.get(4,2));if(!/;/.test(f))fallo('RESUMEN sin «;»: '+f)}
-{const h=ss.getSheetByName('SIAR');h.name='Rep. Ficha est.';const r=ctx.leerSiar_(ctx.config_());if(r.error||!r.lista.length)fallo('no encuentra «Rep. Ficha est.»: '+r.error);h.name='SIAR'}
+{const h=ss.getSheetByName('BASEDEDATOS');h.name='Rep. Ficha est.';const r=ctx.leerSiar_(ctx.config_());if(r.error||!r.lista.length)fallo('no encuentra «Rep. Ficha est.»: '+r.error);h.name='BASEDEDATOS'}
 const cab=ctx.cabResp_();if(new Set(cab).size!==cab.length)fallo('cabecera con títulos repetidos');
 console.log('\nOK · todas las comprobaciones pasaron (SEP='+SEP+')');

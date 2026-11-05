@@ -1,9 +1,9 @@
 /** @OnlyCurrentDoc */  // el script solo puede tocar esta hoja, ningún otro archivo de Drive
 /**
- * BITÁCORA DE NIVELACIONES · UNIFRANZ  (v2.0)
+ * BITÁCORA DE NIVELACIONES · UNIFRANZ  (v2.1)
  * Registro de sesiones de Docentes Tutores y Hermanos Mayores. Reemplaza el Google Form
  * «Registro de Sesiones Realizadas de Mentorías». UNA SOLA BASE: el reporte del SIAR
- * («Rep. Ficha est.»), pegado en la pestaña SIAR. De ahí salen los estudiantes, sus materias
+ * («Rep. Ficha est.»), importado como una pestaña más. De ahí salen los estudiantes, sus materias
  * y quién tiene asignado cada uno (columna «Detalle»).
  *
  * Flujo de la app: Sede + Facultad → «¿Quién eres?» (nombres asignados en el SIAR) → sus
@@ -11,9 +11,18 @@
  * En RESPUESTAS queda UNA FILA POR ESTUDIANTE Y MATERIA, con un CÓDIGO DE REGISTRO por estudiante.
  *
  * ── PRIMERA VEZ ─────────────────────────────────────────────────────────────
- *   1. Pega el reporte del SIAR en una pestaña llamada SIAR (fila 1 = títulos).
+ *   1. Archivo → Importar → sube el Excel del SIAR → «Insertar hojas nuevas» (la pestaña se reconoce
+ *      por sus columnas: el nombre no importa).
  *   2. Extensiones → Apps Script → pega este código → Guardar → ejecuta configuracionInicial().
- *   3. Revisa CONFIG (código de acceso, hitos, sedes, facultades) y CARRERAS (facultad de cada carrera).
+ *   3. Revisa CONFIG (código de acceso, hitos) y CARRERAS (facultad de cada carrera).
+ *
+ * ── PESTAÑAS ────────────────────────────────────────────────────────────────
+ *   Visibles: RESPUESTAS · RESUMEN · SIN ASIGNACIÓN · (el SIAR) · CONFIG · CARRERAS.
+ *   Ocultas (menú «Ver u ocultar papelera y bitácora»): PAPELERA, BITACORA y archivos de periodos.
+ *
+ * ── CADA VEZ QUE SALGA UN REPORTE NUEVO DEL SIAR ─────────────────────────────
+ *   Importa el Excel con «Reemplazar hoja actual» parado en la pestaña del SIAR (o «Insertar hojas
+ *   nuevas» y borra la anterior) → menú Mentorías → Actualizar SIAR.
  *   4. Implementar → Nueva implementación → Aplicación web · Ejecutar como: Yo · Acceso: Cualquier persona.
  *
  * ── PARA ACTUALIZAR ESTE CÓDIGO DESPUÉS ─────────────────────────────────────
@@ -21,19 +30,22 @@
  *   (Nunca «Nueva implementación»: cambia la URL.)
  */
 
-const VERSION_APP = '2.0';
+const VERSION_APP = '2.1';
 const ZONA = 'America/La_Paz';
 const H = {             // nombres de pestañas
-  CONFIG: 'CONFIG', CARRERAS: 'CARRERAS', FACULTADES: 'FACULTADES', SIN_ASIG: 'SIN ASIGNACIÓN',
+  CONFIG: 'CONFIG', CARRERAS: 'CARRERAS', SIN_ASIG: 'SIN ASIGNACIÓN',
   RESP: 'RESPUESTAS', PAPELERA: 'PAPELERA', RESUMEN: 'RESUMEN', BITACORA: 'BITACORA'
 };
 const SEDES = { LPZ: 'La Paz', EAT: 'El Alto', CBB: 'Cochabamba', SCZ: 'Santa Cruz' };
 const PROGRAMAS = ['Docente Tutor', 'Hermano Mayor'];
 // Facultades y carreras (incluye códigos del plan 2017 que aún aparecen en el SIAR). Se editan en la hoja.
-const FACULTADES_SUGERIDAS = [
-  ['FCEE', 'Ciencias Económicas y Empresariales'], ['FCS', 'Ciencias de la Salud'], ['FCJS', 'Ciencias Jurídicas y Sociales'],
-  ['FI', 'Ingeniería'], ['FDTC', 'Diseño y Tecnología Crossmedia']
-];
+// La facultad se escribe con su nombre en la columna «Facultad» de CARRERAS (lista desplegable).
+const FACULTADES_SUGERIDAS = {
+  FCEE: 'Ciencias Económicas y Empresariales', FCS: 'Ciencias de la Salud', FCJS: 'Ciencias Jurídicas y Sociales',
+  FI: 'Ingeniería', FDTC: 'Diseño y Tecnología Crossmedia'
+};
+// Pestañas de versiones anteriores que ya no se usan: «Configuración inicial» las borra.
+const OBSOLETAS = ['PADRON', 'EXCLUIDOS', 'AGREGADOS', 'BASEDEDATOSDOC', 'BASEDEDATOSEST', 'BASEDEDATOSMATERIAS', 'FACULTADES'];
 const CARRERAS_SUGERIDAS = [
   ['AFC', 'Auditoría Financiera y Control de Gestión', 'FCEE'], ['ICO', 'Ingeniería Comercial', 'FCEE'], ['IEF', 'Ingeniería Económica y Financiera', 'FCEE'],
   ['NGE', 'Negocios y Gestión Empresarial', 'FCEE'], ['THO', 'Turismo y Hotelería', 'FCEE'], ['GAC', 'Gastronomía y Artes Culinarias', 'FCEE'],
@@ -71,6 +83,7 @@ function onOpen() {
     .addItem('Iniciar un nuevo periodo…', 'menuNuevoPeriodo')
     .addItem('Reconstruir RESUMEN', 'menuResumen')
     .addItem('Borrar filas de prueba', 'menuBorrarPruebas')
+    .addItem('Ver u ocultar papelera y bitácora', 'menuPestanasApoyo')
     .addSeparator()
     .addItem('Configuración inicial / reparar pestañas', 'configuracionInicial')
     .addToUi();
@@ -80,17 +93,37 @@ function onOpen() {
 function configuracionInicial() {
   const ss = SpreadsheetApp.getActive();
   ss.setSpreadsheetTimeZone(ZONA);
-  crearConfig_(true); crearFacultades_(); crearCarreras_();
+  crearConfig_(true); crearCarreras_();
   const migr = prepararHoja_(H.RESP, cabResp_()) + prepararHoja_(H.PAPELERA, ['Fecha de anulación', 'Anulado por', 'Motivo'].concat(cabResp_()));
   hojaResp_(); hojaPapelera_(); hojaSimple_(H.BITACORA, ['Fecha', 'Usuario', 'Acción', 'Detalle']);
   const r = actualizarSiar_();
   crearResumen_();
+  const borradas = OBSOLETAS.filter(n => ss.getSheetByName(n));
+  borradas.forEach(n => ss.deleteSheet(ss.getSheetByName(n)));
+  ordenarPestanas_();
   onOpen();
-  const viejas = ['PADRON', 'EXCLUIDOS', 'AGREGADOS', 'BASEDEDATOSDOC', 'BASEDEDATOSEST', 'BASEDEDATOSMATERIAS'].filter(n => ss.getSheetByName(n));
-  bitacora_('Configuración inicial', r.texto);
+  bitacora_('Configuración inicial', r.texto + (borradas.length ? ' · Pestañas borradas: ' + borradas.join(', ') : ''));
   aviso_('Configuración lista', r.texto + migr +
-    (viejas.length ? '\n\nEstas pestañas de la versión anterior ya no se usan (puedes borrarlas): ' + viejas.join(', ') + '.' : '') +
-    '\n\nRevisa CONFIG (código de acceso, hitos, sedes, facultades) y la columna «Facultad» de CARRERAS.');
+    (borradas.length ? '\n\nSe borraron las pestañas de la versión anterior, que ya no se usan: ' + borradas.join(', ') + '.' : '') +
+    '\n\nRevisa CONFIG (código de acceso, hitos) y la columna «Facultad» de CARRERAS.');
+}
+const esApoyo_ = n => n === H.PAPELERA || n === H.BITACORA || /^(RESPUESTAS|PAPELERA) /.test(n);
+// Orden: RESPUESTAS · RESUMEN · SIN ASIGNACIÓN · SIAR · CONFIG · CARRERAS. PAPELERA, BITACORA y archivos quedan ocultos.
+function ordenarPestanas_() {
+  const ss = SpreadsheetApp.getActive(), siar = hojaSiar_(), orden = [H.RESP, H.RESUMEN, H.SIN_ASIG, siar ? siar.getName() : '', H.CONFIG, H.CARRERAS];
+  let pos = 1;
+  orden.forEach(n => { const sh = n && ss.getSheetByName(n); if (sh) { if (sh.isSheetHidden()) sh.showSheet(); ss.setActiveSheet(sh); ss.moveActiveSheet(pos++); } });
+  ss.getSheets().forEach(sh => { if (esApoyo_(sh.getName()) && !sh.isSheetHidden()) sh.hideSheet(); });
+  const resp = ss.getSheetByName(H.RESP); if (resp) ss.setActiveSheet(resp);
+}
+function menuPestanasApoyo() {
+  const ss = SpreadsheetApp.getActive(), hs = ss.getSheets().filter(sh => esApoyo_(sh.getName()));
+  if (!hs.length) return aviso_('Papelera y bitácora', 'No hay pestañas de apoyo.');
+  const mostrar = hs.some(sh => sh.isSheetHidden());
+  hs.forEach(sh => { if (mostrar) sh.showSheet(); else sh.hideSheet(); });
+  if (mostrar) ss.setActiveSheet(hs[0]);
+  aviso_('Papelera y bitácora', (mostrar ? 'Ahora se ven: ' : 'Quedaron ocultas: ') + hs.map(sh => sh.getName()).join(', ') +
+    '.\nUsa el mismo menú para ' + (mostrar ? 'ocultarlas.' : 'volver a verlas.'));
 }
 // Si una pestaña existe con otra cabecera (versión anterior): vacía → se reescribe; con datos → se archiva.
 function prepararHoja_(nombre, cab) {
@@ -110,10 +143,9 @@ const PARAMS_CONFIG = () => [
   ['Fecha de cierre', '', 'Opcional. Después de esta fecha (incluido el día completo) aparece cerrado.'],
   ['Periodo', 'II-2026', 'Nombre del periodo. Se usa al archivar respuestas en «Nuevo periodo».'],
   ['Hitos habilitados', '2; 3; 4', 'Hitos que se pueden elegir, separados por punto y coma. Con uno solo, la app no pregunta.'],
-  ['Pestaña del SIAR', 'SIAR', 'Pestaña donde está el reporte del SIAR. Si no existe, se usa la que se llame «SIAR» o «Rep. Ficha est.» (así la crea Sheets al importar el Excel).'],
   ['Tratamientos que se registran', 'Docente Tutor; Apoyo Hermano mayor', 'Valores de la columna «Tratamiento» del SIAR que entran a la app, separados por punto y coma.'],
   ['Sedes habilitadas', '', 'Códigos: LPZ; EAT; CBB; SCZ · vacío = todas'],
-  ['Facultades habilitadas', '', 'Códigos de la pestaña FACULTADES, ej.: FCS; FCEE · vacío = todas'],
+  ['Facultades habilitadas', '', 'Nombres como en CARRERAS (ej.: Ciencias de la Salud; Ingeniería) · vacío = todas'],
   ['Código de acceso', 'NIV2026', 'Código que piden la app y que reparten los directores (protege los datos de los estudiantes). Vacío = sin código.'],
   ['Mensaje de registro cerrado', 'El registro de sesiones no está disponible en este momento.', 'Texto que se ve cuando está cerrado.']
 ];
@@ -140,30 +172,31 @@ function crearConfig_(limpiar) {
   ['Fecha de apertura', 'Fecha de cierre'].forEach(k => { const r = buscarFila_(sh, k); if (r) sh.getRange(r, 2).setNumberFormat('dd/MM/yyyy'); });
   sh.getRange(2, 2, sh.getLastRow() - 1, 1).setBackground('#fff8e1');
 }
-function crearFacultades_() {
-  const ss = SpreadsheetApp.getActive();
-  let sh = ss.getSheetByName(H.FACULTADES);
-  if (!sh) { sh = ss.insertSheet(H.FACULTADES); sh.getRange(1, 1, 1, 2).setValues([['Código', 'Nombre que se ve en la app']]); sh.getRange(2, 1, FACULTADES_SUGERIDAS.length, 2).setValues(FACULTADES_SUGERIDAS); }
-  sh.getRange(1, 1, 1, 2).setFontWeight('bold').setBackground('#3a3a3a').setFontColor('#ffffff');
-  sh.setColumnWidth(1, 110); sh.setColumnWidth(2, 340); sh.setFrozenRows(1);
-}
-// CARRERAS: Código | Nombre | Facultad. Completa la facultad de los códigos conocidos sin pisar lo que ya esté escrito.
+// CARRERAS: Código | Nombre | Facultad (nombre). Completa la facultad de los códigos conocidos sin pisar lo escrito.
+// Migra la v2.0: siglas de facultad (FCS…) → nombres (los de la pestaña FACULTADES si existía).
 function crearCarreras_() {
-  const ss = SpreadsheetApp.getActive();
+  const ss = SpreadsheetApp.getActive(), fac = Object.assign({}, FACULTADES_SUGERIDAS), shF = ss.getSheetByName('FACULTADES');
+  if (shF && shF.getLastRow() > 1) shF.getRange(2, 1, shF.getLastRow() - 1, 2).getValues().forEach(r => { const k = String(r[0]).trim().toUpperCase(); if (k && String(r[1]).trim()) fac[k] = String(r[1]).trim(); });
+  const sug = CARRERAS_SUGERIDAS.map(c => [c[0], c[1], fac[c[2]] || c[2]]);
   let sh = ss.getSheetByName(H.CARRERAS);
-  if (!sh) { sh = ss.insertSheet(H.CARRERAS); sh.getRange(1, 1, 1, 3).setValues([['Código', 'Nombre que se ve en la app', 'Facultad']]); sh.getRange(2, 1, CARRERAS_SUGERIDAS.length, 3).setValues(CARRERAS_SUGERIDAS); }
+  if (!sh) { sh = ss.insertSheet(H.CARRERAS); sh.getRange(1, 1, 1, 3).setValues([['Código', 'Nombre que se ve en la app', 'Facultad']]); sh.getRange(2, 1, sug.length, 3).setValues(sug); }
   else {
     sh.getRange(1, 3).setValue('Facultad');
     const n = Math.max(0, sh.getLastRow() - 1), v = n ? sh.getRange(2, 1, n, 3).getValues() : [], vistos = {};
     v.forEach((r, i) => {
-      const k = String(r[0]).trim().toUpperCase(); vistos[k] = true;
-      const sug = CARRERAS_SUGERIDAS.find(c => c[0] === k);
-      if (sug && !String(r[2]).trim()) sh.getRange(i + 2, 3).setValue(sug[2]);
+      const k = String(r[0]).trim().toUpperCase(), f = String(r[2]).trim(); vistos[k] = true;
+      const c = sug.find(x => x[0] === k);
+      if (!f && c) sh.getRange(i + 2, 3).setValue(c[2]);
+      else if (fac[f.toUpperCase()]) sh.getRange(i + 2, 3).setValue(fac[f.toUpperCase()]);   // sigla → nombre
     });
-    CARRERAS_SUGERIDAS.filter(c => !vistos[c[0]]).forEach(c => sh.appendRow(c));
+    sug.filter(c => !vistos[c[0]]).forEach(c => sh.appendRow(c));
   }
+  const nombres = {}; Object.keys(fac).forEach(k => { nombres[fac[k]] = true; });
+  if (sh.getLastRow() > 1) sh.getRange(2, 3, sh.getLastRow() - 1, 1).getValues().forEach(r => { if (String(r[0]).trim()) nombres[String(r[0]).trim()] = true; });
+  sh.getRange(2, 3, Math.max(1, sh.getMaxRows() - 1), 1).setDataValidation(SpreadsheetApp.newDataValidation()
+    .requireValueInList(Object.keys(nombres).sort(), true).setAllowInvalid(true).build());
   sh.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#3a3a3a').setFontColor('#ffffff');
-  sh.setColumnWidth(1, 90); sh.setColumnWidth(2, 340); sh.setColumnWidth(3, 90); sh.setFrozenRows(1);
+  sh.setColumnWidth(1, 90); sh.setColumnWidth(2, 340); sh.setColumnWidth(3, 300); sh.setFrozenRows(1);
 }
 function hojaSimple_(nombre, cab) {
   const ss = SpreadsheetApp.getActive();
@@ -186,10 +219,9 @@ function config_() {
     cierre: c['Fecha de cierre'] instanceof Date ? c['Fecha de cierre'] : null,
     periodo: String(c['Periodo'] || '').trim(),
     hitos: String(c['Hitos habilitados'] === undefined ? '2;3;4' : c['Hitos habilitados']).split(/[;\n]/).map(x => x.trim()).filter(String),
-    siar: String(c['Pestaña del SIAR'] || 'SIAR').trim(),
     tratamientos: String(c['Tratamientos que se registran'] === undefined ? 'Docente Tutor;Apoyo Hermano mayor' : c['Tratamientos que se registran']).split(/[;\n]/).map(x => norm_(x)).filter(String),
     sedes: lista(c['Sedes habilitadas']).map(x => x.toUpperCase()),
-    facultades: lista(c['Facultades habilitadas']).map(x => x.toUpperCase()),
+    facultades: lista(c['Facultades habilitadas']).map(x => norm_(FACULTADES_SUGERIDAS[x.toUpperCase()] || x)),
     clave: String(c['Código de acceso'] === undefined ? '' : c['Código de acceso']).trim(),
     mensaje: String(c['Mensaje de registro cerrado'] || 'El registro de sesiones no está disponible en este momento.')
   };
@@ -209,7 +241,8 @@ function tabla_(nombre, ncol) {
   return m;
 }
 const carreras_ = () => tabla_(H.CARRERAS, 3);          // cod → [nombre, facultad]
-const facultades_ = () => tabla_(H.FACULTADES, 2);      // cod → [nombre]
+// Nombres de facultad que aparecen en CARRERAS, en orden alfabético.
+const facultades_ = () => { const m = {}; Object.values(carreras_()).forEach(v => { if (v[1]) m[v[1]] = true; }); return Object.keys(m).sort((a, b) => a.localeCompare(b, 'es')); };
 
 /* ═════════════════════════ SIAR ═════════════════════════ */
 const titulo_ = s => String(s || '').toLowerCase().replace(/(^|[\s-])\S/g, c => c.toUpperCase()).replace(/\s+/g, ' ').trim();
@@ -221,17 +254,24 @@ function sedeCod_(v) { const s = norm_(v); for (const k in SEDES) if (s === norm
 function programa_(trat) { const t = norm_(trat); return t.indexOf('hermano') >= 0 ? PROGRAMAS[1] : t.indexOf('tutor') >= 0 ? PROGRAMAS[0] : titulo_(trat); }
 const semMateria_ = cod => { const m = /-\s*(\d)/.exec(String(cod || '')); return m ? +m[1] : ''; };
 
-// Pestaña del SIAR: la de CONFIG; si no existe, «SIAR» o la que importa Sheets del Excel («Rep. Ficha est.»).
-function hojaSiar_(cfg) {
-  const ss = SpreadsheetApp.getActive(), sh = ss.getSheetByName(cfg.siar) || ss.getSheetByName('SIAR');
-  return sh || ss.getSheets().filter(h => /^rep\.?\s*ficha/.test(norm_(h.getName())))[0] || null;
+// Pestaña(s) con el reporte del SIAR: se reconocen por sus columnas (tratamiento, detalle y c.i.), no por el nombre.
+function hojasSiar_() {
+  const propias = Object.values(H);
+  return SpreadsheetApp.getActive().getSheets().filter(sh => {
+    const n = sh.getName();
+    if (propias.indexOf(n) >= 0 || esApoyo_(n) || sh.getLastColumn() < 3 || sh.getLastRow() < 1) return false;
+    const c = cab_(sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0]);
+    return ['tratamiento', 'asignado', 'ci'].every(k => COLS_SIAR[k].some(x => c.indexOf(x) >= 0));
+  });
 }
+// Si hay más de una, se usa la última (la de más a la derecha); «Actualizar SIAR» avisa.
+function hojaSiar_() { const l = hojasSiar_(); return l.length ? l[l.length - 1] : null; }
 // Lee el SIAR (solo las columnas que usa) y devuelve los registros que entran a la app.
 // Registro: [clave, nombre, ci, correo, sede, carrera, carreraNombre, facultad, semestreEst, codMateria, materia, semMateria,
 //            paralelo, docenteMateria, programa, asignado, hito, ficha, detalle]
 function leerSiar_(cfg) {
-  const sh = hojaSiar_(cfg);
-  if (!sh) return { lista: [], error: 'No existe la pestaña «' + cfg.siar + '» (CONFIG → Pestaña del SIAR).' };
+  const sh = hojaSiar_();
+  if (!sh) return { lista: [], error: 'No encuentro el reporte del SIAR. Impórtalo: Archivo → Importar → Subir → «Insertar hojas nuevas».' };
   const n = sh.getLastRow() - 1;
   if (n < 1) return { lista: [], error: 'La pestaña «' + sh.getName() + '» está vacía.' };
   const cab = cab_(sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0]), idx = {};
@@ -245,9 +285,9 @@ function leerSiar_(cfg) {
   for (let i = 0; i < n; i++) {
     const trat = v('tratamiento', i);
     if (trats.length && trats.indexOf(norm_(trat)) < 0) continue;
-    const sede = sedeCod_(v('sede', i)), car = v('carcod', i).toUpperCase(), fac = ((cars[car] || [])[1] || '').toUpperCase();
+    const sede = sedeCod_(v('sede', i)), car = v('carcod', i).toUpperCase(), fac = (cars[car] || [])[1] || '';
     if (cfg.sedes.length && cfg.sedes.indexOf(sede) < 0) continue;
-    if (cfg.facultades.length && cfg.facultades.indexOf(fac) < 0) continue;
+    if (cfg.facultades.length && cfg.facultades.indexOf(norm_(fac)) < 0) continue;
     const prog = programa_(trat), mat = v('matcod', i).replace(/\s+/g, ' ').toUpperCase(), ci = v('ci', i);
     const clave = (v('detalle', i) || ciNorm_(ci) + '·' + mat) + '|' + prog;
     if (!ci || !mat || vistos[clave]) continue;
@@ -291,6 +331,7 @@ function actualizarSiar_() {
   const sinFiltros = Object.assign({}, cfg, { sedes: [], facultades: [] });
   const r = leerSiar_(sinFiltros);
   if (r.error) return { texto: '⚠ ' + r.error };
+  const varias = hojasSiar_();
   const cars = carreras_(), shC = ss.getSheetByName(H.CARRERAS), nuevos = {};
   r.lista.forEach(x => { if (x[5] && !cars[x[5]] && !nuevos[x[5]]) nuevos[x[5]] = x[6]; });
   Object.keys(nuevos).sort().forEach(k => { shC.appendRow([k, nuevos[k], '']); shC.getRange(shC.getLastRow(), 1, 1, 3).setBackground('#fff59d'); });
@@ -311,7 +352,8 @@ function actualizarSiar_() {
     'Asignados: ' + nM(PROGRAMAS[0]) + ' docentes tutores y ' + nM(PROGRAMAS[1]) + ' hermanos mayores.\n' +
     'Sin asignación: ' + sin.length + ' (ver pestaña «' + H.SIN_ASIG + '»).' +
     (Object.keys(nuevos).length ? '\nCarreras nuevas en CARRERAS (amarillo): ' + Object.keys(nuevos).join(', ') + '.' : '') +
-    (Object.keys(sinFac).length ? '\n⚠ Carreras sin facultad en CARRERAS (no aparecen en la app): ' + Object.keys(sinFac).sort().join(', ') + '.' : '');
+    (Object.keys(sinFac).length ? '\n⚠ Carreras sin facultad en CARRERAS (no aparecen en la app): ' + Object.keys(sinFac).sort().join(', ') + '. Elige su facultad en la columna C.' : '') +
+    (varias.length > 1 ? '\n⚠ Hay ' + varias.length + ' pestañas con el reporte del SIAR (' + varias.map(x => '«' + x.getName() + '»').join(', ') + '). Uso «' + varias[varias.length - 1].getName() + '»: borra las demás.' : '');
   return { texto: texto, n: r.lista.length };
 }
 
@@ -403,7 +445,7 @@ function inicio_(clave) {
   return {
     ok: true, abierta: true, periodo: cfg.periodo, hitos: cfg.hitos,
     sedes: Object.keys(SEDES).filter(k => cs[k]).map(k => ({ cod: k, nombre: SEDES[k] })),
-    facultades: Object.keys(fn).map(k => ({ cod: k, nombre: fn[k][0] || k })),
+    facultades: fn.map(f => ({ cod: f, nombre: f })),
     conteo: cf
   };
 }
@@ -412,8 +454,8 @@ function lista_(clave, sede, fac) {
   const cfg = config_();
   if (!abierta_(cfg)) return { ok: false, motivo: 'cerrada', mensaje: cfg.mensaje };
   if (!claveOk_(cfg, clave)) return { ok: false, motivo: 'clave' };
-  const S = String(sede || '').toUpperCase(), F = String(fac || '').toUpperCase();
-  const regs = siar_(cfg).filter(x => x[4] === S && x[7] === F)
+  const S = String(sede || '').toUpperCase(), F = norm_(fac);
+  const regs = siar_(cfg).filter(x => x[4] === S && norm_(x[7]) === F)
     .map(x => [x[0], x[1], ciMask_(x[2]), x[5], x[6], x[8], x[9], x[10], x[11], x[12], x[13], x[14], x[15], x[16]]);
   return { ok: true, registros: regs };
 }
@@ -442,7 +484,6 @@ function guardar_(d) {
     if (v.error) return { ok: false, codigo: 'datos_invalidos', detalle: v.error };
     const C = cabResp_(), dupes = clavesExistentes_(sh), ahora = new Date(), filas = [], codigos = [];
     const extra = [cfg.periodo, d.movil ? 'Móvil' : 'Computadora', txt_(d.fecha_local, 40), txt_(d.version, 10)];
-    const fn = facultades_();
     let nDup = 0;
     v.items.forEach((it, i) => {
       const cod = id + '-' + ('0' + (i + 1)).slice(-2), n = it.regs.length;
@@ -451,7 +492,7 @@ function guardar_(d) {
         const clave = [nombreKey_(v.mentor.nombre), ciNorm_(x[2]), x[9], String(v.hito), it.fecha ? fmtFecha_(it.fecha) : ''].join('|');
         const dup = !!dupes[clave]; if (dup) nDup++; dupes[clave] = true;
         const asig = !x[15] ? ASIGNACION.sin : nombreKey_(x[15]) === nombreKey_(v.mentor.nombre) ? ASIGNACION.mia : ASIGNACION.otro;
-        filas.push([ahora, id, cod, v.mentor.nombre, v.mentor.programa, v.mentor.enSiar ? 'Sí' : 'No', v.hito, SEDES[x[4]] || x[4], (fn[x[7]] || [])[0] || x[7],
+        filas.push([ahora, id, cod, v.mentor.nombre, v.mentor.programa, v.mentor.enSiar ? 'Sí' : 'No', v.hito, SEDES[x[4]] || x[4], x[7],
           String(x[2]), x[1], x[3], x[5], x[6], x[8], x[9], x[10], x[12], x[13], x[15] || '', asig,
           it.asistio, it.fecha || '', it.hi, it.hf, it.dur, it.asistio === 'Sí' ? n : '', it.dur === '' ? '' : Math.round(it.dur / 60 / n * 10000) / 10000,
           it.act, it.obs, dup ? 'Sí' : '', x[17], x[18]].concat(extra));
@@ -534,8 +575,9 @@ function existeId_(id, sh) {
 function menuAbrir() { setConfig_('Registro activo', 'SÍ'); bitacora_('Abrir registro', ''); aviso_('Registro abierto', 'Ya se pueden registrar sesiones.'); }
 function menuCerrar() { setConfig_('Registro activo', 'NO'); bitacora_('Cerrar registro', ''); aviso_('Registro cerrado', 'Nadie puede registrar sesiones hasta que lo abras de nuevo.'); }
 function menuActualizarSiar() {
-  crearConfig_(false); crearFacultades_(); crearCarreras_();
+  crearConfig_(false); crearCarreras_();
   const r = actualizarSiar_();
+  ordenarPestanas_();
   bitacora_('Actualizar SIAR', r.texto);
   aviso_('SIAR actualizado', r.texto);
 }
@@ -665,9 +707,10 @@ function crearResumen_() {
   const qh = h => /^\d+$/.test(h) ? h : '"' + h + '"';
   cabT('POR HITO'); (cfg.hitos.length ? cfg.hitos : ['2', '3', '4']).forEach(h => fila('Hito ' + h, HI + ',' + qh(h))); push(['']);
   cabT('POR SEDE'); Object.keys(SEDES).forEach(s => fila(SEDES[s], SE + ',"' + SEDES[s] + '"')); push(['']);
-  const fn = facultades_();
-  cabT('POR FACULTAD'); Object.keys(fn).forEach(k => fila(k + ' · ' + fn[k][0], FA + ',"' + (fn[k][0] || k) + '"')); push(['']);
-  cabT('POR CARRERA'); Object.entries(carreras_()).forEach(([k, v]) => fila(k + ' · ' + v[0], CA + ',"' + k + '"')); push(['']);
+  cabT('POR FACULTAD'); facultades_().forEach(f => fila(f, FA + ',"' + f + '"')); push(['']);
+  const enSiar = {}; try { leerSiar_(Object.assign({}, cfg, { sedes: [], facultades: [] })).lista.forEach(x => { enSiar[x[5]] = true; }); } catch (e) {}
+  const cars = Object.entries(carreras_()).filter(([k]) => !Object.keys(enSiar).length || enSiar[k]);   // solo carreras presentes en el SIAR
+  cabT('POR CARRERA'); cars.forEach(([k, v]) => fila(k + ' · ' + v[0], CA + ',"' + k + '"')); push(['']);
   // Rankings con QUERY (filas variables al final)
   const L = colLetra_(C.length), cB = col('ID envío'), q = (c, lim) => '=IFERROR(QUERY(' + H.RESP + '!$A$2:$' + L + ',"select ' + c + ', count(' + cB + ') where ' + cB + ' is not null and not ' + cB + ' starts with \'PRUEBA-\' group by ' + c + ' order by count(' + cB + ') desc limit ' + lim + ' label count(' + cB + ') \'\'",0),"Todavía no hay registros")';
   push(['ASIGNATURAS CON MÁS REGISTROS (25 primeras)', 'Registros'], 'cab'); push([q(col('Asignatura'), 25)]); for (let i = 0; i < 25; i++) push(['']);
