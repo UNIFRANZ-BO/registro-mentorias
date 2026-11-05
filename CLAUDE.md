@@ -79,6 +79,9 @@ Envío → **un código por estudiante** `XXXXX-YYYYYY-NN` (en la hoja `ME-…-N
   inicio/lista/RESPUESTAS (el `cod` que recibe la app es el nombre). Migra siglas → nombres. CONFIG «Facultades habilitadas» acepta nombres o siglas.
 - **El SIAR se reconoce por columnas** (`hojasSiar_`: tratamiento + detalle + c.i.), el nombre no importa: en la hoja real se llama
   **«BASEDEDATOS»**. Ya no existe el parámetro «Pestaña del SIAR». Si hay varias, usa la de más a la derecha y avisa.
+- **Reimportar el SIAR:** con .xlsx Sheets solo ofrece «Insertar nuevas hojas» (las de «hoja actual» son para CSV; «Reemplazar hoja de
+  cálculo» reemplaza el ARCHIVO entero). «Actualizar SIAR» llama `consolidarSiar_`: se queda con el SIAR de más a la derecha, borra los
+  anteriores (y una BASEDEDATOS vacía) y lo renombra `NOMBRE_SIAR` = BASEDEDATOS. Solo menú: no requiere Nueva versión.
 - 05-nov: borré por conector las pestañas viejas de la hoja real; «RESPUESTAS v1 (2026-11-05)» (5 filas reales del 27-oct) quedó oculta.
 
 ## Historia v1.x (11 al 27-oct-2026, ya reemplazada)

@@ -21,8 +21,9 @@
  *   Ocultas (menú «Ver u ocultar papelera y bitácora»): PAPELERA, BITACORA y archivos de periodos.
  *
  * ── CADA VEZ QUE SALGA UN REPORTE NUEVO DEL SIAR ─────────────────────────────
- *   Importa el Excel con «Reemplazar hoja actual» parado en la pestaña del SIAR (o «Insertar hojas
- *   nuevas» y borra la anterior) → menú Mentorías → Actualizar SIAR.
+ *   Archivo → Importar → Subir → «Insertar nuevas hojas» → menú Mentorías → Actualizar SIAR.
+ *   (Se queda con el reporte recién importado, borra el anterior y lo llama BASEDEDATOS.)
+ *   Nunca «Reemplazar hoja de cálculo»: reemplaza el archivo entero.
  *   4. Implementar → Nueva implementación → Aplicación web · Ejecutar como: Yo · Acceso: Cualquier persona.
  *
  * ── PARA ACTUALIZAR ESTE CÓDIGO DESPUÉS ─────────────────────────────────────
@@ -45,6 +46,7 @@ const FACULTADES_SUGERIDAS = {
   FI: 'Ingeniería', FDTC: 'Diseño y Tecnología Crossmedia'
 };
 // Pestañas de versiones anteriores que ya no se usan: «Configuración inicial» las borra.
+const NOMBRE_SIAR = 'BASEDEDATOS';   // nombre que recibe la pestaña del SIAR al actualizar
 const OBSOLETAS = ['PADRON', 'EXCLUIDOS', 'AGREGADOS', 'BASEDEDATOSDOC', 'BASEDEDATOSEST', 'BASEDEDATOSMATERIAS', 'FACULTADES'];
 const CARRERAS_SUGERIDAS = [
   ['AFC', 'Auditoría Financiera y Control de Gestión', 'FCEE'], ['ICO', 'Ingeniería Comercial', 'FCEE'], ['IEF', 'Ingeniería Económica y Financiera', 'FCEE'],
@@ -96,7 +98,9 @@ function configuracionInicial() {
   crearConfig_(true); crearCarreras_();
   const migr = prepararHoja_(H.RESP, cabResp_()) + prepararHoja_(H.PAPELERA, ['Fecha de anulación', 'Anulado por', 'Motivo'].concat(cabResp_()));
   hojaResp_(); hojaPapelera_(); hojaSimple_(H.BITACORA, ['Fecha', 'Usuario', 'Acción', 'Detalle']);
+  const cons = consolidarSiar_();
   const r = actualizarSiar_();
+  r.texto = cons + r.texto;
   crearResumen_();
   const borradas = OBSOLETAS.filter(n => ss.getSheetByName(n));
   borradas.forEach(n => ss.deleteSheet(ss.getSheetByName(n)));
@@ -264,14 +268,28 @@ function hojasSiar_() {
     return ['tratamiento', 'asignado', 'ci'].every(k => COLS_SIAR[k].some(x => c.indexOf(x) >= 0));
   });
 }
-// Si hay más de una, se usa la última (la de más a la derecha); «Actualizar SIAR» avisa.
+// Deja un solo reporte del SIAR: el último importado (el de más a la derecha) queda como BASEDEDATOS y se borran los anteriores.
+// Una pestaña BASEDEDATOS vacía (p. ej. tras un intento de importación fallido) también se borra.
+function consolidarSiar_() {
+  const ss = SpreadsheetApp.getActive(), l = hojasSiar_();
+  if (!l.length) return '';
+  const nueva = l[l.length - 1], borradas = [];
+  l.slice(0, -1).forEach(sh => { borradas.push(sh.getName()); ss.deleteSheet(sh); });
+  if (nueva.getName() !== NOMBRE_SIAR) {
+    const otra = ss.getSheetByName(NOMBRE_SIAR);
+    if (otra && otra.getLastRow() === 0) { borradas.push(NOMBRE_SIAR + ' (vacía)'); ss.deleteSheet(otra); }
+    if (!ss.getSheetByName(NOMBRE_SIAR)) nueva.setName(NOMBRE_SIAR);
+  }
+  return borradas.length ? 'Reporte del SIAR nuevo en «' + nueva.getName() + '». Se borró el anterior: ' + borradas.join(', ') + '.\n' : '';
+}
+// Si hay más de una, se usa la última (la de más a la derecha); «Actualizar SIAR» las deja en una sola.
 function hojaSiar_() { const l = hojasSiar_(); return l.length ? l[l.length - 1] : null; }
 // Lee el SIAR (solo las columnas que usa) y devuelve los registros que entran a la app.
 // Registro: [clave, nombre, ci, correo, sede, carrera, carreraNombre, facultad, semestreEst, codMateria, materia, semMateria,
 //            paralelo, docenteMateria, programa, asignado, hito, ficha, detalle]
 function leerSiar_(cfg) {
   const sh = hojaSiar_();
-  if (!sh) return { lista: [], error: 'No encuentro el reporte del SIAR. Impórtalo: Archivo → Importar → Subir → «Insertar hojas nuevas».' };
+  if (!sh) return { lista: [], error: 'No encuentro el reporte del SIAR. Impórtalo: Archivo → Importar → Subir → «Insertar nuevas hojas» y usa Mentorías → Actualizar SIAR.' };
   const n = sh.getLastRow() - 1;
   if (n < 1) return { lista: [], error: 'La pestaña «' + sh.getName() + '» está vacía.' };
   const cab = cab_(sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0]), idx = {};
@@ -576,7 +594,9 @@ function menuAbrir() { setConfig_('Registro activo', 'SÍ'); bitacora_('Abrir re
 function menuCerrar() { setConfig_('Registro activo', 'NO'); bitacora_('Cerrar registro', ''); aviso_('Registro cerrado', 'Nadie puede registrar sesiones hasta que lo abras de nuevo.'); }
 function menuActualizarSiar() {
   crearConfig_(false); crearCarreras_();
+  const cons = consolidarSiar_();
   const r = actualizarSiar_();
+  r.texto = cons + r.texto;
   ordenarPestanas_();
   bitacora_('Actualizar SIAR', r.texto);
   aviso_('SIAR actualizado', r.texto);

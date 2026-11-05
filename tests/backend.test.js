@@ -134,5 +134,6 @@ ctx.__answers=['I-2027'];ctx.menuNuevoPeriodo();
 const rs=ss.getSheetByName('RESUMEN');for(let r=1;r<=rs.getLastRow();r++){const t=[1,2].map(c=>String(rs.get(r,c)).slice(0,150)).join(' || ');if(t.replace(/[ |]/g,''))console.log(r,t)}
 if(SEP===';'){const f=String(rs.get(4,2));if(!/;/.test(f))fallo('RESUMEN sin «;»: '+f)}
 {const h=ss.getSheetByName('BASEDEDATOS');h.name='Rep. Ficha est.';const r=ctx.leerSiar_(ctx.config_());if(r.error||!r.lista.length)fallo('no encuentra «Rep. Ficha est.»: '+r.error);h.name='BASEDEDATOS'}
+{const vieja=ss.getSheetByName('BASEDEDATOS'),datos=vieja.d;vieja.d=[];ss.insertSheet('Rep. Ficha est.').d=datos;ctx.menuActualizarSiar();const sh=ss._sheets.filter(x=>x.name==='BASEDEDATOS'||x.name==='Rep. Ficha est.');if(sh.length!==1||sh[0].name!=='BASEDEDATOS'||!sh[0].d.length)fallo('reimportación: '+ss._sheets.map(x=>x.name));const i3=get('inicio',{clave:'NIV2026'});if(!i3.sedes.length)fallo('tras reimportar no hay sedes');const v=ss._sheets.filter(x=>!x._hid).map(x=>x.name).join();if(v!=='RESPUESTAS,RESUMEN,SIN ASIGNACIÓN,BASEDEDATOS,CONFIG,CARRERAS')fallo('orden tras reimportar '+v)}
 const cab=ctx.cabResp_();if(new Set(cab).size!==cab.length)fallo('cabecera con títulos repetidos');
 console.log('\nOK · todas las comprobaciones pasaron (SEP='+SEP+')');
