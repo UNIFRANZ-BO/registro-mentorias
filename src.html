@@ -698,7 +698,7 @@ details.more ol li b{color:var(--txt)}
 <script>
 /* =====================================================================
    BITÁCORA DE NIVELACIONES · UNIFRANZ  (v2.0)
-   Una sola base: el reporte del SIAR. Sede + Facultad → «¿Quién eres?» →
+   Una sola base: el reporte del SIAR. Sede + Facultad → «Selecciona tu nombre» →
    tus estudiantes asignados (o «Buscar por materia») → asistencia y sesión
    grupal → enviar. Cada estudiante recibe su código de registro.
    ===================================================================== */
@@ -706,7 +706,7 @@ details.more ol li b{color:var(--txt)}
 // ⬇⬇⬇ Pega aquí la URL de tu implementación de Apps Script (termina en /exec) ⬇⬇⬇
 const API_URL_DEFECTO = 'https://script.google.com/macros/s/AKfycbxwv1mH1KPyZs9gXbATNo5Q6HeCTFlmTsfh98iyF0Ogh_-mJLURTOXlgEHhVdsmDyDq8Q/exec';
 // ⬆⬆⬆ ------------------------------------------------------------------------ ⬆⬆⬆
-const VERSION = '2.3';
+const VERSION = '2.4';
 const LS_DRAFT = 'bitniv_draft1', LS_COLA = 'bitniv_cola1', LS_PREF = 'bitniv_pref1';
 const LOGO_FULL = '__LOGO_FULL__';
 const LOGO_WORD = '__LOGO_WORD__';
@@ -792,7 +792,7 @@ function retire(back) {
     setTimeout(() => o.remove(), 380);
   });
 }
-const PASOS = {inicio:[1, 10, 'Sede y facultad'], mentor:[2, 30, '¿Quién eres?'], est:[2, 55, 'Agregar estudiantes'], ses:[3, 75, 'Asistencia y sesión'], review:[4, 100, 'Revisión']};
+const PASOS = {inicio:[1, 10, 'Sede y facultad'], mentor:[2, 30, 'Identificación'], est:[2, 55, 'Agregar estudiantes'], ses:[3, 75, 'Asistencia y sesión'], review:[4, 100, 'Revisión']};
 function updateTop() {
   const p = PASOS[S.scr], top = $('#top');
   top.classList.toggle('off', !p);
@@ -906,7 +906,7 @@ function mentoresDe(regs) {
 SCR.mentor = function (el) {
   const ms = mentoresDe(S.regs), p = pref(), facN = (S.facultades.find(f => f.cod === S.fac) || {}).nombre || S.fac;
   const yo = p.mentor && ms.find(m => norm(m.nombre) === norm(p.mentor.nombre) && m.programa === p.mentor.programa);
-  el.innerHTML = `<div class="card">${qHead('02', (S.sedes.find(s => s.cod === S.sede) || {}).nombre + ' · ' + facN, '¿Quién eres?', 'Toca tu nombre. Son los docentes tutores y hermanos mayores asignados en el SIAR.')}
+  el.innerHTML = `<div class="card">${qHead('02', (S.sedes.find(s => s.cod === S.sede) || {}).nombre + ' · ' + facN, 'Selecciona tu nombre', 'Estimado docente tutor o hermano mayor: por favor, busca tu nombre en la lista y selecciónalo.')}
     ${yo ? `<button class="opt yo" data-m="${esc(ms.indexOf(yo))}"><span class="lbl">¿Eres ${esc(yo.nombre)}?<span class="sub">${esc(yo.programa)} · ${yo.n} estudiante${yo.n === 1 ? '' : 's'} asignado${yo.n === 1 ? '' : 's'}</span></span><span class="chk">${IC.check}</span></button>` : ''}
     <div class="search">${IC.search}<input id="qm" type="search" autocomplete="off" spellcheck="false" placeholder="Busca tu nombre"></div>
     <div id="mlist" class="mlist2"></div>
@@ -953,7 +953,7 @@ const misRegs = () => S.regs.filter(r => r[R.prog] === S.mentor.programa && norm
 /* ---------- 3 · estudiantes ---------- */
 function grupoMateria(lst) {   // agrupa registros por materia, ordenadas por semestre y nombre
   const g = {};
-  lst.forEach(r => { const k = r[R.mat] + '|' + r[R.car]; (g[k] = g[k] || []).push(r); });
+  lst.forEach(r => { const k = r[R.mat]; (g[k] = g[k] || []).push(r); });
   return Object.values(g).sort((a, b) => (a[0][R.matSem] || 99) - (b[0][R.matSem] || 99) || a[0][R.matNom].localeCompare(b[0][R.matNom], 'es'));
 }
 function filaEst(r, verAsig) {
@@ -963,8 +963,8 @@ function filaEst(r, verAsig) {
 }
 function bloqueMateria(rs, verAsig) {
   const r0 = rs[0], todos = rs.every(r => S.sel[r[R.key]]);
-  return `<div class="grp"><div class="grph"><div><b>${esc(r0[R.matNom])}</b><small>${esc(r0[R.mat])} · ${semTxt(r0[R.matSem])} · Docente: ${esc(r0[R.doc])}</small></div>
-    <button class="sbtn" data-todos="${esc(r0[R.mat] + '|' + r0[R.car])}">${todos ? 'Quitar todos' : 'Todos'}</button></div>${rs.map(r => filaEst(r, verAsig)).join('')}</div>`;
+  return `<div class="grp"><div class="grph"><div><b>${esc(r0[R.matNom])}</b><small>${esc(r0[R.mat])} · ${semTxt(r0[R.matSem])}</small></div>
+    <button class="sbtn" data-todos="${esc(r0[R.mat])}">${todos ? 'Quitar todos' : 'Todos'}</button></div>${rs.map(r => filaEst(r, verAsig)).join('')}</div>`;
 }
 SCR.est = function (el) {
   const libre = !S.mentor.enSiar;
@@ -977,9 +977,9 @@ SCR.est = function (el) {
   el.addEventListener('click', e => {
     const t = e.target;
     if (t.closest('[data-act=prev]')) return libre ? go('mentor', true) : go('ses', true);
-    const rb = t.closest('.rowc'); if (rb) { const k = rb.dataset.k; if (S.sel[k]) delete S.sel[k]; else { S.sel[k] = true; const r = S.regs.find(x => x[R.key] === k); if (r) S.gAb[r[R.mat] + '|' + r[R.car]] = true; } rb.classList.toggle('sel', !!S.sel[k]); return refrescaEst(el); }
+    const rb = t.closest('.rowc'); if (rb) { const k = rb.dataset.k; if (S.sel[k]) delete S.sel[k]; else { S.sel[k] = true; const r = S.regs.find(x => x[R.key] === k); if (r) S.gAb[r[R.mat]] = true; } rb.classList.toggle('sel', !!S.sel[k]); return refrescaEst(el); }
     const tt = t.closest('[data-todos]');
-    if (tt) { const rs = S.regs.filter(r => r[R.mat] + '|' + r[R.car] === tt.dataset.todos); const todos = rs.every(r => S.sel[r[R.key]]); rs.forEach(r => { if (todos) delete S.sel[r[R.key]]; else S.sel[r[R.key]] = true; }); if (!todos && rs[0]) S.gAb[tt.dataset.todos] = true; pintaListaMat(el); return refrescaEst(el); }
+    if (tt) { const rs = S.regs.filter(r => r[R.mat] === tt.dataset.todos); const todos = rs.every(r => S.sel[r[R.key]]); rs.forEach(r => { if (todos) delete S.sel[r[R.key]]; else S.sel[r[R.key]] = true; }); if (!todos && rs[0]) S.gAb[tt.dataset.todos] = true; pintaListaMat(el); return refrescaEst(el); }
     const mb = t.closest('[data-mat]'); if (mb) { const k = mb.dataset.mat; S.matAbiertas[k] = !S.matAbiertas[k]; return pintaListaMat(el); }
     if (t.closest('#btnNext')) {
       const er = errEst(); if (er) { toast(er); shake($('#lmat', el)); return; }
@@ -992,10 +992,10 @@ function pintaListaMat(el) {
   const q = norm(S.filtroMat || ''), g = grupoMateria(S.regs).filter(rs => !q || norm(rs[0][R.matNom] + ' ' + rs[0][R.mat]).includes(q));
   let sem = null, html = '';
   g.forEach(rs => {
-    const r0 = rs[0], k = r0[R.mat] + '|' + r0[R.car], n = new Set(rs.map(estKey)).size, m = rs.filter(r => S.sel[r[R.key]]).length;
+    const r0 = rs[0], k = r0[R.mat], n = new Set(rs.map(estKey)).size, m = rs.filter(r => S.sel[r[R.key]]).length;
     if (r0[R.matSem] !== sem) { sem = r0[R.matSem]; html += `<div class="fac">${semTxt(sem)}</div>`; }
     html += S.matAbiertas[k] ? bloqueMateria(rs, true).replace('<div class="grp">', `<div class="grp abierta"><button class="matcab" data-mat="${esc(k)}">▴ Cerrar</button>`)
-      : `<button class="opt matb" data-mat="${esc(k)}"><span class="lbl">${esc(r0[R.matNom])}<span class="sub">${esc(r0[R.mat])} · ${esc(r0[R.carNom])} · ${n} estudiante${n === 1 ? '' : 's'}${m ? ' · ' + m + ' marcado' + (m === 1 ? '' : 's') : ''}</span></span><span class="chev">▾</span></button>`;
+      : `<button class="opt matb" data-mat="${esc(k)}"><span class="lbl">${esc(r0[R.matNom])}<span class="sub">${esc(r0[R.mat])} · ${n} estudiante${n === 1 ? '' : 's'}${m ? ' · ' + m + ' marcado' + (m === 1 ? '' : 's') : ''}</span></span><span class="chev">▾</span></button>`;
   });
   $('#lmat', el).innerHTML = html || '<div class="sinfo">Ninguna materia coincide.</div>';
 }
@@ -1061,7 +1061,7 @@ SCR.ses = function (el) {
   const fila = r => {
     const k = r[R.key], a = S.asis[k], p = S.propio[k], extra = !misRegs().includes(r);
     const asig = extra ? ' · ' + (r[R.asig] ? 'Asignado: ' + esc(r[R.asig]) : 'Sin asignación') : '';
-    return `<div class="asisrow ${a === 'Sí' ? 'si' : a === 'No' ? 'no' : ''}" data-e="${esc(k)}"><div class="an"><div><b>${esc(r[R.nom])}</b><small>${esc(r[R.carNom])} · ${semTxt(r[R.sem])} · Par. ${esc(r[R.par])}${asig}</small></div></div>
+    return `<div class="asisrow ${a === 'Sí' ? 'si' : a === 'No' ? 'no' : ''}" data-e="${esc(k)}"><div class="an"><div><b>${esc(r[R.nom])}</b><small>${esc(r[R.carNom])} · ${semTxt(r[R.sem])} · Par. ${esc(r[R.par])} · CI ${esc(r[R.ci])}${asig}</small></div></div>
       <div class="ab"><button class="sn ${a === 'Sí' ? 'on' : ''}" data-a="Sí">Asistió</button><button class="sn no ${a === 'No' ? 'on' : ''}" data-a="No">No asistió</button></div>
       ${a === 'Sí' ? (p ? `<div class="propio"><div class="fgrid"><label class="fld fecha full">Su fecha<input data-p="fecha" type="date" max="${isoHoy()}" value="${esc(p.fecha)}"></label><label class="fld">Inicio<input data-p="hi" type="time" value="${esc(p.hi)}"></label><label class="fld">Conclusión<input data-p="hf" type="time" value="${esc(p.hf)}"></label></div><button class="linkbtn" data-quitar>Usar la sesión del grupo</button></div>`
         : '<button class="linkbtn otra" data-otra>Otra fecha u horario para este estudiante</button>') : ''}</div>`;
@@ -1070,10 +1070,10 @@ SCR.ses = function (el) {
     const vis = visRegs(), pocos = vis.length <= 15;
     let sem = null, html = '';
     grupoMateria(vis).forEach(rs => {
-      const r0 = rs[0], gk = r0[R.mat] + '|' + r0[R.car], nm = rs.filter(r => S.asis[r[R.key]]).length;
+      const r0 = rs[0], gk = r0[R.mat], nm = rs.filter(r => S.asis[r[R.key]]).length;
       const ab = S.gAb[gk] !== undefined ? S.gAb[gk] : pocos;
       if (r0[R.matSem] !== sem) { sem = r0[R.matSem]; html += `<div class="fac">${semTxt(sem)}</div>`; }
-      html += `<div class="grp gas ${ab ? 'abierta' : ''}"><button class="grph gtog" data-g="${esc(gk)}"><div><b>${esc(r0[R.matNom])}</b><small>${esc(r0[R.mat])} · Docente: ${esc(r0[R.doc])}</small><small class="gcnt">${rs.length} estudiante${rs.length === 1 ? '' : 's'}${nm ? ` · <span>${nm} marcado${nm === 1 ? '' : 's'}</span>` : ''}</small></div><span class="chev">${ab ? '▴' : '▾'}</span></button>
+      html += `<div class="grp gas ${ab ? 'abierta' : ''}"><button class="grph gtog" data-g="${esc(gk)}"><div><b>${esc(r0[R.matNom])}</b><small class="gcnt">${esc(r0[R.mat])} · ${rs.length} estudiante${rs.length === 1 ? '' : 's'}${nm ? ` · <span>${nm} marcado${nm === 1 ? '' : 's'}</span>` : ''}</small></div><span class="chev">${ab ? '▴' : '▾'}</span></button>
         ${ab ? `<div class="gbar"><button class="sbtn" data-gt="Sí" data-g2="${esc(gk)}">Todos asistieron</button><button class="sbtn del" data-gt="No" data-g2="${esc(gk)}">Nadie asistió</button></div>${rs.map(fila).join('')}` : ''}</div>`;
     });
     $('#lest', el).innerHTML = html || '<div class="sinfo">No hay estudiantes. Usa «Agregar estudiante de otra materia».</div>';
@@ -1098,7 +1098,7 @@ SCR.ses = function (el) {
     if (t.closest('#agregar')) return go('est');
     const hb = t.closest('[data-hito]'); if (hb) { S.hito = hb.dataset.hito; $$('[data-hito]', el).forEach(x => x.classList.toggle('sel', x === hb)); return refresca(); }
     const gt = t.closest('[data-g]'); if (gt) { const g = gt.dataset.g, ab = S.gAb[g] !== undefined ? S.gAb[g] : visRegs().length <= 15; S.gAb[g] = !ab; pintaLista(); return refresca(); }
-    const gb = t.closest('[data-gt]'); if (gb) { visRegs().filter(r => r[R.mat] + '|' + r[R.car] === gb.dataset.g2).forEach(r => { S.asis[r[R.key]] = gb.dataset.gt; }); pintaLista(); return refresca(); }
+    const gb = t.closest('[data-gt]'); if (gb) { visRegs().filter(r => r[R.mat] === gb.dataset.g2).forEach(r => { S.asis[r[R.key]] = gb.dataset.gt; }); pintaLista(); return refresca(); }
     const row = t.closest('[data-e]'); const k = row && row.dataset.e;
     const ba = t.closest('[data-a]'); if (ba && k) { if (S.asis[k] === ba.dataset.a) { delete S.asis[k]; delete S.propio[k]; } else S.asis[k] = ba.dataset.a; pintaLista(); return refresca(); }
     if (t.closest('[data-otra]') && k) { S.propio[k] = {fecha:S.ses.fecha, hi:S.ses.hi, hf:S.ses.hf}; pintaLista(); return refresca(); }

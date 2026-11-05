@@ -99,6 +99,13 @@ Envío → **un código por estudiante** `XXXXX-YYYYYY-NN` (en la hoja `ME-…-N
 - Estado por clave del SIAR: `S.asis[clave]`, `S.propio[clave]`; `S.sel` = solo agregados a mano; `visRegs()` = asignados + agregados.
   `selEst()` arma los ítems del envío: mismo estudiante + misma asistencia + mismo horario → un ítem (un código). El script no cambió.
 
+## v2.4 (05-nov-2026, pedidos de Rafael)
+- Una materia = un grupo (clave = código de materia), sin separar por carrera ni por docente de la materia («el docente base
+  confunde»); los encabezados ya no muestran docente. Cada fila: carrera · semestre · paralelo · CI enmascarado.
+- **Sin código de acceso:** CONFIG «Código de acceso» vacío en la hoja real (el enlace solo se comparte con DT y HM). Escribir uno lo reactiva;
+  la app lo pide sola. Con el código vacío, nombres y CI parcial de la lista quedan visibles para quien tenga el enlace.
+- Pantalla 02: «Selecciona tu nombre» · «Estimado docente tutor o hermano mayor: por favor, busca tu nombre en la lista y selecciónalo.»
+
 ## Historia v1.x (11 al 27-oct-2026, ya reemplazada)
 - v1: correo docente validado contra BASEDEDATOSDOC, ficha por estudiante con materias del catálogo, un envío por grupo.
 - v1.4: GET por `fetch` con `credentials:'omit'` (JSONP de respaldo) — dispositivos con varias cuentas Google fallaban con JSONP. **Sigue vigente.**

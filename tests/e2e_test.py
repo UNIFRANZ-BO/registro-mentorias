@@ -78,15 +78,15 @@ async def main():
         await pg.click('[data-hito="3"]'); await pg.wait_for_timeout(200)
         assert 'marca quién asistió' in (await pg.inner_text('#fmsg'))
         # cerrar y abrir la materia
-        await pg.click('[data-g="AHU-211 (P)|MED"]'); await pg.wait_for_timeout(200)
+        await pg.click('[data-g="AHU-211 (P)"]'); await pg.wait_for_timeout(200)
         assert await pg.locator('.asisrow').count() == 0
-        await pg.click('[data-g="AHU-211 (P)|MED"]'); await pg.wait_for_timeout(200)
+        await pg.click('[data-g="AHU-211 (P)"]'); await pg.wait_for_timeout(200)
         await shot('03_asistencia', True)
         # ── agregar a Guina en Embriología (sin asignación)
         await pg.click('#agregar'); await pg.wait_for_timeout(1200)
         assert await scr() == 'est'
         await pg.fill('#qmat', 'embrio'); await pg.wait_for_timeout(300)
-        await pg.click('[data-mat="EME-211 (P)|MED"]'); await pg.wait_for_timeout(300)
+        await pg.click('[data-mat="EME-211 (P)"]'); await pg.wait_for_timeout(300)
         assert 'Sin asignación' in await pg.inner_text('#lmat')
         await pg.click('.rowc[data-k="202|Docente Tutor"]'); await pg.wait_for_timeout(200)
         await shot('04_agregar', True)
@@ -95,7 +95,7 @@ async def main():
         assert await scr() == 'ses' and await pg.locator('.gas').count() == 2 and await pg.locator('.asisrow').count() == 3
         assert 'Sin asignación' in await pg.locator('.asisrow[data-e="202|Docente Tutor"]').inner_text()
         # ── «Todos asistieron» de la materia; tocar de nuevo desmarca (Ana no se registra)
-        await pg.click('[data-gt="Sí"][data-g2="AHU-211 (P)|MED"]'); await pg.wait_for_timeout(200)
+        await pg.click('[data-gt="Sí"][data-g2="AHU-211 (P)"]'); await pg.wait_for_timeout(200)
         await pg.locator('.asisrow[data-e="101|Docente Tutor"] [data-a="Sí"]').click(); await pg.wait_for_timeout(200)
         await pg.locator('.asisrow[data-e="202|Docente Tutor"] [data-a="Sí"]').click(); await pg.wait_for_timeout(200)
         assert await pg.evaluate('Object.keys(S.asis).sort().join()') == '201|Docente Tutor,202|Docente Tutor'
@@ -132,7 +132,7 @@ async def main():
         assert await scr() == 'mentor'
         await pg.click('#noEstoy'); await pg.fill('#mNom', 'Juan Nuevo Perez'); await pg.click('[data-prog="Hermano Mayor"]'); await pg.click('#libreOk'); await pg.wait_for_timeout(1200)
         assert await scr() == 'est' and await pg.evaluate('Object.keys(S.sel).length') == 0
-        await pg.click('[data-mat="AHU-211 (P)|MED"]'); await pg.wait_for_timeout(300)
+        await pg.click('[data-mat="AHU-211 (P)"]'); await pg.wait_for_timeout(300)
         await pg.click('.rowc[data-k="101|Docente Tutor"]'); await pg.click('#btnNext'); await pg.wait_for_timeout(1200)
         assert await scr() == 'ses' and await pg.locator('.asisrow').count() == 1
         assert VIAS and 'jsonp' not in VIAS, ('las consultas deben ir por fetch', VIAS)
