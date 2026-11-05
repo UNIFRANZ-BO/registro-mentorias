@@ -92,6 +92,13 @@ Envío → **un código por estudiante** `XXXXX-YYYYYY-NN` (en la hoja `ME-…-N
 - Asignación por materia: un estudiante puede tener la materia A con un mentor y la B con otro; cada mentor solo ve las suyas y
   registra por separado (filas estudiante × materia, códigos propios). Si registra una materia ajena: «Asignado a otra persona».
 
+## v2.3 · Asistencia por semestre y materia (05-nov-2026, pedido de Rafael)
+- «Algunos docentes tienen clase con un semestre un día y con otro semestre otro día». La asistencia se agrupa
+  **semestre → materia** (desplegables; abiertas si hay ≤ 15 filas), cada fila = estudiante × materia, con «Todos asistieron /
+  Nadie asistió» por materia. **Solo se registra lo marcado** (Asistió/No asistió; tocar de nuevo desmarca); ya no hay «Quitar».
+- Estado por clave del SIAR: `S.asis[clave]`, `S.propio[clave]`; `S.sel` = solo agregados a mano; `visRegs()` = asignados + agregados.
+  `selEst()` arma los ítems del envío: mismo estudiante + misma asistencia + mismo horario → un ítem (un código). El script no cambió.
+
 ## Historia v1.x (11 al 27-oct-2026, ya reemplazada)
 - v1: correo docente validado contra BASEDEDATOSDOC, ficha por estudiante con materias del catálogo, un envío por grupo.
 - v1.4: GET por `fetch` con `credentials:'omit'` (JSONP de respaldo) — dispositivos con varias cuentas Google fallaban con JSONP. **Sigue vigente.**
