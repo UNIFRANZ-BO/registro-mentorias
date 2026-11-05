@@ -781,7 +781,7 @@ function retire(back) {
     setTimeout(() => o.remove(), 380);
   });
 }
-const PASOS = {inicio:[1, 10, 'Sede y facultad'], mentor:[2, 30, '¿Quién eres?'], est:[2, 55, 'Estudiantes'], ses:[3, 80, 'Asistencia y sesión'], review:[4, 100, 'Revisión']};
+const PASOS = {inicio:[1, 10, 'Sede y facultad'], mentor:[2, 30, '¿Quién eres?'], est:[2, 55, 'A quiénes registras'], ses:[3, 80, 'Asistencia y sesión'], review:[4, 100, 'Revisión']};
 function updateTop() {
   const p = PASOS[S.scr], top = $('#top');
   top.classList.toggle('off', !p);
@@ -984,10 +984,10 @@ function pintaEst(el) {
   const c = $('#cuerpo', el);
   if (S.modo === 'mios') {
     const g = grupoMateria(misRegs());
-    c.innerHTML = g.length ? `<p class="qhint">Estos son tus estudiantes asignados en el SIAR. Deja marcados a los que acompañaste en esta sesión.</p>` + g.map(rs => bloqueMateria(rs, false)).join('')
+    c.innerHTML = g.length ? `<p class="qhint">Tus estudiantes asignados en el SIAR ya están incluidos en este registro, <b>asistan o no</b>. Quita solo a quien no corresponda registrar ahora. <b>La asistencia la marcas en el siguiente paso.</b></p>` + g.map(rs => bloqueMateria(rs, false)).join('')
       : '<div class="sinfo">No tienes estudiantes asignados en esta sede y facultad. Usa «Buscar por materia».</div>';
   } else {
-    c.innerHTML = `<p class="qhint">Abre la materia y marca a los estudiantes que acompañaste. Se muestra a quién está asignado cada uno en el SIAR.</p>
+    c.innerHTML = `<p class="qhint">Abre la materia y marca a los estudiantes que vas a registrar, <b>asistan o no</b>. La asistencia la marcas en el siguiente paso. Se muestra a quién está asignado cada uno en el SIAR.</p>
       <div class="search">${IC.search}<input id="qmat" type="search" autocomplete="off" spellcheck="false" placeholder="Filtrar materia por nombre o código" value="${esc(S.filtroMat || '')}"></div><div id="lmat"></div>`;
     pintaListaMat(el);
   }
@@ -1016,7 +1016,7 @@ function errEst() {
 function refrescaEst(el) {
   const n = Object.keys(selEst()).length, m = selRegs().length, er = errEst(), f = $('#fmsg', el);
   f.className = 'fmsg' + (er ? '' : ' ok');
-  f.textContent = er ? 'Falta: ' + er.charAt(0).toLowerCase() + er.slice(1) : `✓ ${n} estudiante${n === 1 ? '' : 's'} · ${m} materia${m === 1 ? '' : 's'} marcada${m === 1 ? '' : 's'}.`;
+  f.textContent = er ? 'Falta: ' + er.charAt(0).toLowerCase() + er.slice(1) : `✓ ${n} estudiante${n === 1 ? '' : 's'} a registrar · ${m} materia${m === 1 ? '' : 's'}. Sigue para marcar la asistencia.`;
   $('#btnNext', el).classList.toggle('wait', !!er);
   saveDraft();
 }
@@ -1045,7 +1045,7 @@ function errSes() {
 SCR.ses = function (el) {
   const est = selEst();
   if (!S.ses.fecha) S.ses.fecha = isoHoy();
-  el.innerHTML = `<div class="card">${qHead('04', 'Hito ' + S.hito, 'Asistencia y sesión', 'Marca quién asistió. La fecha, el horario y las actividades se aplican a todos los que asistieron.')}
+  el.innerHTML = `<div class="card">${qHead('04', 'Hito ' + S.hito, 'Asistencia y sesión', 'Ahora marca, de los estudiantes que elegiste, quién asistió y quién no. La fecha, el horario y las actividades se aplican a todos los que asistieron.')}
     <div class="asisbar"><button class="sbtn" id="todosSi">Todos asistieron</button><button class="sbtn del" id="todosNo">Nadie asistió</button></div>
     <div id="lest"></div>
     <section class="fsec" id="secSes"><div class="fhd"><b>✓</b>Sesión</div>

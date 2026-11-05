@@ -83,7 +83,7 @@ async def main():
         assert 'Sin asignación' in await pg.inner_text('#lmat')
         await pg.click('.rowc[data-k="202|Docente Tutor"]'); await pg.wait_for_timeout(200)
         await shot('04_por_materia', True)
-        assert '2 estudiantes · 3 materias' in await pg.inner_text('#fmsg')
+        assert '2 estudiantes a registrar · 3 materias' in await pg.inner_text('#fmsg')
         await pg.click('#btnNext'); await pg.wait_for_timeout(1200)
         assert await scr() == 'ses'
         # ── asistencia y sesión grupal; Guina con otro horario
