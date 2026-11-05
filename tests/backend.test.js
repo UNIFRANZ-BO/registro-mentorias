@@ -45,145 +45,87 @@ const ctx={PropertiesService:{getScriptProperties:()=>({getProperty:k=>props[k]|
  Session:{getActiveUser:()=>({getEmail:()=>'rafael@unifranz.edu.bo'})},Utilities:{formatDate:(d)=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},
  ContentService:{createTextOutput:t=>({t,setMimeType(){return this}}),MimeType:{JSON:1,JAVASCRIPT:2}},Logger:{log:console.log},console,__answers:[]};
 const fallo=m=>{console.error('FALLA:',m);process.exit(1)};
-// ── bases ficticias con las mismas columnas que el Excel real (incluyen CI y celular, que nunca deben salir)
-ss.insertSheet('BASEDEDATOSMATERIAS').d=[['Facultad','Carrera','Sem.','Código asignatura','Asignatura','Plan_estudios'],
- ['FCE','NGE',1,'IGC-111 (C)','Introducción a la Gestión Cuantitativa',2026],['FCE','NGE',1,'PIN-111 (P)','Proyecto Integrador I',2026],
- ['FCE','ICO',1,'PIN-111 (P)','Proyecto Integrador I',2026],['FI','SIS',2,'PRG-211 (P)','Programación II',2026],['FI','SIS',3,'BDD-311 (P)','Bases de Datos',2026],
- ['FCS','MED',46367,'ANA-111 (P)','Anatomía',2026],['FCS','MED',1,'ANA-111 (P)','Anatomía',2026],['FCS','MED',2,'FIS-211 (P)','Fisiología',2026]];
-ss.insertSheet('BASEDEDATOSEST').d=[['sede','anho_plan_estudio','carrera','primer_nombre','segundo_nombre','primer_apellido','segundo_apellido','ci','correo_institucional','celular'],
- ['CBB',2026,'SIS','RONALD',null,'MENDOZA','VARGAS','6530660','est.ronald.mendoza.va@unifranz.edu.bo','67443917'],
- ['CBB',2026,'NGE','ANA','MARIA','ROJAS','VARGAS','7788990','est.anamaria.rojas.va@unifranz.edu.bo','70000001'],
- ['LPZ',2026,'MED','ROLANDO',null,'QUISPE','CATARI','13755793','est.rolando.quispe.ca@unifranz.edu.bo','71993770'],
- ['CBB',2026,'MED','ROSA',null,'ROJAS','PAZ','5551234','est.rosa.rojas.pa@unifranz.edu.bo','70000002']];
-const doc=ss.insertSheet('BASEDEDATOSDOC');
-doc.d=[['Docente','CI','Sede','Carrera','Email','Plan_estudios'],
- ['JUAN CARLOS PEREZ LOPEZ',111,'CBB','SIS','doc.juancarlos.perez.lo@unifranz.edu.bo',2026],
- ['ANA ROJAS VARGAS',222,'LPZ','ICO','DOC.ana.rojas.va@unifranz.edu.bo ',2026],
- ['MARIA DIAZ CRUZ',444,'SCZ','ARQ','doc.maria.diaz.cr@unifranz.edu.bo',2017],
- ['ANA ROJAS VARGAS',222,'LPZ','MED','doc.ana.rojas.va@unifranz.edu.bo',2026]];
-ss.insertSheet('Hoja 2').d=[['', 'Genérico']];   // otras pestañas de la hoja: no se usan
-vm.createContext(ctx);vm.runInContext(code,ctx);
 const J=o=>JSON.stringify(o);
+// ── hoja de la versión anterior: CONFIG con parámetros viejos y RESPUESTAS con otra cabecera y una fila
+const cfgV=ss.insertSheet('CONFIG');cfgV.d=[['Parámetro','Valor','Ayuda'],['Registro activo','SÍ',''],['Pestañas de docentes','BASEDEDATOSDOC',''],['Periodo','II-2026','']];
+ss.insertSheet('RESPUESTAS').d=[['Marca temporal','ID envío','Correo del mentor'],['x','ME-VIEJO-AAAAAA','a@unifranz.edu.bo']];
+// ── SIAR ficticio con las mismas columnas que el reporte real (incluye columnas que no se usan)
+const CAB=['Ficha ID','Detalle ID','Hito','Gestión','Sede','Creador(a)','Seguimiento','Estado final','C.I.','Nombre estudiante','Correo','Celular','Carrera','cod. carrera','Semestre','Docente','Paralelo','Materia','Código materia','Necesidades','Tratamiento','Resultado','Detalle','Det. diagnostico'];
+const fila=(f,d,h,sede,ci,nom,car,cod,sem,doc,par,mat,mc,trat,asig)=>[f,d,h,'II/2026',sede,'Dir','Seguimiento H2','Cierre pendiente',ci,nom,'est.'+nom.split(' ')[0].toLowerCase()+'@unifranz.edu.bo','70000000',car,cod,String(sem),doc,par,mat,mc,'x',trat,'En proceso',asig,'texto largo'];
+ss.insertSheet('SIAR').d=[CAB,
+ fila(1,101,2,'La Paz','60715469','ANA ELIZABETH OJEDA GUERRERO','Medicina','MED',1,'VITO RIVAS VARGAS','105','Anatomía Humana','AHU-211 (P)','Docente Tutor','RAFAEL ARAMAYO'),
+ fila(1,102,2,'La Paz','60715469','ANA ELIZABETH OJEDA GUERRERO','Medicina','MED',1,'DORCAS OLIDEN','105','Histología','HIS-211 (P)','Apoyo Hermano mayor','JOSEPH MAMANI COPA'),
+ fila(1,103,2,'La Paz','60715469','ANA ELIZABETH OJEDA GUERRERO','Medicina','MED',1,'ERIKA QUISBERT','105','Embriología Médica','EME-211 (P)','Ayudantia','ALGUIEN'),
+ fila(2,201,2,'La Paz','61783360','GUINA VERONICA GUTIERREZ MAMANI','Medicina','MED',2,'VITO RIVAS VARGAS','105','Anatomía Humana','AHU-211 (P)','Docente Tutor','Rafael  Aramayo'),
+ fila(2,202,3,'La Paz','61783360','GUINA VERONICA GUTIERREZ MAMANI','Medicina','MED',2,'ERIKA QUISBERT','105','Embriología Médica','EME-211 (P)','Docente Tutor',null),
+ fila(3,301,2,'Cochabamba','1234567','PEDRO GOMEZ RUIZ','Ingeniería de Sistemas','SIS',3,'ANA PAZ','1','Bases de Datos','BDD-311 (P)','Apoyo Hermano mayor','JOSEPH MAMANI COPA'),
+ fila(4,401,2,'El Alto','7654321','CARLA SOLIZ','Administración de Empresas','ADM',4,'LUIS PAZ','2','Contabilidad','CON-411 (C)','Docente Tutor','OTRA PERSONA'),
+ fila(5,501,2,'El Alto','999888','NUEVO CODIGO','Carrera Nueva','XYZ',1,'X','1','Algo','ALG-111 (C)','Docente Tutor','OTRA PERSONA')];
+vm.createContext(ctx);vm.runInContext(code,ctx);
 ctx.configuracionInicial();
 const cfg=ctx.config_();
-console.log('CONFIG bases',cfg.docentes,cfg.estudiantes,cfg.materias,'hitos',cfg.hitos);
-if(cfg.hitos.join()!=='2,3,4')fallo('hitos de CONFIG');
-const PAD=ss.getSheetByName('PADRON');
-console.log('PADRON',PAD.getLastRow()-1,J(PAD.d[1]),'| fórmulas',PAD.formulas['2,12'],PAD.formulas['2,13']);
-if(PAD.getLastRow()-1!==7)fallo('padrón: 3 docentes + 4 estudiantes');
-// Hermano Mayor: cualquier estudiante de la base entra con su correo y queda como «Hermano Mayor»
-const vh0=JSON.parse(ctx.doGet({parameter:{action:'validar',correo:'est.ronald.mendoza.va@unifranz.edu.bo'}}).t);
-console.log('Hermano Mayor',J(vh0.mentor),'| su lista',J((vh0.estudiantes||[]).map(e=>e[1])));
-if(!vh0.habilitado||vh0.mentor.programa!=='Hermano Mayor'||vh0.mentor.carreras.join()!=='SIS')fallo('Hermano Mayor');
-if((vh0.estudiantes||[]).some(e=>e[0]==='est.ronald.mendoza.va@unifranz.edu.bo'))fallo('el Hermano Mayor no debe verse a sí mismo');
-const yo=JSON.parse(ctx.doPost({postData:{contents:J({action:'guardar',data:{id:'ME-YO-XXXXXXX',correo:'est.ronald.mendoza.va@unifranz.edu.bo',hito:2,items:[{est:'est.ronald.mendoza.va@unifranz.edu.bo',materias:[{cod:'PRG-211 (P)',car:'SIS'}],asistio:'No'}]}})}}).t);
-console.log('registrarse a sí mismo',J(yo));if(yo.ok)fallo('no debe poder registrarse a sí mismo');
-ctx.setConfig_('Hermanos Mayores: cualquier estudiante de la base puede registrar','NO');ctx.menuActualizarPadron();
-if(PAD.getLastRow()-1!==3||JSON.parse(ctx.doGet({parameter:{action:'validar',correo:'est.ronald.mendoza.va@unifranz.edu.bo'}}).t).habilitado)fallo('Hermanos Mayores apagado');
-ctx.setConfig_('Hermanos Mayores: cualquier estudiante de la base puede registrar','SÍ');ctx.menuActualizarPadron();
-if(SEP===';'&&!/;/.test(PAD.formulas['2,12']))fallo('fórmula del padrón sin «;»');
+console.log('CONFIG',J(ss.getSheetByName('CONFIG').d.map(r=>r[0]+'='+r[1])));
+if(ss.getSheetByName('CONFIG').d.some(r=>r[0]==='Pestañas de docentes'))fallo('parámetro viejo no se borró');
+if(!ss._sheets.some(s=>/^RESPUESTAS v1/.test(s.name)))fallo('RESPUESTAS vieja con datos debía archivarse');
+if(cfg.clave!=='NIV2026'||cfg.siar!=='SIAR')fallo('CONFIG por defecto');
+const CAR=ss.getSheetByName('CARRERAS');console.log('CARRERAS últimas',J(CAR.d.slice(-2)));
+if(!CAR.d.some(r=>r[0]==='XYZ'&&r[1]==='Carrera Nueva'))fallo('carrera nueva en amarillo');
+const SA=ss.getSheetByName('SIN ASIGNACIÓN');console.log('SIN ASIGNACIÓN',J(SA.d));
+if(SA.getLastRow()!==2||SA.d[1][4]!=='Guina Veronica Gutierrez Mamani')fallo('pestaña sin asignación');
 const get=(a,extra)=>JSON.parse(ctx.doGet({parameter:Object.assign({action:a},extra||{})}).t);
-const M='doc.juancarlos.perez.lo@unifranz.edu.bo';
-const v1=get('validar',{correo:M});
-console.log('validar',J({...v1,materias:v1.materias.length+' materias',carreras:v1.carreras.length+' carreras'}));
-if(!v1.habilitado||v1.mentor.nombre!=='Juan'||v1.mentor.programa!=='Docente Tutor'||J(v1).includes('111,'))fallo('validar');
-// lista para búsqueda instantánea: solo estudiantes de su carrera (SIS), sin celulares
-console.log('lista del mentor',J(v1.estudiantes));
-if(!v1.estudiantes||v1.estudiantes.length!==1||v1.estudiantes[0][1]!=='Ronald Mendoza Vargas'||J(v1).includes('67443917'))fallo('lista del mentor');
-const va=get('validar',{correo:'doc.ana.rojas.va@unifranz.edu.bo'});console.log('docente en 2 carreras',J(va.mentor.carreras),J(va.estudiantes.map(e=>e[1]+' '+e[4])));
-if(J(va.mentor.carreras)!=='["ICO","MED"]'||va.estudiantes.length!==2)fallo('docente con dos carreras');
-if(!PAD.d.some(r=>r[0]==='doc.ana.rojas.va@unifranz.edu.bo'&&r[10]==='MED'))fallo('«Otras carreras» en PADRON');
-if(v1.materias.length!==7)fallo('catálogo de materias: '+v1.materias.length);
-if(v1.materias.find(m=>m[0]==='ANA-111 (P)')[3]!=='')fallo('semestre 46367 debe quedar vacío');
-console.log('validar desconocido',J(get('validar',{correo:'x.y@unifranz.edu.bo'})));
-// ── búsqueda de estudiantes
-const bc=get('buscar',{correo:M,q:'rojas'});console.log('buscar «rojas» con filtro de carrera (SIS): ',bc.resultados.length,'| en toda la base:',get('buscar',{correo:M,q:'rojas',todo:'1'}).resultados.length);
-if(bc.resultados.length!==0||get('buscar',{correo:M,q:'rojas',todo:'1'}).resultados.length!==2)fallo('filtro de carrera / toda la base');
-ctx.setConfig_('Buscar estudiantes solo de la carrera del docente','NO');
-if(get('validar',{correo:M}).estudiantes!==null)fallo('sin filtros no se manda lista');
-const b0=get('buscar',{correo:M,q:'quispe'});console.log('buscar «quispe» de LPZ desde CBB (todas las sedes, por defecto)',J(b0.resultados.map(x=>x.nombre+' '+x.sede)));
-if(b0.resultados.length!==1)fallo('búsqueda en todas las sedes');
-ctx.setConfig_('Buscar estudiantes de todas las sedes','NO');
-if(get('buscar',{correo:M,q:'quispe'}).resultados.length!==0)fallo('filtro de sede con NO');
-const b1=get('buscar',{correo:M,q:'rojas'});console.log('buscar «rojas» (solo su sede CBB)',J(b1));
-ctx.setConfig_('Buscar estudiantes de todas las sedes','SÍ');
-if(b1.resultados.length!==2||J(b1).includes('70000001'))fallo('buscar por nombre / filtro de sede / celular expuesto');
-const b2=get('buscar',{correo:M,q:'13755793'});console.log('buscar por CI (otra sede)',J(b2));
-if(b2.resultados.length!==1||b2.resultados[0].ci!=='13755793')fallo('buscar por CI');
-console.log('buscar corto',J(get('buscar',{correo:M,q:'ro'})),'| sin mentor',J(get('buscar',{correo:'x@unifranz.edu.bo',q:'rojas'})));
-// ── guardar un envío: 3 estudiantes (uno no asistió, uno registrado a mano)
+console.log('ping',J(get('ping')));
+// ── inicio y lista
+if(get('inicio',{clave:'mal'}).motivo!=='clave')fallo('código de acceso');
+const ini=get('inicio',{clave:'niv2026'});console.log('inicio',J(ini));
+if(!ini.ok||ini.sedes.map(s=>s.cod).join()!=='LPZ,EAT,CBB'||ini.conteo['LPZ|FCS']!==4)fallo('inicio');
+if(get('lista',{clave:'x',sede:'LPZ',fac:'FCS'}).ok)fallo('lista sin código');
+const L=get('lista',{clave:'NIV2026',sede:'LPZ',fac:'FCS'});console.log('lista LPZ·FCS',J(L.registros));
+if(L.registros.length!==4||J(L).includes('60715469')||J(L).includes('@unifranz')||J(L).includes('70000000'))fallo('lista: cantidad o datos sensibles');
+const reg=(nom,mat)=>L.registros.find(r=>r[1].startsWith(nom)&&r[6]===mat);
+if(reg('Guina','AHU-211 (P)')[12]!=='Rafael Aramayo'||reg('Guina','EME-211 (P)')[12]!=='')fallo('asignado');
+if(reg('Ana','AHU-211 (P)')[8]!==2)fallo('semestre de la materia por el código');
+// ── guardar
 const hoy=new Date(),iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-const pl={id:'ME-AAAAA-BBBBBB',correo:M,hito:3,movil:true,version:'1.0',fecha_local:'x',items:[
- {est:'est.ronald.mendoza.va@unifranz.edu.bo',materias:[{cod:'PRG-211 (P)',car:'SIS'},{cod:'BDD-311 (P)',car:'SIS'},{cod:'PRG-211 (P)',car:'SIS'}],asistio:'Sí',fecha:iso(hoy),hi:'14:00',hf:'15:30',act:'=Repaso de contenidos',obs:''},
- {est:'est.anamaria.rojas.va@unifranz.edu.bo',materias:[{cod:'IGC-111 (C)',car:'NGE'}],asistio:'No'},
- {manual:{ci:'9876543 LP',nombre:'pedro gomez',carrera_cod:'ICO',sede:'CBB'},materias:[{cod:'PIN-111 (P)',car:'ICO'}],asistio:'Sí',fecha:iso(hoy),hi:'9:00',hf:'10:00',act:'Resolución de ejercicios',obs:'Llegó tarde'}]};
-ctx.setConfig_('Permitir estudiantes que no están en la base','SÍ');   // la app ya no lo ofrece, pero el servidor lo sigue aceptando si se habilita
 const post=d=>JSON.parse(ctx.doPost({postData:{contents:J({action:'guardar',data:d})}}).t);
+const ses={asistio:'Sí',fecha:iso(hoy),hi:'14:00',hf:'15:30',act:'Repaso',obs:''};
+const pl={id:'ME-AAAAA-BBBBBB',clave:'NIV2026',hito:2,mentor:{nombre:'rafael aramayo',programa:'Docente Tutor'},movil:true,version:'2.0',items:[
+ Object.assign({keys:[reg('Ana','AHU-211 (P)')[0]]},ses),
+ Object.assign({keys:[reg('Guina','AHU-211 (P)')[0],reg('Guina','EME-211 (P)')[0]]},ses)]};
 const g1=post(pl);console.log('guardar',J(g1));
-if(!g1.ok||g1.filas!==4||g1.estudiantes!==3)fallo('guardar');
-console.log('guardar mismo id (reintento)',J(post(pl)));
-const R=ss.getSheetByName('RESPUESTAS'),C=ctx.cabResp_();
-if(R.getLastRow()!==5)fallo('el reintento duplicó filas');
-const val=(r,t)=>R.get(r,C.indexOf(t)+1);
-for(let r=2;r<=5;r++)console.log('  fila',r,['Hito','CI del estudiante','Estudiante','Estudiante en la base','Cód. asignatura','Asignatura','Semestre de la asignatura','Asistió','Hora de inicio','Duración de la sesión (min)','Materias en la sesión','Horas imputadas a esta materia','Actividad(es) realizada(s)','Observaciones y comentarios','Posible duplicado'].map(t=>J(val(r,t))).join(' | '));
-if(val(2,'Duración de la sesión (min)')!==90||val(2,'Materias en la sesión')!==2||val(2,'Horas imputadas a esta materia')!==0.75)fallo('duración/horas');
-if(val(2,'Actividad(es) realizada(s)')!=="'=Repaso de contenidos")fallo('apóstrofo en texto con =');
-if(val(4,'Fecha de la sesión')!==''||val(4,'Asistió')!=='No')fallo('no asistió debe quedar sin sesión');
-if(val(5,'Estudiante en la base')!=='No'||val(5,'Estudiante')!=='Pedro Gomez'||val(5,'Hora de inicio')!=='09:00')fallo('estudiante manual');
-if(val(2,'CI del estudiante')!=='6530660'||val(2,'Carrera del estudiante')!=='Ingeniería de Sistemas')fallo('datos del estudiante desde la base');
-// mismo estudiante, materia, hito y fecha en otro envío → se guarda marcado como posible duplicado
-const g2=post({...pl,id:'ME-CCCCC-DDDDDD',items:[pl.items[0]]});console.log('posible duplicado',J(g2));
-if(g2.duplicados!==2||val(6,'Posible duplicado')!=='Sí')fallo('posible duplicado');
-// errores de validación
-const malos={
- 'hito no habilitado':{...pl,id:'ME-E1-XXXXXX',hito:1},
- 'estudiante inventado':{...pl,id:'ME-E2-XXXXXX',items:[{...pl.items[0],est:'est.no.existe@unifranz.edu.bo'}]},
- 'materia inventada':{...pl,id:'ME-E3-XXXXXX',items:[{...pl.items[0],materias:[{cod:'XXX-999',car:'SIS'}]}]},
- 'hora fin antes de inicio':{...pl,id:'ME-E4-XXXXXX',items:[{...pl.items[0],hi:'16:00',hf:'15:00'}]},
- 'fecha futura':{...pl,id:'ME-E5-XXXXXX',items:[{...pl.items[0],fecha:'2099-01-01'}]},
- 'sin actividades':{...pl,id:'ME-E6-XXXXXX',items:[{...pl.items[0],act:'  '}]},
- 'estudiante repetido':{...pl,id:'ME-E7-XXXXXX',items:[pl.items[0],pl.items[0]]},
- 'mentor desconocido':{...pl,id:'ME-E8-XXXXXX',correo:'x@unifranz.edu.bo'}};
+if(!g1.ok||g1.filas!==3||g1.codigos.length!==2||g1.codigos[1].codigo!=='AAAAA-BBBBBB-02')fallo('guardar');
+const R=ss.getSheetByName('RESPUESTAS'),C=ctx.cabResp_(),val=(r,t)=>R.get(r,C.indexOf(t)+1);
+for(let r=2;r<=4;r++)console.log('  fila',r,['Código de registro','Mentor','Programa de apoyo','Mentor figura en el SIAR','Sede','Facultad','CI del estudiante','Estudiante','Asignatura','Docente de la materia','Asignado en el SIAR','Asignación','Materias en la sesión','Horas imputadas a esta materia'].map(t=>J(val(r,t))).join(' | '));
+if(val(2,'Mentor')!=='Rafael Aramayo'||val(2,'Mentor figura en el SIAR')!=='Sí'||val(2,'Asignación')!=='Asignado a quien registra'||val(2,'CI del estudiante')!=='60715469'||val(2,'Facultad')!=='Ciencias de la Salud')fallo('fila 1');
+if(val(4,'Asignación')!=='Sin asignación en el SIAR'||val(4,'Horas imputadas a esta materia')!==0.75||val(3,'Código de registro')!=='ME-AAAAA-BBBBBB-02')fallo('fila 3');
+if(post(pl).duplicado!==true||R.getLastRow()!==4)fallo('reintento');
+// mentor que no figura en el SIAR (Hermano Mayor) y que registra a un estudiante asignado a otra persona
+const g2=post({...pl,id:'ME-CCCCC-DDDDDD',mentor:{nombre:'Juan Nuevo Perez',programa:'Hermano Mayor'},items:[{keys:[reg('Ana','HIS-211 (P)')[0]],asistio:'No'}]});console.log('mentor fuera del SIAR',J(g2));
+if(val(5,'Mentor figura en el SIAR')!=='No'||val(5,'Asignación')!=='Asignado a otra persona'||val(5,'Fecha de la sesión')!=='')fallo('mentor fuera del SIAR');
+const malos={'código de acceso':{...pl,id:'ME-E1XXX-XXXXXX',clave:'mal'},'hito':{...pl,id:'ME-E2XXX-XXXXXX',hito:9},'clave inexistente':{...pl,id:'ME-E3XXX-XXXXXX',items:[{keys:['nada|Docente Tutor'],asistio:'No'}]},
+ 'dos estudiantes en un ítem':{...pl,id:'ME-E4XXX-XXXXXX',items:[{keys:[reg('Ana','AHU-211 (P)')[0],reg('Guina','AHU-211 (P)')[0]],asistio:'No'}]},'sin nombre':{...pl,id:'ME-E5XXX-XXXXXX',mentor:{nombre:'Rafael',programa:'Docente Tutor'}},
+ 'programa':{...pl,id:'ME-E6XXX-XXXXXX',mentor:{nombre:'Rafael Aramayo',programa:'Ayudante'}},'horario':{...pl,id:'ME-E7XXX-XXXXXX',items:[Object.assign({keys:[reg('Ana','AHU-211 (P)')[0]]},ses,{hf:'13:00'})]}};
 Object.keys(malos).forEach(k=>{const r=post(malos[k]);console.log('  rechazo ·',k,'→',J(r));if(r.ok)fallo('debió rechazar: '+k)});
-if(R.getLastRow()!==7)fallo('un envío inválido escribió filas');
-// lo que ve el mentor al volver a entrar
-console.log('previos',J(get('validar',{correo:M}).previos));
-// cerrar
-ctx.menuCerrar();console.log('cerrado',J(get('validar',{correo:M})),J(post({...pl,id:'ME-F1-XXXXXX'})));ctx.menuAbrir();
-// anular un envío por código (sin el prefijo ME-, como lo ve el mentor) y restaurarlo
-ctx.__answers=['aaaaa-bbbbbb','Se equivocó de hito'];ctx.menuAnular();
-console.log('tras anular: resp',R.getLastRow()-1,'papelera',ss.getSheetByName('PAPELERA').getLastRow()-1);
-if(R.getLastRow()-1!==2)fallo('anular envío');
-ctx.__answers=['ME-AAAAA-BBBBBB'];ctx.menuRestaurar();console.log('tras restaurar: resp',R.getLastRow()-1);
-if(R.getLastRow()-1!==6)fallo('restaurar');
-// anular filas seleccionadas
-ss.setActiveSheet(R);R._sel=new Range(R,2,3,2,1);ctx.__answers=['fila mal cargada'];ctx.menuAnularSeleccion();
-console.log('tras anular selección: resp',R.getLastRow()-1);if(R.getLastRow()-1!==4)fallo('anular selección');
-// excluir / reincorporar / agregados (Hermano Mayor)
-ctx.__answers=['doc.ana.rojas.va@unifranz.edu.bo','Ya no es tutora'];ctx.menuExcluir();console.log('validar excluida',J(get('validar',{correo:'doc.ana.rojas.va@unifranz.edu.bo'})));
-ctx.__answers=['doc.ana.rojas.va@unifranz.edu.bo'];ctx.menuReincorporar();
-ss.getSheetByName('AGREGADOS').appendRow(['est.luis.hm.xx@unifranz.edu.bo','LUIS HERMANO MAYOR','CBB','SIS',2026,'','apoyo']);
-const vh=get('validar',{correo:'est.luis.hm.xx@unifranz.edu.bo'});console.log('agregado hermano mayor',J(vh.mentor));
-if(vh.mentor.programa!=='Hermano Mayor')fallo('programa Hermano Mayor');
-// base nueva de estudiantes: se agrega en CONFIG sin tocar código
-ss.insertSheet('EST2017').d=[['sede','anho_plan_estudio','carrera','primer_nombre','primer_apellido','ci','correo_institucional'],['CBB',2017,'ADM','CARLA','SOLIZ','4445556','est.carla.soliz.xx@unifranz.edu.bo']];
-ctx.setConfig_('Pestañas de estudiantes','BASEDEDATOSEST; EST2017');
-if(get('buscar',{correo:M,q:'carla'}).resultados.length!==0)fallo('la caché debía tener el índice viejo');
-ctx.menuActualizarPadron();
-if(cache.est_n===undefined)console.log('caché de estudiantes limpiada');
-const b3=get('buscar',{correo:M,q:'carla'});console.log('buscar en base nueva',J(b3.resultados));
-if(b3.resultados.length!==1)fallo('base nueva de estudiantes');
-console.log('CARRERAS amarillas',J(ss.getSheetByName('CARRERAS').d.slice(-2)));
-ctx.menuRevisarBases();
-// prueba + tope
-const pr=i=>post({id:'PRUEBA-T'+i+'XYZ',correo:'prueba@unifranz.edu.bo',hito:2,items:[{manual:{ci:'12345',nombre:'Estudiante Prueba',carrera_cod:'SIS'},materias:[{cod:'PRG-211 (P)',car:'SIS'}],asistio:'No'}]});
+if(R.getLastRow()!==5)fallo('un envío inválido escribió filas');
+// posible duplicado
+const g3=post({...pl,id:'ME-FFFFF-GGGGGG',items:[pl.items[0]]});if(g3.duplicados!==1)fallo('posible duplicado');
+// ── anular por código de estudiante, restaurar y anular envío completo
+ctx.__answers=['aaaaa-bbbbbb-02','error de carga'];ctx.menuAnular();
+console.log('tras anular estudiante 02: resp',R.getLastRow()-1,'papelera',ss.getSheetByName('PAPELERA').getLastRow()-1);
+if(R.getLastRow()-1!==3||ss.getSheetByName('PAPELERA').getLastRow()-1!==2)fallo('anular un estudiante');
+ctx.__answers=['AAAAA-BBBBBB-02'];ctx.menuRestaurar();if(R.getLastRow()-1!==5)fallo('restaurar');
+ctx.__answers=['ME-AAAAA-BBBBBB','envío equivocado'];ctx.menuAnular();if(R.getLastRow()-1!==2)fallo('anular envío');
+// ── filtros de CONFIG: facultad
+ctx.setConfig_('Facultades habilitadas','FCS');ctx.menuActualizarSiar();
+const ini2=get('inicio',{clave:'NIV2026'});if(ini2.conteo['EAT|FCEE'])fallo('filtro de facultad');
+ctx.setConfig_('Facultades habilitadas','');ctx.menuActualizarSiar();
+// ── pruebas y tope
+const pr=i=>post({id:'PRUEBA-T'+i+'XYZ-TEST1',mentor:{nombre:'Prueba Tecnica',programa:'Docente Tutor'},hito:2,items:[{prueba:true,asistio:'No'}]});
 const tope=[];for(let i=0;i<7;i++){const r=pr(i);tope.push(r.ok?'ok':r.codigo)}console.log('pruebas',tope.join(','));
-if(!tope.includes('limite_pruebas'))fallo('tope de pruebas');
-ctx.menuEstado();
-ctx.menuBorrarPruebas();
-// nuevo periodo
-ctx.__answers=['I-2027'];ctx.menuNuevoPeriodo();console.log('pestañas',ss._sheets.map(s=>s.name).join(','),'| resp',R.getLastRow()-1,'| periodo',ctx.config_().periodo);
-const rs=ss.getSheetByName('RESUMEN');for(let r=1;r<=rs.getLastRow();r++){const t=[1,2,8].map(c=>String(rs.get(r,c)).slice(0,130)).join(' || ');if(t.replace(/[ |]/g,''))console.log(r,t)}
-if(SEP===';'){const f=String(rs.get(4,2));if(!/;/.test(f)||/,"<>/.test(f))fallo('RESUMEN sin «;»: '+f)}
+if(!tope.includes('limite_pruebas')||tope[0]!=='ok')fallo('pruebas');
+ctx.menuEstado();ctx.menuBorrarPruebas();
+ctx.__answers=['I-2027'];ctx.menuNuevoPeriodo();
+const rs=ss.getSheetByName('RESUMEN');for(let r=1;r<=rs.getLastRow();r++){const t=[1,2].map(c=>String(rs.get(r,c)).slice(0,150)).join(' || ');if(t.replace(/[ |]/g,''))console.log(r,t)}
+if(SEP===';'){const f=String(rs.get(4,2));if(!/;/.test(f))fallo('RESUMEN sin «;»: '+f)}
+{const h=ss.getSheetByName('SIAR');h.name='Rep. Ficha est.';const r=ctx.leerSiar_(ctx.config_());if(r.error||!r.lista.length)fallo('no encuentra «Rep. Ficha est.»: '+r.error);h.name='SIAR'}
 const cab=ctx.cabResp_();if(new Set(cab).size!==cab.length)fallo('cabecera con títulos repetidos');
 console.log('\nOK · todas las comprobaciones pasaron (SEP='+SEP+')');

@@ -1,8 +1,8 @@
-"""Prueba de punta a punta de la app con un backend simulado (no toca la hoja real).
+"""Prueba de punta a punta de la app (v2, SIAR) con un backend simulado (no toca la hoja real).
 Requisitos: pip install playwright && playwright install chromium
 Uso: python tests/e2e_test.py [ancho]   (390 por defecto; genera capturas en tests/shots/)
 """
-import asyncio, json, pathlib, sys, unicodedata
+import asyncio, json, pathlib, sys
 from urllib.parse import urlparse, parse_qs
 from playwright.async_api import async_playwright
 
@@ -10,37 +10,35 @@ RAIZ = pathlib.Path(__file__).resolve().parent.parent
 SHOTS = RAIZ / 'tests' / 'shots'; SHOTS.mkdir(exist_ok=True)
 API = 'https://script.google.com/macros/s/TESTID/exec'
 W = int(sys.argv[1]) if len(sys.argv) > 1 else 390
-DB = {}
-VIAS = []
-MENTOR = 'doc.juanperez.lopez.ga@unifranz.edu.bo'
-CARR = [{'cod': 'SIS', 'nombre': 'Ingeniería de Sistemas'}, {'cod': 'NGE', 'nombre': 'Negocios y Gestión Empresarial'}, {'cod': 'MED', 'nombre': 'Medicina'}]
-MATS = [['PRG-111 (P)', 'Fundamentos de Programación', 'SIS', 1, 2026], ['PIN-111 (P)', 'Proyecto Integrador I', 'SIS', 1, 2026], ['BDD-311 (P)', 'Bases de Datos', 'SIS', 3, 2026],
-        ['IGC-111 (C)', 'Introducción a la Gestión Cuantitativa', 'NGE', 1, 2026], ['PIN-111 (P)', 'Proyecto Integrador I', 'NGE', 1, 2026], ['ANA-111 (P)', 'Anatomía Humana', 'MED', '', 2026]]
-EST = [{'id': 'est.ronald.mendoza.va@unifranz.edu.bo', 'nombre': 'Ronald Mendoza Vargas', 'ci': '6530660', 'semestre': 3, 'sede': 'CBB', 'sede_nombre': 'Cochabamba', 'carrera_cod': 'SIS', 'carrera': 'Ingeniería de Sistemas', 'plan': 2026, '_ci': '6530660'},
-       {'id': 'est.anamaria.rojas.va@unifranz.edu.bo', 'nombre': 'Ana Maria Rojas Vargas', 'ci': '7788990', 'sede': 'CBB', 'sede_nombre': 'Cochabamba', 'carrera_cod': 'NGE', 'carrera': 'Negocios y Gestión Empresarial', 'plan': 2026, '_ci': '7788990'},
-       {'id': 'est.pedro.gomez.ru@unifranz.edu.bo', 'nombre': 'Pedro Gomez Ruiz', 'ci': '9876543', 'sede': 'CBB', 'sede_nombre': 'Cochabamba', 'carrera_cod': 'NGE', 'carrera': 'Negocios y Gestión Empresarial', 'plan': 2026, '_ci': '9876543'}]
-norm = lambda s: unicodedata.normalize('NFD', s.lower()).encode('ascii', 'ignore').decode()
+DB, VIAS = {}, []
+CLAVE = 'NIV2026'
+# [clave, nombre, ciParcial, codCarrera, carrera, semEst, codMateria, materia, semMateria, paralelo, docente, programa, asignado, hito]
+REGS = [
+    ['101|Docente Tutor', 'Ana Ojeda Guerrero', '•••469', 'MED', 'Medicina', 1, 'AHU-211 (P)', 'Anatomía Humana', 2, '105', 'Vito Rivas Vargas', 'Docente Tutor', 'Rafael Aramayo', 2],
+    ['201|Docente Tutor', 'Guina Gutierrez Mamani', '•••360', 'MED', 'Medicina', 2, 'AHU-211 (P)', 'Anatomía Humana', 2, '105', 'Vito Rivas Vargas', 'Docente Tutor', 'Rafael Aramayo', 2],
+    ['202|Docente Tutor', 'Guina Gutierrez Mamani', '•••360', 'MED', 'Medicina', 2, 'EME-211 (P)', 'Embriología Médica', 2, '105', 'Erika Quisbert', 'Docente Tutor', '', 3],
+    ['102|Hermano Mayor', 'Ana Ojeda Guerrero', '•••469', 'MED', 'Medicina', 1, 'HIS-211 (P)', 'Histología', 2, '105', 'Dorcas Oliden', 'Hermano Mayor', 'Joseph Mamani Copa', 2],
+]
 
 async def backend(route, req):
     q = parse_qs(urlparse(req.url).query)
     if req.method == 'POST':
         d = json.loads(req.post_data)['data']
         DB[d['id']] = d
-        return await route.fulfill(status=200, headers={'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'}, body=json.dumps({'ok': True, 'id': d['id'], 'filas': 4, 'duplicados': 0}))
+        cods = [{'codigo': d['id'][3:] + '-%02d' % (i + 1), 'estudiante': n} for i, n in enumerate(d.get('nombres', []))]
+        return await route.fulfill(status=200, headers={'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'}, body=json.dumps({'ok': True, 'id': d['id'], 'codigos': cods, 'duplicados': 0}))
     a, cb = q.get('action', ['ping'])[0], q.get('callback', [''])[0]
-    if a == 'validar':
-        out = ({'ok': True, 'habilitado': True, 'hitos': ['2', '3', '4'], 'manual': True, 'todas_sedes': False, 'solo_carrera': True, 'previos': {'2': 4}, 'carreras': CARR, 'materias': MATS,
-                'estudiantes': [[e['id'], e['nombre'], e['_ci'], e['sede'], e['carrera_cod'], e['plan'], e.get('semestre', '')] for e in EST if e['carrera_cod'] == 'SIS'],
-                'mentor': {'nombre': 'Juan', 'nombre_completo': 'Juan Perez Lopez', 'sede': 'CBB', 'sede_nombre': 'Cochabamba', 'carrera_cod': 'SIS', 'carrera': 'Ingeniería de Sistemas', 'plan': 2026, 'programa': 'Docente Tutor'}}
-               if q['correo'][0] == MENTOR else {'ok': True, 'habilitado': False, 'motivo': 'no_encontrado'})
-    elif a == 'buscar':
-        t = norm(q['q'][0]); dig = ''.join(c for c in t if c.isdigit())
-        r = [e for e in EST if (e['_ci'] == dig if len(dig) >= 5 else all(any(p.startswith(w) for p in norm(e['nombre']).split()) for w in t.split()))]
-        out = {'ok': True, 'resultados': [{k: v for k, v in e.items() if k != '_ci'} for e in r], 'mas': False}
+    VIAS.append('jsonp' if cb else 'fetch')
+    clave = q.get('clave', [''])[0].upper()
+    if a == 'inicio':
+        out = ({'ok': False, 'motivo': 'clave', 'requiere_clave': True} if clave != CLAVE else
+               {'ok': True, 'abierta': True, 'hitos': ['2', '3', '4'], 'sedes': [{'cod': 'LPZ', 'nombre': 'La Paz'}, {'cod': 'CBB', 'nombre': 'Cochabamba'}],
+                'facultades': [{'cod': 'FCS', 'nombre': 'Ciencias de la Salud'}, {'cod': 'FI', 'nombre': 'Ingeniería'}], 'conteo': {'LPZ|FCS': 4, 'CBB|FI': 1}})
+    elif a == 'lista':
+        out = {'ok': True, 'registros': REGS} if clave == CLAVE and q.get('sede') == ['LPZ'] and q.get('fac') == ['FCS'] else {'ok': False, 'motivo': 'clave'}
     else:
         out = {'ok': True, 'existe': q.get('id', [''])[0] in DB}
-    VIAS.append('jsonp' if cb else 'fetch')
-    if not cb:   # la app pide primero por fetch sin cookies (JSON + CORS, como Apps Script)
+    if not cb:
         return await route.fulfill(status=200, headers={'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'}, body=json.dumps(out))
     await route.fulfill(status=200, headers={'Content-Type': 'application/javascript'}, body=f'{cb}({json.dumps(out)});')
 
@@ -50,113 +48,79 @@ async def main():
         pg = await (await b.new_context(viewport={'width': W, 'height': 844 if W < 600 else 800}, is_mobile=W < 600, has_touch=W < 600)).new_page()
         errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
         await pg.route('https://script.google.com/**', backend)
-        url = (RAIZ / 'index.html').as_uri() + '?api=' + API
-        await pg.goto(url); await pg.wait_for_timeout(1500)
+        await pg.goto((RAIZ / 'index.html').as_uri() + '?api=' + API); await pg.wait_for_timeout(1500)
         shot = lambda n, full=False: pg.screenshot(path=str(SHOTS / f'{W}_{n}.png'), full_page=full)
         scr = lambda: pg.evaluate('S.scr')
         await shot('00_bienvenida')
-        await pg.click('#start'); await pg.wait_for_timeout(1000)
-        await pg.fill('#mailIn', 'nadie@unifranz.edu.bo'); await pg.click('#btnVerify'); await pg.wait_for_timeout(1300)
-        assert 'No encontramos' in await pg.inner_text('#mailMsg')
-        await pg.fill('#mailIn', ' DOC.JuanPerez.Lopez.ga@unifranz.edu.bo '); await pg.click('#btnVerify'); await pg.wait_for_timeout(2200)
-        assert await scr() == 'ficha', await scr()
-        assert await pg.locator('#hitoRow [data-hito]').count() == 3, 'el hito se elige en la misma ficha'
-        # ── estudiante 1: tras el hito se abre directo la ficha (buscar, materias, asistió, sesión)
-        assert await scr() == 'ficha'
-        assert await pg.locator('#secMat').is_hidden() and await pg.locator('#secAsis').is_hidden(), 'secciones ocultas al inicio'
-        n0 = len(VIAS); await pg.fill('#q', 'ronald mend'); await pg.wait_for_timeout(400)
-        assert len(VIAS) == n0 and await pg.locator('#sres .opt').count() == 1, 'búsqueda por nombre al instante, sin ir al servidor'
-        await shot('03_buscar')
-        await pg.click('#sres .opt'); await pg.wait_for_timeout(700)
-        sel = await pg.inner_text('.selest')
-        assert 'Ronald Mendoza Vargas' in sel and 'CI 6530660' in sel and '3er semestre' in sel, sel
-        assert await pg.locator('#mpanel').is_visible(), 'la lista de materias se abre sola'
-        assert await pg.locator('#mwrap .mopt').count() == 3, 'materias propias de SIS'
-        assert await pg.locator('#secAsis').is_hidden(), '¿Asistió? aparece después de elegir materias'
-        await pg.fill('#mq', 'progra'); await pg.wait_for_timeout(300)
-        assert await pg.locator('#mwrap .mopt').count() == 1, 'búsqueda rápida en la lista'
-        await pg.click('#mwrap .mopt[data-k="PRG-111 (P)|SIS"]'); await pg.fill('#mq', ''); await pg.wait_for_timeout(300)
-        await pg.click('#mwrap .mopt[data-k="BDD-311 (P)|SIS"]')
-        assert '2 seleccionadas' in (await pg.inner_text('#mc')).lower()
-        await pg.click('#mtg'); await pg.fill('#mq', 'gestion'); await pg.wait_for_timeout(400)
-        assert await pg.locator('#mwrap .mopt').count() == 1, 'búsqueda en todas las carreras'
-        await pg.click('#mtg'); await pg.fill('#mq', ''); await pg.wait_for_timeout(300)
-        await shot('03b_materias', True)
-        await pg.click('#mlisto'); assert await pg.locator('#mpanel').is_hidden()
-        await pg.click('#btnFin'); await pg.wait_for_timeout(500)
-        assert await scr() == 'ficha' and await pg.evaluate('S.items.length') == 0, 'no debe guardar sin asistencia'
-        await pg.click('[data-asis="Sí"]'); await pg.wait_for_timeout(600)
-        assert await pg.locator('#secSes').is_visible()
-        await pg.fill('#fHi', '15:00'); await pg.fill('#fHf', '14:00'); await pg.wait_for_timeout(200)
-        assert 'posterior' in await pg.inner_text('#dur')
-        await pg.fill('#fHf', '16:30'); await pg.wait_for_timeout(200)
-        assert '1 h 30 min' in await pg.inner_text('#dur')
-        assert await pg.locator('.achip').count() == 0 and await pg.get_attribute('#tObs', 'placeholder') is None
-        await pg.fill('#tAct', 'Aclaración de dudas')
-        await pg.fill('#tObs', 'Necesita más práctica.')
+        # ── código de acceso, sede y facultad
+        await pg.click('#start'); await pg.wait_for_timeout(1300)
+        assert await scr() == 'inicio' and await pg.locator('#cClave').count() == 1, 'pide el código de acceso'
+        await pg.fill('#cClave', 'malo'); await pg.click('#btnNext'); await pg.wait_for_timeout(1200)
+        assert 'no es correcto' in await pg.inner_text('#cMsg')
+        await pg.fill('#cClave', 'niv2026'); await pg.click('#btnNext'); await pg.wait_for_timeout(1200)
+        assert await pg.locator('#cClave').count() == 0 and await pg.locator('[data-sede]').count() == 2
+        await pg.click('[data-sede="LPZ"]'); await pg.wait_for_timeout(200)
+        assert await pg.locator('[data-fac]').count() == 1, 'solo facultades con registros en esa sede'
+        await pg.click('[data-fac="FCS"]'); await shot('01_inicio')
+        await pg.click('#btnNext'); await pg.wait_for_timeout(1500)
+        assert await scr() == 'mentor'
+        # ── ¿quién eres?
+        assert await pg.locator('#mlist [data-m]').count() == 2, 'un docente tutor y un hermano mayor'
+        await pg.fill('#qm', 'rafa'); await pg.wait_for_timeout(200)
+        assert await pg.locator('#mlist [data-m]').count() == 1
+        await shot('02_mentor')
+        await pg.click('#mlist [data-m]'); await pg.wait_for_timeout(1200)
+        assert await scr() == 'est'
+        assert await pg.evaluate('Object.keys(S.sel).length') == 2, 'sus asignados vienen marcados'
         assert 'hito' in (await pg.inner_text('#fmsg')).lower(), 'falta el hito'
-        await pg.click('#btnFin'); await pg.wait_for_timeout(500)
-        assert await scr() == 'ficha' and await pg.evaluate('S.items.length') == 0, 'sin hito no guarda'
         await pg.click('[data-hito="3"]'); await pg.wait_for_timeout(200)
+        assert '2 estudiantes' in await pg.inner_text('#fmsg')
+        await shot('03_mis_estudiantes', True)
+        # ── buscar por materia: Guina en Embriología (sin asignación)
+        await pg.click('[data-modo="materia"]'); await pg.wait_for_timeout(300)
+        await pg.fill('#qmat', 'embrio'); await pg.wait_for_timeout(300)
+        await pg.click('[data-mat="EME-211 (P)|MED"]'); await pg.wait_for_timeout(300)
+        assert 'Sin asignación' in await pg.inner_text('#lmat')
+        await pg.click('.rowc[data-k="202|Docente Tutor"]'); await pg.wait_for_timeout(200)
+        await shot('04_por_materia', True)
+        assert '2 estudiantes · 3 materias' in await pg.inner_text('#fmsg')
+        await pg.click('#btnNext'); await pg.wait_for_timeout(1200)
+        assert await scr() == 'ses'
+        # ── asistencia y sesión grupal; Guina con otro horario
+        assert 'indica si asistieron 2' in (await pg.inner_text('#fmsg'))
+        await pg.click('#todosSi'); await pg.wait_for_timeout(200)
+        await pg.fill('#fHi', '15:00'); await pg.fill('#fHf', '16:30'); await pg.fill('#tAct', 'Repaso de contenidos')
+        guina = pg.locator('.asisrow', has_text='Guina')
+        await guina.locator('[data-otra]').click(); await pg.wait_for_timeout(200)
+        await guina.locator('[data-p="hi"]').fill('17:00'); await guina.locator('[data-p="hf"]').fill('17:45')
         assert 'Todo listo' in await pg.inner_text('#fmsg')
-        await shot('04_ficha', True)
-        await pg.click('#btnFin'); await pg.wait_for_timeout(1300)
-        assert await scr() == 'review' and await pg.evaluate('S.items.length') == 1, 'Guardar → lista'
-
-        # ── el borrador sobrevive a recargar la página
+        await shot('05_sesion', True)
+        # el borrador sobrevive a recargar
         await pg.reload(); await pg.wait_for_timeout(1500)
-        assert '1 estudiante' in await pg.inner_text('.resume')
         await pg.click('#cont'); await pg.wait_for_timeout(1200)
-        assert await scr() == 'review' and await pg.evaluate('S.items.length') == 1
-        await pg.click('#btnAdd'); await pg.wait_for_timeout(900)
-
-        # ── estudiante 2: por CI, no asistió (no pide nada más)
-        await pg.fill('#q', '7788990'); await pg.press('#q', 'Enter'); await pg.wait_for_timeout(900)
-        await pg.click('#sres .opt'); await pg.wait_for_timeout(700)
-        await pg.click('#mwrap .mopt[data-k="IGC-111 (C)|NGE"]')
-        await pg.click('[data-asis="No"]'); await pg.wait_for_timeout(400)
-        assert await pg.locator('#secSes').is_hidden() and 'Todo listo' in await pg.inner_text('#fmsg')
-        await pg.click('#btnFin'); await pg.wait_for_timeout(1300)
-        assert await scr() == 'review' and await pg.evaluate('S.items.length') == 2
-        await pg.click('#btnAdd'); await pg.wait_for_timeout(900)
-        # ── el mismo estudiante no puede repetirse
-        await pg.fill('#q', 'ronald'); await pg.wait_for_timeout(1300); await pg.click('#sres .opt'); await pg.wait_for_timeout(500)
-        assert 'ya está en la lista' in await pg.inner_text('#toast')
-        # ── fuera de su carrera: no aparece en la lista local; «Buscar en toda la base» lo encuentra
-        assert await pg.locator('#tgMan').count() == 0, 'sin registro a mano'
-        await pg.fill('#q', 'pedro gomez'); await pg.wait_for_timeout(400)
-        assert 'Buscar en toda la base' in await pg.inner_text('#sres') and await pg.locator('#sres .opt').count() == 0
-        await pg.click('#todaBase'); await pg.wait_for_timeout(900)
-        assert await pg.locator('#sres .opt').count() == 1, 'búsqueda en toda la base'
-        # ── estudiante 3: encontrado en toda la base; copia fecha, horario y actividades del anterior
-        await pg.click('#sres .opt'); await pg.wait_for_timeout(700)
-        await pg.click('#mwrap .mopt[data-k="PIN-111 (P)|NGE"]')
-        await pg.click('[data-asis="Sí"]'); await pg.wait_for_timeout(500)
-        await pg.click('#cpy'); assert await pg.input_value('#fHi') == '15:00' and await pg.input_value('#tAct') == 'Aclaración de dudas'
-        await shot('05_manual', True)
-        await pg.click('#btnFin'); await pg.wait_for_timeout(1300)
-        assert await scr() == 'review' and await pg.evaluate('S.items.length') == 3
-        await shot('08_lista', True)
-        # ── editar el 2: queda «No» y sin datos de sesión
-        await pg.click('[data-ed="1"]'); await pg.wait_for_timeout(900)
-        assert await scr() == 'ficha' and 'Ana Maria' in await pg.inner_text('.selest')
-        assert await pg.locator('#btnOtro').count() == 0, 'al editar solo «Guardar cambios»'
-        await pg.click('#btnFin'); await pg.wait_for_timeout(1300)
-        assert await scr() == 'review' and await pg.evaluate('S.items.length') == 3
-        await pg.click('#btnNext'); await pg.wait_for_timeout(3000)
-        await shot('10_fin')
+        assert await scr() == 'ses' and 'Todo listo' in await pg.inner_text('#fmsg')
+        await pg.click('#btnNext'); await pg.wait_for_timeout(1200)
+        assert await scr() == 'review'; await shot('06_revision', True)
+        await pg.click('#btnNext'); await pg.wait_for_timeout(2800)
+        await shot('07_fin', True)
         assert len(DB) == 1, 'el registro no llegó al backend'
         d = list(DB.values())[0]
-        print(json.dumps(d, ensure_ascii=False)[:1500])
-        assert d['id'].startswith('ME-') and d['hito'] == '3' and d['correo'] == MENTOR and len(d['items']) == 3
-        i1, i2, i3 = d['items']
-        assert i1['est'] == EST[0]['id'] and [m['cod'] for m in i1['materias']] == ['PRG-111 (P)', 'BDD-311 (P)'] and i1['asistio'] == 'Sí'
-        assert i1['hi'] == '15:00' and i1['hf'] == '16:30' and i1['act'] == 'Aclaración de dudas' and i1['obs'] == 'Necesita más práctica.'
-        assert i2['asistio'] == 'No' and 'fecha' not in i2 and 'act' not in i2
-        assert i3['est'] == EST[2]['id'] and 'manual' not in i3 and i3['hi'] == '15:00' and i3['act'] == 'Aclaración de dudas'
-        assert await pg.evaluate("localStorage.getItem('regment_draft1')") is None, 'el borrador debe borrarse al enviar'
+        print(json.dumps(d, ensure_ascii=False)[:1200])
+        assert d['clave'] == 'niv2026' and d['sede'] == 'LPZ' and d['fac'] == 'FCS' and d['hito'] == '3'
+        assert d['mentor'] == {'nombre': 'Rafael Aramayo', 'programa': 'Docente Tutor'}
+        it = {tuple(x['keys']): x for x in d['items']}
+        a, g = it[('101|Docente Tutor',)], it[('201|Docente Tutor', '202|Docente Tutor')]
+        assert a['asistio'] == 'Sí' and a['hi'] == '15:00' and a['act'] == 'Repaso de contenidos'
+        assert g['hi'] == '17:00' and g['hf'] == '17:45' and g['act'] == 'Repaso de contenidos'
+        assert await pg.locator('.codes div').count() == 2, 'un código por estudiante'
+        assert await pg.evaluate("localStorage.getItem('bitniv_draft1')") is None
+        # ── registrar otro grupo: vuelve a sus estudiantes, ya marcados
         await pg.click('#otro'); await pg.wait_for_timeout(1200)
-        assert await scr() == 'ficha' and await pg.evaluate('S.items.length') == 0 and await pg.evaluate('S.hito') == '3'
+        assert await scr() == 'est' and await pg.evaluate('Object.keys(S.sel).length') == 2 and await pg.evaluate('S.hito') == '3'
+        # ── «No estoy en la lista»: entra a buscar por materia
+        await pg.click('[data-act=prev]'); await pg.wait_for_timeout(1000)
+        await pg.click('#noEstoy'); await pg.fill('#mNom', 'Juan Nuevo Perez'); await pg.click('[data-prog="Hermano Mayor"]'); await pg.click('#libreOk'); await pg.wait_for_timeout(1200)
+        assert await scr() == 'est' and await pg.evaluate('S.modo') == 'materia' and await pg.locator('[data-modo="mios"][disabled]').count() == 1
         assert VIAS and 'jsonp' not in VIAS, ('las consultas deben ir por fetch', VIAS)
         assert not errs, errs
         print('OK · errores JS:', errs)
