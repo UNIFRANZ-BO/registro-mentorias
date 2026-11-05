@@ -84,6 +84,14 @@ Envío → **un código por estudiante** `XXXXX-YYYYYY-NN` (en la hoja `ME-…-N
   anteriores (y una BASEDEDATOS vacía) y lo renombra `NOMBRE_SIAR` = BASEDEDATOS. Solo menú: no requiere Nueva versión.
 - 05-nov: borré por conector las pestañas viejas de la hoja real; «RESPUESTAS v1 (2026-11-05)» (5 filas reales del 27-oct) quedó oculta.
 
+## v2.2 · Directo a la asistencia (05-nov-2026, pedido de Rafael)
+- «El paso 3 no tiene sentido: es lo asignado por el SIAR». Al tocar su nombre el mentor va **directo a «Asistencia y sesión»**
+  (hito arriba, sus asignados con sus materias debajo del nombre, Asistió/No asistió, botón «Quitar» por estudiante y
+  «+ Agregar estudiante de otra materia» → pantalla `est` = búsqueda por materia, que vuelve a la asistencia).
+  Quien elige «No estoy en la lista» empieza en `est` (no tiene asignados). Ya no hay pestañas «Mis estudiantes / Buscar por materia».
+- Asignación por materia: un estudiante puede tener la materia A con un mentor y la B con otro; cada mentor solo ve las suyas y
+  registra por separado (filas estudiante × materia, códigos propios). Si registra una materia ajena: «Asignado a otra persona».
+
 ## Historia v1.x (11 al 27-oct-2026, ya reemplazada)
 - v1: correo docente validado contra BASEDEDATOSDOC, ficha por estudiante con materias del catálogo, un envío por grupo.
 - v1.4: GET por `fetch` con `credentials:'omit'` (JSONP de respaldo) — dispositivos con varias cuentas Google fallaban con JSONP. **Sigue vigente.**

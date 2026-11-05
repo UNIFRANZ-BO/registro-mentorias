@@ -626,6 +626,9 @@ details.more ol li b{color:var(--txt)}
 .asisrow{padding:12px 14px;margin:0 0 10px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.03)}
 .asisrow.si{border-color:rgba(57,255,176,.45)}
 .asisrow.no{border-color:rgba(255,61,110,.4)}
+.asisrow .an{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.asisrow .xq{flex:none;padding:4px 9px;border-radius:9px;border:1px solid var(--line);background:none;color:var(--mut);font:600 11px var(--fm);letter-spacing:.04em;cursor:pointer}
+.asisrow .xq:hover{color:#ff9db5;border-color:rgba(255,61,110,.45)}
 .asisrow .an b{display:block;font-size:15px}
 .asisrow .an small{display:block;margin-top:3px;font-size:12px;color:var(--mut);line-height:1.4}
 .asisrow .ab{display:flex;gap:8px;margin-top:10px}
@@ -696,7 +699,7 @@ details.more ol li b{color:var(--txt)}
 // ⬇⬇⬇ Pega aquí la URL de tu implementación de Apps Script (termina en /exec) ⬇⬇⬇
 const API_URL_DEFECTO = 'https://script.google.com/macros/s/AKfycbxwv1mH1KPyZs9gXbATNo5Q6HeCTFlmTsfh98iyF0Ogh_-mJLURTOXlgEHhVdsmDyDq8Q/exec';
 // ⬆⬆⬆ ------------------------------------------------------------------------ ⬆⬆⬆
-const VERSION = '2.1';
+const VERSION = '2.2';
 const LS_DRAFT = 'bitniv_draft1', LS_COLA = 'bitniv_cola1', LS_PREF = 'bitniv_pref1';
 const LOGO_FULL = '__LOGO_FULL__';
 const LOGO_WORD = '__LOGO_WORD__';
@@ -781,7 +784,7 @@ function retire(back) {
     setTimeout(() => o.remove(), 380);
   });
 }
-const PASOS = {inicio:[1, 10, 'Sede y facultad'], mentor:[2, 30, '¿Quién eres?'], est:[2, 55, 'A quiénes registras'], ses:[3, 80, 'Asistencia y sesión'], review:[4, 100, 'Revisión']};
+const PASOS = {inicio:[1, 10, 'Sede y facultad'], mentor:[2, 30, '¿Quién eres?'], est:[2, 55, 'Agregar estudiantes'], ses:[3, 75, 'Asistencia y sesión'], review:[4, 100, 'Revisión']};
 function updateTop() {
   const p = PASOS[S.scr], top = $('#top');
   top.classList.toggle('off', !p);
@@ -934,8 +937,8 @@ SCR.mentor = function (el) {
 function elegirMentor(m) {
   if (!S.mentor || norm(S.mentor.nombre) !== norm(m.nombre)) { S.sel = {}; S.asis = {}; S.propio = {}; }
   S.mentor = m; S.modo = m.enSiar ? 'mios' : 'materia';
-  if (m.enSiar) { setPref({mentor:{nombre:m.nombre, programa:m.programa}}); misRegs().forEach(r => { S.sel[r[R.key]] = true; }); }   // por defecto, todos sus asignados marcados
-  go('est');
+  if (m.enSiar) { setPref({mentor:{nombre:m.nombre, programa:m.programa}}); misRegs().forEach(r => { S.sel[r[R.key]] = true; }); }   // sus asignados del SIAR entran solos
+  go(m.enSiar && misRegs().length ? 'ses' : 'est');
 }
 const misRegs = () => S.regs.filter(r => r[R.prog] === S.mentor.programa && norm(r[R.asig]) === norm(S.mentor.nombre));
 
@@ -956,43 +959,27 @@ function bloqueMateria(rs, verAsig) {
     <button class="sbtn" data-todos="${esc(r0[R.mat] + '|' + r0[R.car])}">${todos ? 'Quitar todos' : 'Todos'}</button></div>${rs.map(r => filaEst(r, verAsig)).join('')}</div>`;
 }
 SCR.est = function (el) {
-  const mios = misRegs();
-  el.innerHTML = `<div class="card">${qHead('03', S.mentor.programa, S.mentor.nombre, '')}
-    ${hitoRow()}
-    <div class="tabs"><button class="tab ${S.modo === 'mios' ? 'on' : ''}" data-modo="mios"${S.mentor.enSiar ? '' : ' disabled'}>Mis estudiantes (${new Set(mios.map(estKey)).size})</button><button class="tab ${S.modo === 'materia' ? 'on' : ''}" data-modo="materia">Buscar por materia</button></div>
-    <div id="cuerpo"></div>
+  const libre = !S.mentor.enSiar;
+  el.innerHTML = `<div class="card">${qHead('03', S.mentor.programa, libre ? S.mentor.nombre : 'Agregar estudiantes', '')}
+    <p class="qhint">${libre ? 'Abre la materia y marca a los estudiantes que vas a registrar, <b>asistan o no</b>.' : 'Abre la materia y marca a los estudiantes que quieres sumar a este registro.'} Se muestra a quién está asignado cada uno en el SIAR.</p>
+    <div class="search">${IC.search}<input id="qmat" type="search" autocomplete="off" spellcheck="false" placeholder="Filtrar materia por nombre o código" value="${esc(S.filtroMat || '')}"></div><div id="lmat"></div>
     <div class="fmsg" id="fmsg"></div>
-    <div class="fnav"><button class="btn prime big" id="btnNext"><span>Continuar</span>${IC.arrowR}</button><button class="linkbtn cancel" data-act="prev">Cambiar de persona</button></div></div>`;
-  pintaEst(el);
+    <div class="fnav"><button class="btn prime big" id="btnNext"><span>${libre ? 'Continuar' : 'Listo, volver a la asistencia'}</span>${IC.arrowR}</button><button class="linkbtn cancel" data-act="prev">${libre ? 'Cambiar de persona' : 'Volver a la asistencia'}</button></div></div>`;
+  pintaListaMat(el); refrescaEst(el);
   el.addEventListener('click', e => {
     const t = e.target;
-    if (t.closest('[data-act=prev]')) return go('mentor', true);
-    const hb = t.closest('[data-hito]'); if (hb) { S.hito = hb.dataset.hito; $$('[data-hito]', el).forEach(x => x.classList.toggle('sel', x === hb)); return refrescaEst(el); }
-    const tb = t.closest('[data-modo]'); if (tb && !tb.disabled) { S.modo = tb.dataset.modo; $$('[data-modo]', el).forEach(x => x.classList.toggle('on', x === tb)); return pintaEst(el); }
+    if (t.closest('[data-act=prev]')) return libre ? go('mentor', true) : go('ses', true);
     const rb = t.closest('.rowc'); if (rb) { const k = rb.dataset.k; if (S.sel[k]) delete S.sel[k]; else S.sel[k] = true; rb.classList.toggle('sel', !!S.sel[k]); return refrescaEst(el); }
     const tt = t.closest('[data-todos]');
-    if (tt) { const rs = S.regs.filter(r => r[R.mat] + '|' + r[R.car] === tt.dataset.todos && (S.modo === 'materia' || misRegs().includes(r))); const todos = rs.every(r => S.sel[r[R.key]]); rs.forEach(r => { if (todos) delete S.sel[r[R.key]]; else S.sel[r[R.key]] = true; }); return pintaEst(el); }
-    const mb = t.closest('[data-mat]'); if (mb) { const k = mb.dataset.mat; S.matAbiertas[k] = !S.matAbiertas[k]; return pintaEst(el); }
+    if (tt) { const rs = S.regs.filter(r => r[R.mat] + '|' + r[R.car] === tt.dataset.todos); const todos = rs.every(r => S.sel[r[R.key]]); rs.forEach(r => { if (todos) delete S.sel[r[R.key]]; else S.sel[r[R.key]] = true; }); pintaListaMat(el); return refrescaEst(el); }
+    const mb = t.closest('[data-mat]'); if (mb) { const k = mb.dataset.mat; S.matAbiertas[k] = !S.matAbiertas[k]; return pintaListaMat(el); }
     if (t.closest('#btnNext')) {
-      const er = errEst(); if (er) { toast(er); shake($('#' + (er.includes('hito') ? 'hitoRow' : 'cuerpo'), el)); return; }
+      const er = errEst(); if (er) { toast(er); shake($('#lmat', el)); return; }
       go('ses');
     }
   });
   el.addEventListener('input', e => { if (e.target.id === 'qmat') { S.filtroMat = e.target.value; pintaListaMat(el); } });
 };
-function pintaEst(el) {
-  const c = $('#cuerpo', el);
-  if (S.modo === 'mios') {
-    const g = grupoMateria(misRegs());
-    c.innerHTML = g.length ? `<p class="qhint">Tus estudiantes asignados en el SIAR ya están incluidos en este registro, <b>asistan o no</b>. Quita solo a quien no corresponda registrar ahora. <b>La asistencia la marcas en el siguiente paso.</b></p>` + g.map(rs => bloqueMateria(rs, false)).join('')
-      : '<div class="sinfo">No tienes estudiantes asignados en esta sede y facultad. Usa «Buscar por materia».</div>';
-  } else {
-    c.innerHTML = `<p class="qhint">Abre la materia y marca a los estudiantes que vas a registrar, <b>asistan o no</b>. La asistencia la marcas en el siguiente paso. Se muestra a quién está asignado cada uno en el SIAR.</p>
-      <div class="search">${IC.search}<input id="qmat" type="search" autocomplete="off" spellcheck="false" placeholder="Filtrar materia por nombre o código" value="${esc(S.filtroMat || '')}"></div><div id="lmat"></div>`;
-    pintaListaMat(el);
-  }
-  refrescaEst(el);
-}
 function pintaListaMat(el) {
   const q = norm(S.filtroMat || ''), g = grupoMateria(S.regs).filter(rs => !q || norm(rs[0][R.matNom] + ' ' + rs[0][R.mat]).includes(q));
   let sem = null, html = '';
@@ -1007,7 +994,6 @@ function pintaListaMat(el) {
 const selRegs = () => S.regs.filter(r => S.sel[r[R.key]]);
 const selEst = () => { const m = {}; selRegs().forEach(r => { (m[estKey(r)] = m[estKey(r)] || []).push(r); }); return m; };
 function errEst() {
-  if (!S.hito) return 'Selecciona el hito.';
   const n = Object.keys(selEst()).length;
   if (!n) return 'Marca al menos un estudiante.';
   if (n > MAX_EST) return `Máximo ${MAX_EST} estudiantes por envío.`;
@@ -1016,7 +1002,7 @@ function errEst() {
 function refrescaEst(el) {
   const n = Object.keys(selEst()).length, m = selRegs().length, er = errEst(), f = $('#fmsg', el);
   f.className = 'fmsg' + (er ? '' : ' ok');
-  f.textContent = er ? 'Falta: ' + er.charAt(0).toLowerCase() + er.slice(1) : `✓ ${n} estudiante${n === 1 ? '' : 's'} a registrar · ${m} materia${m === 1 ? '' : 's'}. Sigue para marcar la asistencia.`;
+  f.textContent = er ? 'Falta: ' + er.charAt(0).toLowerCase() + er.slice(1) : `✓ ${n} estudiante${n === 1 ? '' : 's'} en este registro · ${m} materia${m === 1 ? '' : 's'}.`;
   $('#btnNext', el).classList.toggle('wait', !!er);
   saveDraft();
 }
@@ -1034,7 +1020,9 @@ function sesError(s) {
 }
 const sesDe = k => S.propio[k] ? Object.assign({}, S.ses, S.propio[k]) : S.ses;
 function errSes() {
+  if (!S.hito) return 'selecciona el hito.';
   const est = selEst(), ks = Object.keys(est);
+  if (!ks.length) return 'agrega al menos un estudiante.';
   const sinMarcar = ks.filter(k => !S.asis[k]);
   if (sinMarcar.length) return sinMarcar.length > 1 ? `indica si asistieron ${sinMarcar.length} estudiantes.` : 'indica si asistió 1 estudiante.';
   const si = ks.filter(k => S.asis[k] === 'Sí');
@@ -1043,11 +1031,13 @@ function errSes() {
   return '';
 }
 SCR.ses = function (el) {
-  const est = selEst();
+  const libre = !S.mentor.enSiar;
   if (!S.ses.fecha) S.ses.fecha = isoHoy();
-  el.innerHTML = `<div class="card">${qHead('04', 'Hito ' + S.hito, 'Asistencia y sesión', 'Ahora marca, de los estudiantes que elegiste, quién asistió y quién no. La fecha, el horario y las actividades se aplican a todos los que asistieron.')}
+  el.innerHTML = `<div class="card">${qHead(libre ? '04' : '03', S.mentor.programa, 'Asistencia y sesión', libre ? 'Marca quién asistió y quién no.' : 'Estos son tus estudiantes asignados en el SIAR, con sus materias. Marca quién asistió y quién no.')}
+    ${hitoRow()}
     <div class="asisbar"><button class="sbtn" id="todosSi">Todos asistieron</button><button class="sbtn del" id="todosNo">Nadie asistió</button></div>
     <div id="lest"></div>
+    <button class="linkbtn otra" id="agregar" style="margin:0 0 14px">+ Agregar estudiante de otra materia</button>
     <section class="fsec" id="secSes"><div class="fhd"><b>✓</b>Sesión</div>
       <div class="fgrid"><label class="fld fecha full">Fecha de la sesión<input id="fF" type="date" max="${isoHoy()}" value="${esc(S.ses.fecha)}"></label>
       <label class="fld">Hora de inicio<input id="fHi" type="time" value="${esc(S.ses.hi)}"></label>
@@ -1058,18 +1048,19 @@ SCR.ses = function (el) {
       <span class="lbl2">Observaciones y comentarios · opcional</span>
       <div class="tx"><textarea id="tObs" class="short" maxlength="1000">${esc(S.ses.obs)}</textarea><span class="cnt"><span id="cO">${S.ses.obs.length}</span> / 1000</span></div></section>
     <div class="fmsg" id="fmsg"></div>
-    <div class="fnav"><button class="btn prime big" id="btnNext"><span>Revisar y enviar</span>${IC.arrowR}</button><button class="linkbtn cancel" data-act="prev">Volver a los estudiantes</button></div></div>`;
+    <div class="fnav"><button class="btn prime big" id="btnNext"><span>Revisar y enviar</span>${IC.arrowR}</button><button class="linkbtn cancel" data-act="prev">${libre ? 'Volver a los estudiantes' : 'Cambiar de persona'}</button></div></div>`;
   const pintaLista = () => {
+    const est = selEst();
     $('#lest', el).innerHTML = Object.entries(est).map(([k, rs]) => {
       const a = S.asis[k], p = S.propio[k];
-      return `<div class="asisrow ${a === 'Sí' ? 'si' : a === 'No' ? 'no' : ''}" data-e="${esc(k)}"><div class="an"><b>${esc(rs[0][R.nom])}</b><small>${rs.map(r => esc(r[R.matNom])).join(' · ')}</small></div>
+      return `<div class="asisrow ${a === 'Sí' ? 'si' : a === 'No' ? 'no' : ''}" data-e="${esc(k)}"><div class="an"><div><b>${esc(rs[0][R.nom])}</b><small>${rs.map(r => esc(r[R.matNom])).join(' · ')}</small></div><button class="xq" data-x title="Quitar de este registro">Quitar</button></div>
         <div class="ab"><button class="sn ${a === 'Sí' ? 'on' : ''}" data-a="Sí">Asistió</button><button class="sn no ${a === 'No' ? 'on' : ''}" data-a="No">No asistió</button></div>
         ${a === 'Sí' ? (p ? `<div class="propio"><div class="fgrid"><label class="fld fecha full">Su fecha<input data-p="fecha" type="date" max="${isoHoy()}" value="${esc(p.fecha)}"></label><label class="fld">Inicio<input data-p="hi" type="time" value="${esc(p.hi)}"></label><label class="fld">Conclusión<input data-p="hf" type="time" value="${esc(p.hf)}"></label></div><button class="linkbtn" data-quitar>Usar la sesión del grupo</button></div>`
           : '<button class="linkbtn otra" data-otra>Otra fecha u horario para este estudiante</button>') : ''}</div>`;
-    }).join('');
+    }).join('') || '<div class="sinfo">No hay estudiantes en este registro. Usa «Agregar estudiante de otra materia».</div>';
   };
   const refresca = () => {
-    const algunSi = Object.keys(est).some(k => S.asis[k] === 'Sí');
+    const algunSi = Object.keys(selEst()).some(k => S.asis[k] === 'Sí');
     $('#secSes', el).hidden = !algunSi;
     const e1 = sesError(S.ses), d = $('#dur', el);
     d.classList.toggle('err', !!e1 && !!(S.ses.hi && S.ses.hf));
@@ -1083,13 +1074,16 @@ SCR.ses = function (el) {
   pintaLista(); refresca();
   el.addEventListener('click', e => {
     const t = e.target;
-    if (t.closest('[data-act=prev]')) return go('est', true);
-    if (t.closest('#todosSi') || t.closest('#todosNo')) { const v = t.closest('#todosSi') ? 'Sí' : 'No'; Object.keys(est).forEach(k => { S.asis[k] = v; }); pintaLista(); return refresca(); }
+    if (t.closest('[data-act=prev]')) return libre ? go('est', true) : go('mentor', true);
+    if (t.closest('#agregar')) return go('est');
+    const hb = t.closest('[data-hito]'); if (hb) { S.hito = hb.dataset.hito; $$('[data-hito]', el).forEach(x => x.classList.toggle('sel', x === hb)); return refresca(); }
+    if (t.closest('#todosSi') || t.closest('#todosNo')) { const v = t.closest('#todosSi') ? 'Sí' : 'No'; Object.keys(selEst()).forEach(k => { S.asis[k] = v; }); pintaLista(); return refresca(); }
     const row = t.closest('[data-e]'); const k = row && row.dataset.e;
+    if (t.closest('[data-x]') && k) { (selEst()[k] || []).forEach(r => { delete S.sel[r[R.key]]; }); delete S.asis[k]; delete S.propio[k]; pintaLista(); return refresca(); }
     const ba = t.closest('[data-a]'); if (ba && k) { S.asis[k] = ba.dataset.a; pintaLista(); return refresca(); }
     if (t.closest('[data-otra]') && k) { S.propio[k] = {fecha:S.ses.fecha, hi:S.ses.hi, hf:S.ses.hf}; pintaLista(); return refresca(); }
     if (t.closest('[data-quitar]') && k) { delete S.propio[k]; pintaLista(); return refresca(); }
-    if (t.closest('#btnNext')) { const er = errSes(); if (er) { toast('Falta: ' + er); shake($('#fmsg', el)); return; } go('review'); }
+    if (t.closest('#btnNext')) { const er = errSes(); if (er) { toast('Falta: ' + er); shake($(er.includes('hito') ? '#hitoRow' : '#fmsg', el)); return; } go('review'); }
   });
   el.addEventListener('input', e => {
     const t = e.target, row = t.closest('[data-e]');
@@ -1262,7 +1256,7 @@ function showDone(p, ok, sinUrl, j) {
   }
   const ot = $('#otro');
   if (ot) ot.onclick = () => { const keep = {clave:S.clave, sede:S.sede, fac:S.fac, hito:S.hito, hitos:S.hitos, sedes:S.sedes, facultades:S.facultades, conteo:S.conteo, regs:S.regs, mentor:S.mentor, modo:S.modo};
-    S = Object.assign(fresh(), keep, {id:nuevoId(), t0:Date.now()}); if (S.mentor.enSiar) misRegs().forEach(r => { S.sel[r[R.key]] = true; }); stage.innerHTML = ''; go('est'); };
+    S = Object.assign(fresh(), keep, {id:nuevoId(), t0:Date.now()}); if (S.mentor.enSiar) misRegs().forEach(r => { S.sel[r[R.key]] = true; }); stage.innerHTML = ''; go(S.mentor.enSiar ? 'ses' : 'est'); };
   $('#fin').onclick = () => { S = fresh(); showWelcome(); };
 }
 

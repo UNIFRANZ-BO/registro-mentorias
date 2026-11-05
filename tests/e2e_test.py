@@ -70,24 +70,36 @@ async def main():
         assert await pg.locator('#mlist [data-m]').count() == 1
         await shot('02_mentor')
         await pg.click('#mlist [data-m]'); await pg.wait_for_timeout(1200)
-        assert await scr() == 'est'
-        assert await pg.evaluate('Object.keys(S.sel).length') == 2, 'sus asignados vienen marcados'
+        # ── directo a la asistencia con sus asignados
+        assert await scr() == 'ses', 'tras elegir el nombre va directo a la asistencia'
+        assert await pg.evaluate('Object.keys(S.sel).length') == 2, 'sus asignados entran solos'
+        assert await pg.locator('.asisrow').count() == 2
         assert 'hito' in (await pg.inner_text('#fmsg')).lower(), 'falta el hito'
         await pg.click('[data-hito="3"]'); await pg.wait_for_timeout(200)
-        assert '2 estudiantes' in await pg.inner_text('#fmsg')
-        await shot('03_mis_estudiantes', True)
-        # ── buscar por materia: Guina en Embriología (sin asignación)
-        await pg.click('[data-modo="materia"]'); await pg.wait_for_timeout(300)
+        assert 'indica si asistieron 2' in (await pg.inner_text('#fmsg'))
+        await shot('03_asistencia', True)
+        # ── agregar a Guina en Embriología (sin asignación)
+        await pg.click('#agregar'); await pg.wait_for_timeout(1200)
+        assert await scr() == 'est'
         await pg.fill('#qmat', 'embrio'); await pg.wait_for_timeout(300)
         await pg.click('[data-mat="EME-211 (P)|MED"]'); await pg.wait_for_timeout(300)
         assert 'Sin asignación' in await pg.inner_text('#lmat')
         await pg.click('.rowc[data-k="202|Docente Tutor"]'); await pg.wait_for_timeout(200)
-        await shot('04_por_materia', True)
-        assert '2 estudiantes a registrar · 3 materias' in await pg.inner_text('#fmsg')
+        await shot('04_agregar', True)
+        assert '2 estudiantes en este registro · 3 materias' in await pg.inner_text('#fmsg')
         await pg.click('#btnNext'); await pg.wait_for_timeout(1200)
         assert await scr() == 'ses'
+        assert 'Embriología' in await pg.locator('.asisrow', has_text='Guina').inner_text()
+        # ── quitar y volver a agregar no rompe nada
+        await pg.locator('.asisrow', has_text='Ojeda').locator('[data-x]').click(); await pg.wait_for_timeout(200)
+        assert await pg.locator('.asisrow').count() == 1
+        await pg.click('#agregar'); await pg.wait_for_timeout(1200)
+        await pg.fill('#qmat', 'anatom'); await pg.wait_for_timeout(300)
+        await pg.click('[data-mat="AHU-211 (P)|MED"]'); await pg.wait_for_timeout(300)
+        await pg.click('.rowc[data-k="101|Docente Tutor"]'); await pg.wait_for_timeout(200)
+        await pg.click('#btnNext'); await pg.wait_for_timeout(1200)
+        assert await pg.locator('.asisrow').count() == 2
         # ── asistencia y sesión grupal; Guina con otro horario
-        assert 'indica si asistieron 2' in (await pg.inner_text('#fmsg'))
         await pg.click('#todosSi'); await pg.wait_for_timeout(200)
         await pg.fill('#fHi', '15:00'); await pg.fill('#fHf', '16:30'); await pg.fill('#tAct', 'Repaso de contenidos')
         guina = pg.locator('.asisrow', has_text='Guina')
@@ -108,19 +120,23 @@ async def main():
         print(json.dumps(d, ensure_ascii=False)[:1200])
         assert d['clave'] == 'niv2026' and d['sede'] == 'LPZ' and d['fac'] == 'Ciencias de la Salud' and d['hito'] == '3'
         assert d['mentor'] == {'nombre': 'Rafael Aramayo', 'programa': 'Docente Tutor'}
-        it = {tuple(x['keys']): x for x in d['items']}
+        it = {tuple(sorted(x['keys'])): x for x in d['items']}
         a, g = it[('101|Docente Tutor',)], it[('201|Docente Tutor', '202|Docente Tutor')]
         assert a['asistio'] == 'Sí' and a['hi'] == '15:00' and a['act'] == 'Repaso de contenidos'
         assert g['hi'] == '17:00' and g['hf'] == '17:45' and g['act'] == 'Repaso de contenidos'
         assert await pg.locator('.codes div').count() == 2, 'un código por estudiante'
         assert await pg.evaluate("localStorage.getItem('bitniv_draft1')") is None
-        # ── registrar otro grupo: vuelve a sus estudiantes, ya marcados
+        # ── registrar otro grupo: vuelve a la asistencia con sus asignados
         await pg.click('#otro'); await pg.wait_for_timeout(1200)
-        assert await scr() == 'est' and await pg.evaluate('Object.keys(S.sel).length') == 2 and await pg.evaluate('S.hito') == '3'
+        assert await scr() == 'ses' and await pg.evaluate('Object.keys(S.sel).length') == 2 and await pg.evaluate('S.hito') == '3'
         # ── «No estoy en la lista»: entra a buscar por materia
         await pg.click('[data-act=prev]'); await pg.wait_for_timeout(1000)
+        assert await scr() == 'mentor'
         await pg.click('#noEstoy'); await pg.fill('#mNom', 'Juan Nuevo Perez'); await pg.click('[data-prog="Hermano Mayor"]'); await pg.click('#libreOk'); await pg.wait_for_timeout(1200)
-        assert await scr() == 'est' and await pg.evaluate('S.modo') == 'materia' and await pg.locator('[data-modo="mios"][disabled]').count() == 1
+        assert await scr() == 'est' and await pg.evaluate('Object.keys(S.sel).length') == 0
+        await pg.click('[data-mat="AHU-211 (P)|MED"]'); await pg.wait_for_timeout(300)
+        await pg.click('.rowc[data-k="101|Docente Tutor"]'); await pg.click('#btnNext'); await pg.wait_for_timeout(1200)
+        assert await scr() == 'ses' and await pg.locator('.asisrow').count() == 1
         assert VIAS and 'jsonp' not in VIAS, ('las consultas deben ir por fetch', VIAS)
         assert not errs, errs
         print('OK · errores JS:', errs)
