@@ -30,12 +30,15 @@ async def backend(route, req):
     a, cb = q.get('action', ['ping'])[0], q.get('callback', [''])[0]
     VIAS.append('jsonp' if cb else 'fetch')
     clave = q.get('clave', [''])[0].upper()
-    if a == 'inicio':
+    if a == 'mentores':
+        out = ({'ok': False, 'motivo': 'clave', 'requiere_clave': True} if clave != CLAVE else
+               {'ok': True, 'abierta': True, 'hitos': ['2', '3', '4'], 'mentores': [['Joseph Mamani Copa', 'Hermano Mayor', 1, [['LPZ', 'La Paz', 'Ciencias de la Salud']]], ['Rafael Aramayo', 'Docente Tutor', 2, [['LPZ', 'La Paz', 'Ciencias de la Salud']]]]})
+    elif a == 'inicio':
         out = ({'ok': False, 'motivo': 'clave', 'requiere_clave': True} if clave != CLAVE else
                {'ok': True, 'abierta': True, 'hitos': ['2', '3', '4'], 'sedes': [{'cod': 'LPZ', 'nombre': 'La Paz'}, {'cod': 'CBB', 'nombre': 'Cochabamba'}],
                 'facultades': [{'cod': 'Ciencias de la Salud', 'nombre': 'Ciencias de la Salud'}, {'cod': 'Ingeniería', 'nombre': 'Ingeniería'}], 'conteo': {'LPZ|Ciencias de la Salud': 4, 'CBB|Ingeniería': 1}})
     elif a == 'lista':
-        out = {'ok': True, 'registros': REGS} if clave == CLAVE and q.get('sede') == ['LPZ'] and q.get('fac') == ['Ciencias de la Salud'] else {'ok': False, 'motivo': 'clave'}
+        out = {'ok': True, 'registros': REGS} if clave == CLAVE and q.get('mentor') else {'ok': False, 'motivo': 'clave'}
     else:
         out = {'ok': True, 'existe': q.get('id', [''])[0] in DB}
     if not cb:
@@ -58,12 +61,8 @@ async def main():
         await pg.fill('#cClave', 'malo'); await pg.click('#btnNext'); await pg.wait_for_timeout(1200)
         assert 'no es correcto' in await pg.inner_text('#cMsg')
         await pg.fill('#cClave', 'niv2026'); await pg.click('#btnNext'); await pg.wait_for_timeout(1200)
-        assert await pg.locator('#cClave').count() == 0 and await pg.locator('[data-sede]').count() == 2
-        await pg.click('[data-sede="LPZ"]'); await pg.wait_for_timeout(200)
-        assert await pg.locator('[data-fac]').count() == 1, 'solo facultades con registros en esa sede'
-        await pg.click('[data-fac="Ciencias de la Salud"]'); await shot('01_inicio')
-        await pg.click('#btnNext'); await pg.wait_for_timeout(1500)
-        assert await scr() == 'mentor'
+        assert await scr() == 'mentor', 'tras el código va directo a «Selecciona tu nombre»'
+        await shot('01_nombre')
         # ── ¿quién eres?
         assert await pg.locator('#mlist [data-m]').count() == 2, 'un docente tutor y un hermano mayor'
         await pg.fill('#qm', 'rafa'); await pg.wait_for_timeout(200)
@@ -130,14 +129,12 @@ async def main():
         # ── registrar otro grupo: vuelve a la asistencia, sin marcas y con el mismo hito
         await pg.click('#otro'); await pg.wait_for_timeout(1200)
         assert await scr() == 'ses' and await pg.evaluate('visRegs().length') == 2 and await pg.evaluate('Object.keys(S.asis).length') == 0 and await pg.evaluate('S.hito') == '3'
-        # ── «No estoy en la lista»: entra a buscar por materia
+        # ── cambiar de persona: el hermano mayor ve solo a su estudiante
         await pg.click('[data-act=prev]'); await pg.wait_for_timeout(1000)
-        assert await scr() == 'mentor'
-        await pg.click('#noEstoy'); await pg.fill('#mNom', 'Juan Nuevo Perez'); await pg.click('[data-prog="Hermano Mayor"]'); await pg.click('#libreOk'); await pg.wait_for_timeout(1200)
-        assert await scr() == 'est' and await pg.evaluate('Object.keys(S.sel).length') == 0
-        await pg.click('[data-mat="AHU-211 (P)"]'); await pg.wait_for_timeout(300)
-        await pg.click('.rowc[data-k="101|Docente Tutor"]'); await pg.click('#btnNext'); await pg.wait_for_timeout(1200)
-        assert await scr() == 'ses' and await pg.locator('.asisrow').count() == 1
+        assert await scr() == 'mentor' and await pg.locator('#noEstoy').count() == 0
+        await pg.fill('#qm', 'joseph'); await pg.wait_for_timeout(200)
+        await pg.click('#mlist [data-m]'); await pg.wait_for_timeout(1500)
+        assert await scr() == 'ses' and await pg.locator('.asisrow').count() == 1 and 'Histología' in await pg.inner_text('#lest')
         assert VIAS and 'jsonp' not in VIAS, ('las consultas deben ir por fetch', VIAS)
         assert not errs, errs
         print('OK · errores JS:', errs)

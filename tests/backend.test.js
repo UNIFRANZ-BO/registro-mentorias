@@ -144,5 +144,11 @@ if(SEP===';'){const f=String(rs.get(4,2));if(!/;/.test(f))fallo('RESUMEN sin «;
  if(!r1.ok||r1.codigos.length!==1||r1.estudiantes!==1||r1.filas!==2)fallo('mismo estudiante en dos partes');
  const r2=ctx.guardar_(Object.assign({},base,{id:'ME-PARTE-AAAAA2',items:[it(ks[0],'08:00','09:00'),it(ks[0],'10:00','11:00')]}));
  if(r2.ok||!/dos veces/.test(r2.detalle||''))fallo('misma materia dos veces debía rechazarse '+JSON.stringify(r2));}
+{const lm=vm.runInContext("limpiaAsignado_('Correo docente doc.jazmin.lopez.ca@unifranz.edu.bo  JAZMIN LOPEZ CAMACHO')",ctx);if(lm!=='JAZMIN LOPEZ CAMACHO')fallo('limpiar Detalle: '+lm);
+ const mm=get('mentores',{clave:'NIV2026'});console.log('mentores',JSON.stringify(mm.mentores));
+ const ra=(mm.mentores||[]).find(x=>x[0]==='Rafael Aramayo');if(!mm.ok||!ra||ra[1]!=='Docente Tutor'||!(ra[2]>=1)||ra[3][0][0]!=='LPZ'||ra[3][0][2]!=='Ciencias de la Salud')fallo('mentores');
+ if(get('mentores',{clave:'x'}).ok)fallo('mentores sin código');
+ const lm2=get('lista',{clave:'NIV2026',mentor:'RAFAEL ARAMAYO',prog:'Docente Tutor'}),lm3=get('lista',{clave:'NIV2026',sede:'LPZ',fac:'Ciencias de la Salud'});
+ if(!lm2.ok||lm2.registros.length!==lm3.registros.length||!lm2.registros.length)fallo('lista por mentor '+lm2.registros.length+'/'+lm3.registros.length);}
 const cab=ctx.cabResp_();if(new Set(cab).size!==cab.length)fallo('cabecera con títulos repetidos');
 console.log('\nOK · todas las comprobaciones pasaron (SEP='+SEP+')');

@@ -674,7 +674,7 @@ details.more ol li b{color:var(--txt)}
     <div class="prog">
       <div class="prog-meta"><span class="mod" id="modLbl"></span><span class="pct" id="pct">0%</span></div>
       <div class="bar"><div class="fill" id="barFill"></div></div>
-      <div class="mods" id="modsBar"><i></i><i></i><i></i><i></i></div>
+      <div class="mods" id="modsBar"><i></i><i></i><i></i></div>
     </div>
   </div>
 </header>
@@ -710,7 +710,7 @@ details.more ol li b{color:var(--txt)}
 // ⬇⬇⬇ Pega aquí la URL de tu implementación de Apps Script (termina en /exec) ⬇⬇⬇
 const API_URL_DEFECTO = 'https://script.google.com/macros/s/AKfycbxwv1mH1KPyZs9gXbATNo5Q6HeCTFlmTsfh98iyF0Ogh_-mJLURTOXlgEHhVdsmDyDq8Q/exec';
 // ⬆⬆⬆ ------------------------------------------------------------------------ ⬆⬆⬆
-const VERSION = '2.5';
+const VERSION = '2.6';
 const LS_DRAFT = 'bitniv_draft1', LS_COLA = 'bitniv_cola1', LS_PREF = 'bitniv_pref1';
 const LOGO_FULL = '__LOGO_FULL__';
 const LOGO_WORD = '__LOGO_WORD__';
@@ -762,7 +762,7 @@ const DEMO = {
 /* ---------- estado ---------- */
 // Todo por clave del SIAR (estudiante × materia). sel: agregados a mano {clave: true}; asis: {clave: 'Sí'|'No'} (solo se registra lo marcado);
 // propio: {clave: {fecha, hi, hf}} (otra fecha u horario); gAb: {materia: abierta?} en la pantalla de asistencia
-const fresh = () => ({id:null, t0:null, clave:'', sede:'', fac:'', hito:'', hitos:[], sedes:[], facultades:[], conteo:{}, regs:[], mentor:null,
+const fresh = () => ({id:null, t0:null, clave:'', sede:'', fac:'', hito:'', hitos:[], sedes:[], facultades:[], conteo:{}, regs:[], mentores:[], mentor:null,
   modo:'mios', sel:{}, matAbiertas:{}, gAb:{}, asis:{}, propio:{}, matOff:{}, ses:{fecha:'', hi:'', hf:'', act:'', obs:''}, scr:null});
 let S = fresh();
 const nuevoId = () => {
@@ -796,7 +796,7 @@ function retire(back) {
     setTimeout(() => o.remove(), 380);
   });
 }
-const PASOS = {inicio:[1, 10, 'Sede y facultad'], mentor:[2, 30, 'Identificación'], est:[2, 55, 'Agregar estudiantes'], ses:[3, 75, 'Asistencia y sesión'], review:[4, 100, 'Revisión']};
+const PASOS = {inicio:[1, 10, 'Código de acceso'], mentor:[1, 25, 'Identificación'], est:[2, 55, 'Agregar estudiantes'], ses:[2, 70, 'Asistencia y sesión'], review:[3, 100, 'Revisión']};
 function updateTop() {
   const p = PASOS[S.scr], top = $('#top');
   top.classList.toggle('off', !p);
@@ -837,120 +837,86 @@ function hitoRow() {
 }
 
 /* ---------- 1 · inicio: código de acceso, sede, facultad ---------- */
-SCR.inicio = function (el) {
-  const p = pref();
-  const pide = !!S.pideClave;
-  el.innerHTML = `<div class="card">${qHead('01', 'Bitácora de nivelaciones', 'Sede y facultad', '')}
-    ${pide ? `<label class="fld full clave">Código de acceso<input id="cClave" autocomplete="off" autocapitalize="characters" placeholder="Te lo da tu dirección de carrera" value="${esc(S.clave || '')}"></label>
-      <div class="fmsg" id="cMsg">${S.claveMal ? 'El código no es correcto. Pídelo a tu dirección de carrera.' : 'Escribe el código y pulsa «Continuar».'}</div>` : ''}
-    <div id="selBox"${pide ? ' hidden' : ''}>
-      <span class="lbl2 ob">Sede</span><div class="chipsel" id="sedes">${S.sedes.map(s => `<button class="hbtn wide ${S.sede === s.cod ? 'sel' : ''}" data-sede="${esc(s.cod)}">${esc(s.nombre)}</button>`).join('')}</div>
-      <span class="lbl2 ob">Facultad</span><div class="chipsel col" id="facs"></div>
-    </div>
+SCR.inicio = function (el) {   // solo aparece si CONFIG tiene «Código de acceso»
+  el.innerHTML = `<div class="card">${qHead('01', 'Bitácora de nivelaciones', 'Código de acceso', '')}
+    <label class="fld full clave">Código de acceso<input id="cClave" autocomplete="off" autocapitalize="characters" placeholder="Te lo da tu dirección de carrera" value="${esc(S.clave || '')}"></label>
+    <div class="fmsg" id="cMsg">${S.claveMal ? 'El código no es correcto. Pídelo a tu dirección de carrera.' : 'Escribe el código y pulsa «Continuar».'}</div>
     <div class="fnav"><button class="btn prime big" id="btnNext"><span>Continuar</span>${IC.arrowR}</button><button class="linkbtn cancel" data-act="prev">Volver al inicio</button></div></div>`;
-  const pintaFacs = () => {
-    const box = $('#facs', el);
-    if (!S.sede) { box.innerHTML = '<span class="sinfo">Primero elige la sede.</span>'; return; }
-    const lst = S.facultades.filter(f => S.conteo[S.sede + '|' + f.cod]);
-    box.innerHTML = lst.length ? lst.map(f => `<button class="hbtn wide ${S.fac === f.cod ? 'sel' : ''}" data-fac="${esc(f.cod)}">${esc(f.nombre)}<small>${S.conteo[S.sede + '|' + f.cod]} registros</small></button>`).join('')
-      : '<span class="sinfo">No hay estudiantes en nivelación para esta sede.</span>';
-  };
-  pintaFacs();
   el.addEventListener('click', async e => {
     if (e.target.closest('[data-act=prev]')) return showWelcome(true);
-    const bs = e.target.closest('[data-sede]');
-    if (bs) { S.sede = bs.dataset.sede; if (!S.conteo[S.sede + '|' + S.fac]) S.fac = ''; $$('[data-sede]', el).forEach(x => x.classList.toggle('sel', x === bs)); pintaFacs(); return; }
-    const bf = e.target.closest('[data-fac]');
-    if (bf) { S.fac = bf.dataset.fac; $$('[data-fac]', el).forEach(x => x.classList.toggle('sel', x === bf)); return; }
-    if (e.target.closest('#btnNext')) {
-      const b = $('#btnNext', el);
-      if (S.pideClave) { S.clave = $('#cClave', el).value.trim(); b.classList.add('wait'); $('#cMsg', el).textContent = 'Verificando…'; await cargarInicio(); return; }
-      if (!S.sede || !S.fac) { shake($('.card', el)); return toast('Elige la sede y la facultad'); }
-      b.classList.add('wait'); b.querySelector('span').textContent = 'Cargando estudiantes…';
-      const ok = await cargarLista();
-      b.classList.remove('wait'); b.querySelector('span').textContent = 'Continuar';
-      if (ok) { setPref({sede:S.sede, fac:S.fac, clave:S.clave}); go('mentor'); }
-    }
+    if (e.target.closest('#btnNext')) { S.clave = $('#cClave', el).value.trim(); $('#btnNext', el).classList.add('wait'); $('#cMsg', el).textContent = 'Verificando…'; await cargarInicio(); }
   });
   el.addEventListener('keydown', e => { if (e.target.id === 'cClave' && e.key === 'Enter') { e.preventDefault(); $('#btnNext', el).click(); } });
 };
 async function cargarInicio() {
   let r;
-  try { r = API_OK ? await jsonp({action:'inicio', clave:S.clave}, 30000) : {ok:true, abierta:true, hitos:['2', '3', '4'], sedes:DEMO.sedes, facultades:DEMO.facultades, conteo:{'CBB|FCS':5, 'LPZ|FCS':3}}; }
+  try { r = API_OK ? await jsonp({action:'mentores', clave:S.clave}, 30000) : {ok:true, abierta:true, hitos:['2', '3', '4'], mentores:mentoresDemo()}; }
   catch (e) { r = {ok:false, motivo:'red'}; }
   if (r && r.ok && r.abierta === false) return showAviso('El registro está cerrado', esc(r.mensaje || 'El registro de sesiones no está disponible en este momento.'));
   if (r && r.motivo === 'clave') { S.claveMal = !!S.clave; S.pideClave = true; return go('inicio'); }
   if (!r || !r.ok) return showAviso('Sin conexión', 'No pudimos conectar con el servidor. Revisa tu conexión a internet e inténtalo de nuevo.', true);
   S.pideClave = false; S.claveMal = false;
-  S.hitos = (r.hitos || []).map(String); S.sedes = r.sedes || []; S.facultades = r.facultades || []; S.conteo = r.conteo || {};
+  S.hitos = (r.hitos || []).map(String); S.mentores = r.mentores || [];
   if (hitoUnico()) S.hito = S.hitos[0];
-  const p = pref();
-  if (!S.sede && p.sede && S.sedes.some(s => s.cod === p.sede)) S.sede = p.sede;
-  if (!S.fac && p.fac && S.conteo[S.sede + '|' + p.fac]) S.fac = p.fac;
-  go('inicio');
+  if (S.clave) setPref({clave:S.clave});
+  go('mentor');
 }
-async function cargarLista() {
+function mentoresDemo() {
+  const m = {};
+  DEMO.regs.forEach(r => { if (!r[R.asig]) return; const k = r[R.prog] + '|' + r[R.asig]; (m[k] = m[k] || {n:r[R.asig], p:r[R.prog], e:{}}).e[estKey(r)] = 1; });
+  return Object.values(m).map(o => [o.n, o.p, Object.keys(o.e).length, [['CBB', 'Cochabamba', 'Ciencias de la Salud']]]);
+}
+// Estudiantes de las sedes y facultades donde la persona tiene asignados.
+async function cargarLista(m) {
   let r;
-  try { r = API_OK ? await jsonp({action:'lista', clave:S.clave, sede:S.sede, fac:S.fac}, 45000) : {ok:true, registros:DEMO.regs}; }
+  try { r = API_OK ? await jsonp({action:'lista', clave:S.clave, mentor:m.nombre, prog:m.programa}, 45000) : {ok:true, registros:DEMO.regs}; }
   catch (e) { r = {ok:false, motivo:'red'}; }
   if (r && r.motivo === 'clave') { S.pideClave = true; S.claveMal = true; go('inicio'); return false; }
-  if (!r || !r.ok) { toast(r && r.motivo === 'cerrada' ? 'El registro está cerrado' : 'No pudimos cargar los estudiantes. Revisa tu conexión.'); return false; }
-  const cambio = S.regs.length && (S.regs[0] && r.registros[0] && S.regs[0][R.car] !== r.registros[0][R.car]);
+  if (!r || !r.ok) { toast(r && r.motivo === 'cerrada' ? 'El registro está cerrado' : 'No pudimos cargar tus estudiantes. Revisa tu conexión.'); return false; }
   S.regs = r.registros || [];
-  if (cambio) { S.sel = {}; S.asis = {}; S.propio = {}; }
   return true;
 }
 
 /* ---------- 2 · ¿quién eres? ---------- */
-function mentoresDe(regs) {
-  const m = {};
-  regs.forEach(r => { if (!r[R.asig]) return; const k = r[R.prog] + '|' + norm(r[R.asig]); if (!m[k]) m[k] = {nombre:r[R.asig], programa:r[R.prog], est:{}}; m[k].est[estKey(r)] = true; });
-  return Object.values(m).map(x => ({nombre:x.nombre, programa:x.programa, n:Object.keys(x.est).length})).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
-}
 SCR.mentor = function (el) {
-  const ms = mentoresDe(S.regs), p = pref(), facN = (S.facultades.find(f => f.cod === S.fac) || {}).nombre || S.fac;
+  const ms = S.mentores.map(x => ({nombre:x[0], programa:x[1], n:x[2], combos:x[3] || []})), p = pref();
   const yo = p.mentor && ms.find(m => norm(m.nombre) === norm(p.mentor.nombre) && m.programa === p.mentor.programa);
-  el.innerHTML = `<div class="card">${qHead('02', (S.sedes.find(s => s.cod === S.sede) || {}).nombre + ' · ' + facN, 'Selecciona tu nombre', 'Estimado docente tutor o hermano mayor: por favor, busca tu nombre en la lista y selecciónalo.')}
-    ${yo ? `<button class="opt yo" data-m="${esc(ms.indexOf(yo))}"><span class="lbl">¿Eres ${esc(yo.nombre)}?<span class="sub">${esc(yo.programa)} · ${yo.n} estudiante${yo.n === 1 ? '' : 's'} asignado${yo.n === 1 ? '' : 's'}</span></span><span class="chk">${IC.check}</span></button>` : ''}
-    <div class="search">${IC.search}<input id="qm" type="search" autocomplete="off" spellcheck="false" placeholder="Busca tu nombre"></div>
+  const donde = m => m.combos.map(c => c[1] + (c[2] ? ' · ' + c[2] : '')).join(' / ');
+  const opt = (m, cls) => `<button class="opt ${cls || ''}" data-m="${ms.indexOf(m)}"><span class="lbl">${cls ? '¿Eres ' + esc(m.nombre) + '?' : esc(m.nombre)}<span class="sub">${cls ? esc(m.programa) + ' · ' : ''}${m.n} estudiante${m.n === 1 ? '' : 's'} asignado${m.n === 1 ? '' : 's'} · ${esc(donde(m))}</span></span><span class="chk">${IC.check}</span></button>`;
+  el.innerHTML = `<div class="card">${qHead('01', 'Bitácora de nivelaciones', 'Selecciona tu nombre', 'Estimado docente tutor o hermano mayor: por favor, busca tu nombre en la lista y selecciónalo.')}
+    ${yo ? opt(yo, 'yo') : ''}
+    <div class="search">${IC.search}<input id="qm" type="search" autocomplete="off" spellcheck="false" placeholder="Escribe tu nombre o apellido"></div>
     <div id="mlist" class="mlist2"></div>
-    <button class="linkbtn" id="noEstoy">No estoy en la lista</button>
-    <div class="manualbox" id="noBox"><p>Si no figuras en el SIAR, escribe tu nombre: podrás registrar a estudiantes buscándolos por materia. Avisa a tu dirección de carrera para que te asigne en el SIAR.</p>
-      <div class="fgrid"><label class="fld full">Nombre completo<input id="mNom" maxlength="120" value="${esc(p.libre ? p.libre.nombre : '')}" placeholder="Nombres y apellidos"></label></div>
-      <div class="opts two asis" style="margin-top:12px">${PROGRAMAS.map(g => `<button class="opt" data-prog="${esc(g)}"><span class="lbl">${esc(g)}</span><span class="chk">${IC.check}</span></button>`).join('')}</div>
-      <button class="btn prime big" id="libreOk" style="margin-top:14px;width:100%"><span>Continuar</span>${IC.arrowR}</button></div>
-    <div class="fnav"><button class="linkbtn cancel" data-act="prev">Cambiar sede o facultad</button></div></div>`;
+    <div class="fnav"><button class="linkbtn cancel" data-act="prev">Volver al inicio</button></div></div>`;
   const pinta = () => {
     const q = norm($('#qm', el).value), lst = ms.filter(m => !q || q.split(' ').every(w => norm(m.nombre).includes(w)));
     $('#mlist', el).innerHTML = PROGRAMAS.map(g => {
       const xs = lst.filter(m => m.programa === g);
-      return xs.length ? `<div class="fac">${g === PROGRAMAS[0] ? 'Docentes tutores' : 'Hermanos mayores'}</div>` + xs.map(m => `<button class="opt" data-m="${ms.indexOf(m)}"><span class="lbl">${esc(m.nombre)}<span class="sub">${m.n} estudiante${m.n === 1 ? '' : 's'} asignado${m.n === 1 ? '' : 's'}</span></span><span class="chk">${IC.check}</span></button>`).join('') : '';
-    }).join('') || `<div class="sinfo">${ms.length ? 'Nadie coincide con tu búsqueda.' : 'Todavía no hay mentores asignados en el SIAR para esta sede y facultad.'}</div>`;
+      return xs.length ? `<div class="fac">${g === PROGRAMAS[0] ? 'Docentes tutores' : 'Hermanos mayores'} · ${xs.length}</div>` + xs.map(m => opt(m)).join('') : '';
+    }).join('') || `<div class="sinfo">${ms.length ? 'Nadie coincide con tu búsqueda. Si tu nombre no aparece, pide a tu dirección de carrera que te asigne en el SIAR.' : 'Todavía no hay docentes tutores ni hermanos mayores asignados en el SIAR.'}</div>`;
   };
   pinta();
-  let progLibre = p.libre ? p.libre.programa : '';
-  if (progLibre) $$('[data-prog]', el).forEach(x => x.classList.toggle('sel', x.dataset.prog === progLibre));
   el.addEventListener('input', e => { if (e.target.id === 'qm') pinta(); });
-  el.addEventListener('click', e => {
-    if (e.target.closest('[data-act=prev]')) return go('inicio', true);
+  el.addEventListener('click', async e => {
+    if (e.target.closest('[data-act=prev]')) return showWelcome(true);
     const bm = e.target.closest('[data-m]');
-    if (bm) { const m = ms[+bm.dataset.m]; elegirMentor({nombre:m.nombre, programa:m.programa, enSiar:true}); return; }
-    if (e.target.closest('#noEstoy')) { $('#noBox', el).classList.toggle('on'); return; }
-    const bp = e.target.closest('[data-prog]'); if (bp) { progLibre = bp.dataset.prog; $$('[data-prog]', el).forEach(x => x.classList.toggle('sel', x === bp)); return; }
-    if (e.target.closest('#libreOk')) {
-      const nom = $('#mNom', el).value.trim().replace(/\s+/g, ' ');
-      if (nom.split(' ').length < 2) { shake($('#noBox', el)); return toast('Escribe tu nombre y apellido'); }
-      if (!progLibre) { shake($('#noBox', el)); return toast('Elige si eres Docente Tutor o Hermano Mayor'); }
-      setPref({libre:{nombre:nom, programa:progLibre}});
-      elegirMentor({nombre:nom, programa:progLibre, enSiar:false});
+    if (bm && !bm.classList.contains('wait')) {
+      const m = ms[+bm.dataset.m];
+      bm.classList.add('wait'); const sb = bm.querySelector('.sub'), t0 = sb.innerHTML; sb.textContent = 'Cargando tus estudiantes…';
+      const ok = await elegirMentor({nombre:m.nombre, programa:m.programa, enSiar:true}, m);
+      if (!ok) { bm.classList.remove('wait'); sb.innerHTML = t0; }
     }
   });
 };
-function elegirMentor(m) {
-  if (!S.mentor || norm(S.mentor.nombre) !== norm(m.nombre)) { S.sel = {}; S.asis = {}; S.propio = {}; }
-  S.mentor = m; S.modo = m.enSiar ? 'mios' : 'materia';
-  if (m.enSiar) setPref({mentor:{nombre:m.nombre, programa:m.programa}});   // sus asignados del SIAR se ven siempre en la asistencia
-  go(m.enSiar && misRegs().length ? 'ses' : 'est');
+async function elegirMentor(m, info) {
+  if (!S.mentor || norm(S.mentor.nombre) !== norm(m.nombre) || S.mentor.programa !== m.programa) { S.sel = {}; S.asis = {}; S.propio = {}; S.matOff = {}; S.gAb = {}; }
+  if (!(await cargarLista(m))) return false;
+  const c = (info && info.combos && info.combos[0]) || [];
+  S.sede = c[0] || ''; S.fac = c[2] || '';
+  S.mentor = m; S.modo = 'mios';
+  setPref({mentor:{nombre:m.nombre, programa:m.programa}});
+  go(misRegs().length ? 'ses' : 'est');
+  return true;
 }
 const misRegs = () => S.regs.filter(r => r[R.prog] === S.mentor.programa && norm(r[R.asig]) === norm(S.mentor.nombre));
 
@@ -1291,7 +1257,7 @@ function showDone(p, ok, sinUrl, j) {
     if (rb) rb.onclick = async () => { rb.disabled = true; rb.querySelector('span').textContent = 'Enviando…'; const k = await flushCola(); if (k) showDone(p, true); else { rb.disabled = false; rb.querySelector('span').textContent = 'Reintentar envío'; toast('Aún sin conexión. Quedó guardado en este equipo.'); } };
   }
   const ot = $('#otro');
-  if (ot) ot.onclick = () => { const keep = {clave:S.clave, sede:S.sede, fac:S.fac, hito:S.hito, hitos:S.hitos, sedes:S.sedes, facultades:S.facultades, conteo:S.conteo, regs:S.regs, mentor:S.mentor, modo:S.modo};
+  if (ot) ot.onclick = () => { const keep = {clave:S.clave, sede:S.sede, fac:S.fac, hito:S.hito, hitos:S.hitos, mentores:S.mentores, sedes:S.sedes, facultades:S.facultades, conteo:S.conteo, regs:S.regs, mentor:S.mentor, modo:S.modo};
     S = Object.assign(fresh(), keep, {id:nuevoId(), t0:Date.now()}); stage.innerHTML = ''; go(S.mentor.enSiar ? 'ses' : 'est'); };
   $('#fin').onclick = () => { S = fresh(); showWelcome(); };
 }

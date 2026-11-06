@@ -113,6 +113,15 @@ Envío → **un código por estudiante** `XXXXX-YYYYYY-NN` (en la hoja `ME-…-N
   Un ítem del envío = una fila marcada con sus materias marcadas. Un estudiante puede ir en varios ítems (varios semestres):
   el script (v2.4) lo acepta, rechaza solo la misma materia dos veces y le da **un solo código** por estudiante.
 
+## v2.6 · Entrar directo con el nombre (06-nov-2026, pedido de Rafael)
+- El SIAR NO trae correos de mentores («Correo» = estudiante; «Detalle» = solo nombre, 4 filas con correo escrito a mano), así que
+  no se puede validar por correo sin volver a cruzar bases. Se eligió: primera pantalla = **«Selecciona tu nombre»** con TODOS los DT y HM
+  del SIAR (`?action=mentores` → `[nombre, programa, n.º est., [[sede, nombre sede, facultad]]]`, ~18 KB); al elegir,
+  `?action=lista&mentor=&prog=` trae los registros de las sedes·facultades donde tiene asignados. Sin «No estoy en la lista».
+  La pantalla de código de acceso solo aparece si CONFIG tiene código. `inicio` sigue en el script (no lo usa la app).
+- `limpiaAsignado_` quita «Correo docente …@…» de «Detalle». Tras pegar el script: Nueva versión + **Actualizar SIAR** (limpia la caché).
+- **Orden de publicación:** el front 2.6 necesita el script 2.6 (acción `mentores`): primero el script, después el push.
+
 ## Historia v1.x (11 al 27-oct-2026, ya reemplazada)
 - v1: correo docente validado contra BASEDEDATOSDOC, ficha por estudiante con materias del catálogo, un envío por grupo.
 - v1.4: GET por `fetch` con `credentials:'omit'` (JSONP de respaldo) — dispositivos con varias cuentas Google fallaban con JSONP. **Sigue vigente.**

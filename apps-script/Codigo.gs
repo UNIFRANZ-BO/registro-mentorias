@@ -1,6 +1,6 @@
 /** @OnlyCurrentDoc */  // el script solo puede tocar esta hoja, ningún otro archivo de Drive
 /**
- * BITÁCORA DE NIVELACIONES · UNIFRANZ  (v2.4)
+ * BITÁCORA DE NIVELACIONES · UNIFRANZ  (v2.6)
  * Registro de sesiones de Docentes Tutores y Hermanos Mayores. Reemplaza el Google Form
  * «Registro de Sesiones Realizadas de Mentorías». UNA SOLA BASE: el reporte del SIAR
  * («Rep. Ficha est.»), importado como una pestaña más. De ahí salen los estudiantes, sus materias
@@ -31,7 +31,7 @@
  *   (Nunca «Nueva implementación»: cambia la URL.)
  */
 
-const VERSION_APP = '2.4';
+const VERSION_APP = '2.6';
 const ZONA = 'America/La_Paz';
 const H = {             // nombres de pestañas
   CONFIG: 'CONFIG', CARRERAS: 'CARRERAS', SIN_ASIG: 'SIN ASIGNACIÓN',
@@ -253,6 +253,8 @@ const titulo_ = s => String(s || '').toLowerCase().replace(/(^|[\s-])\S/g, c => 
 const cab_ = fila => fila.map(h => norm_(h).replace(/\s+/g, '_'));
 const nombreKey_ = s => norm_(s).replace(/\s+/g, ' ');
 const ciNorm_ = s => String(s || '').toLowerCase().replace(/[^0-9a-z]/g, '');
+// «Detalle» a veces trae el correo escrito a mano («Correo docente doc.x@unifranz.edu.bo  NOMBRE»): se deja solo el nombre.
+const limpiaAsignado_ = s => String(s || '').replace(/correo(\s+docente)?\s*:?\s*/ig, ' ').replace(/\S+@\S+/g, ' ').replace(/\s+/g, ' ').trim();
 const ciMask_ = s => { const d = String(s || '').replace(/\D/g, ''); return d ? '•••' + d.slice(-3) : ''; };
 function sedeCod_(v) { const s = norm_(v); for (const k in SEDES) if (s === norm_(k) || s === norm_(SEDES[k])) return k; return String(v || '').trim().toUpperCase(); }
 function programa_(trat) { const t = norm_(trat); return t.indexOf('hermano') >= 0 ? PROGRAMAS[1] : t.indexOf('tutor') >= 0 ? PROGRAMAS[0] : titulo_(trat); }
@@ -311,7 +313,7 @@ function leerSiar_(cfg) {
     if (!ci || !mat || vistos[clave]) continue;
     vistos[clave] = true;
     lista.push([clave, titulo_(v('nombre', i)), ci, v('correo', i).toLowerCase(), sede, car, (cars[car] || [])[0] || v('carrera', i), fac, Number(v('semestre', i)) || '',
-      mat, v('materia', i), semMateria_(mat) || Number(v('semestre', i)) || '', v('paralelo', i), titulo_(v('docente', i)), prog, titulo_(v('asignado', i)),
+      mat, v('materia', i), semMateria_(mat) || Number(v('semestre', i)) || '', v('paralelo', i), titulo_(v('docente', i)), prog, titulo_(limpiaAsignado_(v('asignado', i))),
       Number(v('hito', i)) || v('hito', i), v('ficha', i), v('detalle', i)]);
   }
   return { lista: lista, error: null };
@@ -434,7 +436,8 @@ function doGet(e) {
       const sh = SpreadsheetApp.getActive().getSheetByName(H.RESP), cfg = config_();
       out = { ok: true, servicio: 'bitacora-nivelaciones', version_app: VERSION_APP, abierta: abierta_(cfg), periodo: cfg.periodo, hitos: cfg.hitos, requiere_clave: !!cfg.clave, respuestas: sh ? Math.max(0, sh.getLastRow() - 1) : 0 };
     } else if (accion === 'inicio') out = inicio_(p.clave);
-    else if (accion === 'lista') out = lista_(p.clave, p.sede, p.fac);
+    else if (accion === 'mentores') out = mentores_(p.clave);
+    else if (accion === 'lista') out = lista_(p.clave, p.sede, p.fac, p.mentor, p.prog);
     else if (accion === 'verificar') out = { ok: true, id: p.id || '', existe: existeId_(String(p.id || '').toUpperCase()) };
     else if (accion === 'guardar') out = guardar_(JSON.parse(p.data || '{}'));
     else out = { ok: false, error: 'Acción desconocida' };
@@ -468,14 +471,35 @@ function inicio_(clave) {
   };
 }
 // Registros de una sede y facultad para la app: nombre, CI parcial, carrera, materia, asignado… (sin correos ni celulares).
-function lista_(clave, sede, fac) {
+// Con «mentor» y «prog»: los registros de las sedes y facultades donde esa persona tiene estudiantes asignados.
+function lista_(clave, sede, fac, mentor, prog) {
   const cfg = config_();
   if (!abierta_(cfg)) return { ok: false, motivo: 'cerrada', mensaje: cfg.mensaje };
   if (!claveOk_(cfg, clave)) return { ok: false, motivo: 'clave' };
-  const S = String(sede || '').toUpperCase(), F = norm_(fac);
-  const regs = siar_(cfg).filter(x => x[4] === S && norm_(x[7]) === F)
+  const todos = siar_(cfg), combos = {};
+  if (mentor) {
+    const M = nombreKey_(mentor), P = String(prog || '');
+    todos.forEach(x => { if (x[15] && nombreKey_(x[15]) === M && (!P || x[14] === P)) combos[x[4] + '|' + norm_(x[7])] = true; });
+  } else combos[String(sede || '').toUpperCase() + '|' + norm_(fac)] = true;
+  const regs = todos.filter(x => combos[x[4] + '|' + norm_(x[7])])
     .map(x => [x[0], x[1], ciMask_(x[2]), x[5], x[6], x[8], x[9], x[10], x[11], x[12], x[13], x[14], x[15], x[16]]);
   return { ok: true, registros: regs };
+}
+// Todos los docentes tutores y hermanos mayores asignados en el SIAR: [nombre, programa, n.º de estudiantes, [[sede, nombre de sede, facultad]]].
+function mentores_(clave) {
+  const cfg = config_();
+  if (!abierta_(cfg)) return { ok: true, abierta: false, mensaje: cfg.mensaje };
+  if (!claveOk_(cfg, clave)) return { ok: false, motivo: 'clave', requiere_clave: true };
+  const m = {};
+  siar_(cfg).forEach(x => {
+    if (!x[15]) return;
+    const k = x[14] + '|' + nombreKey_(x[15]), o = m[k] = m[k] || { n: x[15], p: x[14], e: {}, c: {} }, c = x[4] + '|' + x[7];
+    o.e[ciNorm_(x[2])] = true; o.c[c] = (o.c[c] || 0) + 1;
+  });
+  const mentores = Object.values(m).map(o => [o.n, o.p, Object.keys(o.e).length,
+    Object.keys(o.c).sort((a, b) => o.c[b] - o.c[a]).map(c => { const i = c.indexOf('|'), s = c.slice(0, i); return [s, SEDES[s] || s, c.slice(i + 1)]; })])
+    .sort((a, b) => a[0].localeCompare(b[0], 'es'));
+  return { ok: true, abierta: true, periodo: cfg.periodo, hitos: cfg.hitos, mentores: mentores };
 }
 
 // Un envío: un mentor, un hito y varios estudiantes; cada estudiante con sus materias (claves del SIAR).
