@@ -106,6 +106,13 @@ Envío → **un código por estudiante** `XXXXX-YYYYYY-NN` (en la hoja `ME-…-N
   la app lo pide sola. Con el código vacío, nombres y CI parcial de la lista quedan visibles para quien tenga el enlace.
 - Pantalla 02: «Selecciona tu nombre» · «Estimado docente tutor o hermano mayor: por favor, busca tu nombre en la lista y selecciónalo.»
 
+## v2.5 · Asistencia por estudiante y semestre (06-nov-2026, pedido de Rafael)
+- Grupos = semestre de la materia (desplegables). Cada estudiante aparece **una vez por semestre**, con sus materias de ese semestre
+  como botones (todas marcadas; se desmarcan las no trabajadas en la sesión). Si tiene materias de otro semestre, aparece de nuevo allí.
+- Estado: fila = `filaKey(r)` = estKey + '#' + semestre de la materia; `S.asis`/`S.propio` por fila; `S.matOff[claveSIAR]` = materia desmarcada.
+  Un ítem del envío = una fila marcada con sus materias marcadas. Un estudiante puede ir en varios ítems (varios semestres):
+  el script (v2.4) lo acepta, rechaza solo la misma materia dos veces y le da **un solo código** por estudiante.
+
 ## Historia v1.x (11 al 27-oct-2026, ya reemplazada)
 - v1: correo docente validado contra BASEDEDATOSDOC, ficha por estudiante con materias del catálogo, un envío por grupo.
 - v1.4: GET por `fetch` con `credentials:'omit'` (JSONP de respaldo) — dispositivos con varias cuentas Google fallaban con JSONP. **Sigue vigente.**

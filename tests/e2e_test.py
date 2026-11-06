@@ -70,19 +70,18 @@ async def main():
         assert await pg.locator('#mlist [data-m]').count() == 1
         await shot('02_mentor')
         await pg.click('#mlist [data-m]'); await pg.wait_for_timeout(1200)
-        # ── directo a la asistencia: sus materias por semestre, con sus estudiantes
+        # ── directo a la asistencia: estudiantes por semestre, con sus materias debajo
         assert await scr() == 'ses', 'tras elegir el nombre va directo a la asistencia'
-        assert await pg.locator('.gas').count() == 1 and await pg.locator('.asisrow').count() == 2, 'una materia abierta con 2 estudiantes'
+        assert await pg.locator('.gas').count() == 1 and await pg.locator('.asisrow').count() == 2, 'un semestre abierto con 2 estudiantes'
         assert '2do semestre' in await pg.inner_text('#lest')
-        assert 'hito' in (await pg.inner_text('#fmsg')).lower(), 'falta el hito'
+        assert 'hito' in (await pg.inner_text('#fmsg')).lower(), ('falta el hito', errs)
         await pg.click('[data-hito="3"]'); await pg.wait_for_timeout(200)
         assert 'marca quién asistió' in (await pg.inner_text('#fmsg'))
-        # cerrar y abrir la materia
-        await pg.click('[data-g="AHU-211 (P)"]'); await pg.wait_for_timeout(200)
-        assert await pg.locator('.asisrow').count() == 0
-        await pg.click('[data-g="AHU-211 (P)"]'); await pg.wait_for_timeout(200)
+        await pg.click('[data-g="s2"]'); await pg.wait_for_timeout(200)
+        assert await pg.locator('.asisrow').count() == 0, 'el semestre se cierra'
+        await pg.click('[data-g="s2"]'); await pg.wait_for_timeout(200)
         await shot('03_asistencia', True)
-        # ── agregar a Guina en Embriología (sin asignación)
+        # ── agregar a Guina en Embriología (sin asignación): queda en su misma fila, como otra materia
         await pg.click('#agregar'); await pg.wait_for_timeout(1200)
         assert await scr() == 'est'
         await pg.fill('#qmat', 'embrio'); await pg.wait_for_timeout(300)
@@ -92,17 +91,21 @@ async def main():
         await shot('04_agregar', True)
         assert '1 agregado' in await pg.inner_text('#fmsg')
         await pg.click('#btnNext'); await pg.wait_for_timeout(1200)
-        assert await scr() == 'ses' and await pg.locator('.gas').count() == 2 and await pg.locator('.asisrow').count() == 3
-        assert 'Sin asignación' in await pg.locator('.asisrow[data-e="202|Docente Tutor"]').inner_text()
-        # ── «Todos asistieron» de la materia; tocar de nuevo desmarca (Ana no se registra)
-        await pg.click('[data-gt="Sí"][data-g2="AHU-211 (P)"]'); await pg.wait_for_timeout(200)
-        await pg.locator('.asisrow[data-e="101|Docente Tutor"] [data-a="Sí"]').click(); await pg.wait_for_timeout(200)
-        await pg.locator('.asisrow[data-e="202|Docente Tutor"] [data-a="Sí"]').click(); await pg.wait_for_timeout(200)
-        assert await pg.evaluate('Object.keys(S.asis).sort().join()') == '201|Docente Tutor,202|Docente Tutor'
+        guina = pg.locator('.asisrow', has_text='Gutierrez')
+        assert await scr() == 'ses' and await pg.locator('.asisrow').count() == 2 and await guina.locator('.mt').count() == 2, 'Guina: una fila con 2 materias'
+        assert 'sin asignación' in await guina.inner_text()
+        # ── «Todos asistieron» del semestre; tocar de nuevo desmarca (Ana no se registra)
+        await pg.click('[data-gt="Sí"][data-g2="s2"]'); await pg.wait_for_timeout(200)
+        await pg.locator('.asisrow', has_text='Ojeda').locator('[data-a="Sí"]').click(); await pg.wait_for_timeout(200)
+        assert await pg.locator('.asisrow.si').count() == 1
+        # desmarcar y volver a marcar una materia; sin materias da error
+        await guina.locator('[data-mt="202|Docente Tutor"]').click(); await pg.wait_for_timeout(150)
+        await guina.locator('[data-mt="201|Docente Tutor"]').click(); await pg.wait_for_timeout(150)
+        assert 'al menos una materia' in await pg.inner_text('#fmsg')
+        await guina.locator('[data-mt="201|Docente Tutor"]').click(); await guina.locator('[data-mt="202|Docente Tutor"]').click(); await pg.wait_for_timeout(150)
         await pg.fill('#fHi', '15:00'); await pg.fill('#fHf', '16:30'); await pg.fill('#tAct', 'Repaso de contenidos')
-        emb = pg.locator('.asisrow[data-e="202|Docente Tutor"]')
-        await emb.locator('[data-otra]').click(); await pg.wait_for_timeout(200)
-        await emb.locator('[data-p="hi"]').fill('17:00'); await emb.locator('[data-p="hf"]').fill('17:45')
+        await guina.locator('[data-otra]').click(); await pg.wait_for_timeout(200)
+        await guina.locator('[data-p="hi"]').fill('17:00'); await guina.locator('[data-p="hf"]').fill('17:45')
         assert 'Todo listo' in await pg.inner_text('#fmsg')
         await shot('05_sesion', True)
         # el borrador sobrevive a recargar
@@ -119,10 +122,10 @@ async def main():
         assert d['clave'] == 'niv2026' and d['sede'] == 'LPZ' and d['fac'] == 'Ciencias de la Salud' and d['hito'] == '3'
         assert d['mentor'] == {'nombre': 'Rafael Aramayo', 'programa': 'Docente Tutor'}
         it = {tuple(sorted(x['keys'])): x for x in d['items']}
-        assert sorted(it) == [('201|Docente Tutor',), ('202|Docente Tutor',)], ('solo lo marcado', sorted(it))
-        assert it[('201|Docente Tutor',)]['hi'] == '15:00' and it[('201|Docente Tutor',)]['act'] == 'Repaso de contenidos'
-        assert it[('202|Docente Tutor',)]['hi'] == '17:00' and it[('202|Docente Tutor',)]['hf'] == '17:45'
-        assert await pg.locator('.codes div').count() == 2
+        assert sorted(it) == [('201|Docente Tutor', '202|Docente Tutor')], ('solo lo marcado', sorted(it))
+        g = it[('201|Docente Tutor', '202|Docente Tutor')]
+        assert g['asistio'] == 'Sí' and g['hi'] == '17:00' and g['hf'] == '17:45' and g['act'] == 'Repaso de contenidos'
+        assert await pg.locator('.codes div').count() == 1
         assert await pg.evaluate("localStorage.getItem('bitniv_draft1')") is None
         # ── registrar otro grupo: vuelve a la asistencia, sin marcas y con el mismo hito
         await pg.click('#otro'); await pg.wait_for_timeout(1200)

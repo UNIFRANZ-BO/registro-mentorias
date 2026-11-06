@@ -615,6 +615,10 @@ details.more ol li b{color:var(--txt)}
 .gbar{display:flex;gap:8px;flex-wrap:wrap;padding:10px 12px 2px}
 .gas .asisrow{margin:8px 10px}
 .gas .asisrow:last-child{margin-bottom:10px}
+.mts{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.mt{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;border:1px dashed rgba(255,255,255,.22);background:none;color:var(--mut);font:600 12px var(--fb);cursor:pointer;text-decoration:line-through;text-align:left}
+.mt.on{border:1px solid rgba(0,229,255,.45);background:rgba(0,229,255,.08);color:var(--txt);text-decoration:none}
+.mt i{font-style:normal;color:var(--c);font-weight:800}
 .rowc{display:flex;align-items:center;gap:12px;width:100%;padding:11px 14px;border:0;border-top:1px solid rgba(140,160,255,.08);background:none;color:var(--txt);text-align:left;cursor:pointer;font:inherit}
 .rowc:first-of-type{border-top:0}
 .rowc:hover{background:rgba(0,229,255,.05)}
@@ -706,7 +710,7 @@ details.more ol li b{color:var(--txt)}
 // ⬇⬇⬇ Pega aquí la URL de tu implementación de Apps Script (termina en /exec) ⬇⬇⬇
 const API_URL_DEFECTO = 'https://script.google.com/macros/s/AKfycbxwv1mH1KPyZs9gXbATNo5Q6HeCTFlmTsfh98iyF0Ogh_-mJLURTOXlgEHhVdsmDyDq8Q/exec';
 // ⬆⬆⬆ ------------------------------------------------------------------------ ⬆⬆⬆
-const VERSION = '2.4';
+const VERSION = '2.5';
 const LS_DRAFT = 'bitniv_draft1', LS_COLA = 'bitniv_cola1', LS_PREF = 'bitniv_pref1';
 const LOGO_FULL = '__LOGO_FULL__';
 const LOGO_WORD = '__LOGO_WORD__';
@@ -759,7 +763,7 @@ const DEMO = {
 // Todo por clave del SIAR (estudiante × materia). sel: agregados a mano {clave: true}; asis: {clave: 'Sí'|'No'} (solo se registra lo marcado);
 // propio: {clave: {fecha, hi, hf}} (otra fecha u horario); gAb: {materia: abierta?} en la pantalla de asistencia
 const fresh = () => ({id:null, t0:null, clave:'', sede:'', fac:'', hito:'', hitos:[], sedes:[], facultades:[], conteo:{}, regs:[], mentor:null,
-  modo:'mios', sel:{}, matAbiertas:{}, gAb:{}, asis:{}, propio:{}, ses:{fecha:'', hi:'', hf:'', act:'', obs:''}, scr:null});
+  modo:'mios', sel:{}, matAbiertas:{}, gAb:{}, asis:{}, propio:{}, matOff:{}, ses:{fecha:'', hi:'', hf:'', act:'', obs:''}, scr:null});
 let S = fresh();
 const nuevoId = () => {
   const r = (crypto.getRandomValues ? Array.from(crypto.getRandomValues(new Uint8Array(6))) : Array.from({length:6}, () => Math.random()*256|0))
@@ -977,9 +981,9 @@ SCR.est = function (el) {
   el.addEventListener('click', e => {
     const t = e.target;
     if (t.closest('[data-act=prev]')) return libre ? go('mentor', true) : go('ses', true);
-    const rb = t.closest('.rowc'); if (rb) { const k = rb.dataset.k; if (S.sel[k]) delete S.sel[k]; else { S.sel[k] = true; const r = S.regs.find(x => x[R.key] === k); if (r) S.gAb[r[R.mat]] = true; } rb.classList.toggle('sel', !!S.sel[k]); return refrescaEst(el); }
+    const rb = t.closest('.rowc'); if (rb) { const k = rb.dataset.k; if (S.sel[k]) delete S.sel[k]; else { S.sel[k] = true; const r = S.regs.find(x => x[R.key] === k); if (r) S.gAb['s' + r[R.matSem]] = true; } rb.classList.toggle('sel', !!S.sel[k]); return refrescaEst(el); }
     const tt = t.closest('[data-todos]');
-    if (tt) { const rs = S.regs.filter(r => r[R.mat] === tt.dataset.todos); const todos = rs.every(r => S.sel[r[R.key]]); rs.forEach(r => { if (todos) delete S.sel[r[R.key]]; else S.sel[r[R.key]] = true; }); if (!todos && rs[0]) S.gAb[tt.dataset.todos] = true; pintaListaMat(el); return refrescaEst(el); }
+    if (tt) { const rs = S.regs.filter(r => r[R.mat] === tt.dataset.todos); const todos = rs.every(r => S.sel[r[R.key]]); rs.forEach(r => { if (todos) delete S.sel[r[R.key]]; else S.sel[r[R.key]] = true; }); if (!todos && rs[0]) S.gAb['s' + rs[0][R.matSem]] = true; pintaListaMat(el); return refrescaEst(el); }
     const mb = t.closest('[data-mat]'); if (mb) { const k = mb.dataset.mat; S.matAbiertas[k] = !S.matAbiertas[k]; return pintaListaMat(el); }
     if (t.closest('#btnNext')) {
       const er = errEst(); if (er) { toast(er); shake($('#lmat', el)); return; }
@@ -1001,10 +1005,18 @@ function pintaListaMat(el) {
 }
 // Registros visibles en la asistencia: sus asignados + los agregados a mano. Marcados = con Asistió/No asistió.
 const visRegs = () => { const m = S.mentor && S.mentor.enSiar ? misRegs() : [], ya = new Set(m.map(r => r[R.key])); return m.concat(S.regs.filter(r => S.sel[r[R.key]] && !ya.has(r[R.key]))); };
-const selRegs = () => visRegs().filter(r => S.asis[r[R.key]]);
-// Ítems del envío: un estudiante con la misma asistencia y el mismo horario (sus materias de esa sesión van juntas).
-const selEst = () => { const m = {}; selRegs().forEach(r => { const k = r[R.key], ik = estKey(r) + '|' + S.asis[k] + '|' + JSON.stringify(S.propio[k] || ''); (m[ik] = m[ik] || []).push(r); }); return m; };
-const kOf = rs => rs[0][R.key];
+// Fila de asistencia = un estudiante en un semestre (de la materia). asis/propio van por fila; matOff = materias desmarcadas.
+const filaKey = r => estKey(r) + '#' + r[R.matSem];
+const selRegs = () => visRegs().filter(r => S.asis[filaKey(r)] && !S.matOff[r[R.key]]);
+// Ítems del envío: una fila marcada con sus materias marcadas.
+const selEst = () => { const m = {}; selRegs().forEach(r => { const k = filaKey(r); (m[k] = m[k] || []).push(r); }); return m; };
+const kOf = rs => filaKey(rs[0]);
+function filasPorSemestre(regs) {   // [{sem, filas:[{k, rs}]}] ordenado por semestre y nombre
+  const g = {};
+  regs.forEach(r => { const sm = r[R.matSem] || 99, k = filaKey(r); g[sm] = g[sm] || {}; (g[sm][k] = g[sm][k] || []).push(r); });
+  return Object.keys(g).sort((a, b) => a - b).map(sm => ({sem: +sm === 99 ? '' : +sm,
+    filas: Object.entries(g[sm]).map(([k, rs]) => ({k, rs: rs.sort((a, b) => a[R.matNom].localeCompare(b[R.matNom], 'es'))})).sort((a, b) => a.rs[0][R.nom].localeCompare(b.rs[0][R.nom], 'es'))}));
+}
 function errEst() {
   const n = Object.keys(S.sel).length;
   if (!S.mentor.enSiar && !n) return 'Marca al menos un estudiante.';
@@ -1032,18 +1044,20 @@ function sesError(s) {
 const sesDe = k => S.propio[k] ? Object.assign({}, S.ses, S.propio[k]) : S.ses;
 function errSes() {
   if (!S.hito) return 'selecciona el hito.';
-  const ms = selRegs();
-  if (!ms.length) return 'abre la materia de la sesión y marca quién asistió.';
-  if (Object.keys(selEst()).length > MAX_EST) return `máximo ${MAX_EST} estudiantes por envío.`;
-  const si = ms.filter(r => S.asis[r[R.key]] === 'Sí');
-  for (const r of si) { const k = r[R.key], e = sesError(sesDe(k)); if (e) return (S.propio[k] ? r[R.nom] + ': ' : '') + e; }
+  const filas = {}; visRegs().forEach(r => { const k = filaKey(r); if (S.asis[k]) (filas[k] = filas[k] || []).push(r); });
+  const ks = Object.keys(filas);
+  if (!ks.length) return 'abre el semestre de la sesión y marca quién asistió.';
+  for (const k of ks) if (filas[k].every(r => S.matOff[r[R.key]])) return filas[k][0][R.nom] + ': deja marcada al menos una materia.';
+  if (ks.length > MAX_EST) return `máximo ${MAX_EST} estudiantes por envío.`;
+  const si = ks.filter(k => S.asis[k] === 'Sí');
+  for (const k of si) { const e = sesError(sesDe(k)); if (e) return (S.propio[k] ? filas[k][0][R.nom] + ': ' : '') + e; }
   if (si.length && !S.ses.act.trim()) return 'escribe las actividades realizadas.';
   return '';
 }
 SCR.ses = function (el) {
   const libre = !S.mentor.enSiar;
   if (!S.ses.fecha) S.ses.fecha = isoHoy();
-  el.innerHTML = `<div class="card">${qHead(libre ? '04' : '03', S.mentor.programa, 'Asistencia y sesión', libre ? 'Marca quién asistió y quién no.' : 'Tus materias y estudiantes asignados en el SIAR, por semestre. Abre la materia de esta sesión y marca quién asistió. Solo se registra a quien marques.')}
+  el.innerHTML = `<div class="card">${qHead(libre ? '04' : '03', S.mentor.programa, 'Asistencia y sesión', (libre ? 'Marca quién asistió y quién no.' : 'Tus estudiantes asignados en el SIAR, por semestre. Abre el semestre de esta sesión y marca quién asistió. Solo se registra a quien marques.') + ' Debajo de cada nombre están sus materias: desmarca las que no trabajaste en esta sesión.')}
     ${hitoRow()}
     <div id="lest"></div>
     <button class="linkbtn otra" id="agregar" style="margin:0 0 14px">+ Agregar estudiante de otra materia</button>
@@ -1058,28 +1072,29 @@ SCR.ses = function (el) {
       <div class="tx"><textarea id="tObs" class="short" maxlength="1000">${esc(S.ses.obs)}</textarea><span class="cnt"><span id="cO">${S.ses.obs.length}</span> / 1000</span></div></section>
     <div class="fmsg" id="fmsg"></div>
     <div class="fnav"><button class="btn prime big" id="btnNext"><span>Revisar y enviar</span>${IC.arrowR}</button><button class="linkbtn cancel" data-act="prev">${libre ? 'Volver a los estudiantes' : 'Cambiar de persona'}</button></div></div>`;
-  const fila = r => {
-    const k = r[R.key], a = S.asis[k], p = S.propio[k], extra = !misRegs().includes(r);
-    const asig = extra ? ' · ' + (r[R.asig] ? 'Asignado: ' + esc(r[R.asig]) : 'Sin asignación') : '';
-    return `<div class="asisrow ${a === 'Sí' ? 'si' : a === 'No' ? 'no' : ''}" data-e="${esc(k)}"><div class="an"><div><b>${esc(r[R.nom])}</b><small>${esc(r[R.carNom])} · ${semTxt(r[R.sem])} · Par. ${esc(r[R.par])} · CI ${esc(r[R.ci])}${asig}</small></div></div>
+  const filaHtml = ({k, rs}) => {
+    const a = S.asis[k], p = S.propio[k], r0 = rs[0], mias = misRegs();
+    const chips = rs.map(r => { const off = !!S.matOff[r[R.key]], extra = !mias.includes(r);
+      const tag = extra ? ` · ${r[R.asig] ? 'asig. ' + esc(r[R.asig]) : 'sin asignación'}` : '';
+      return `<button class="mt ${off ? '' : 'on'}" data-mt="${esc(r[R.key])}" aria-pressed="${!off}"><i>${off ? '' : '✓'}</i>${esc(r[R.matNom])}${tag}</button>`; }).join('');
+    return `<div class="asisrow ${a === 'Sí' ? 'si' : a === 'No' ? 'no' : ''}" data-e="${esc(k)}"><div class="an"><div><b>${esc(r0[R.nom])}</b><small>${esc(r0[R.carNom])} · ${semTxt(r0[R.sem])} · Par. ${esc([...new Set(rs.map(r => r[R.par]))].join(', '))} · CI ${esc(r0[R.ci])}</small></div></div>
+      <div class="mts">${chips}</div>
       <div class="ab"><button class="sn ${a === 'Sí' ? 'on' : ''}" data-a="Sí">Asistió</button><button class="sn no ${a === 'No' ? 'on' : ''}" data-a="No">No asistió</button></div>
       ${a === 'Sí' ? (p ? `<div class="propio"><div class="fgrid"><label class="fld fecha full">Su fecha<input data-p="fecha" type="date" max="${isoHoy()}" value="${esc(p.fecha)}"></label><label class="fld">Inicio<input data-p="hi" type="time" value="${esc(p.hi)}"></label><label class="fld">Conclusión<input data-p="hf" type="time" value="${esc(p.hf)}"></label></div><button class="linkbtn" data-quitar>Usar la sesión del grupo</button></div>`
         : '<button class="linkbtn otra" data-otra>Otra fecha u horario para este estudiante</button>') : ''}</div>`;
   };
+  const grupos = () => filasPorSemestre(visRegs());
+  const abierto = (gk, total) => S.gAb[gk] !== undefined ? S.gAb[gk] : total <= 15;
   const pintaLista = () => {
-    const vis = visRegs(), pocos = vis.length <= 15;
-    let sem = null, html = '';
-    grupoMateria(vis).forEach(rs => {
-      const r0 = rs[0], gk = r0[R.mat], nm = rs.filter(r => S.asis[r[R.key]]).length;
-      const ab = S.gAb[gk] !== undefined ? S.gAb[gk] : pocos;
-      if (r0[R.matSem] !== sem) { sem = r0[R.matSem]; html += `<div class="fac">${semTxt(sem)}</div>`; }
-      html += `<div class="grp gas ${ab ? 'abierta' : ''}"><button class="grph gtog" data-g="${esc(gk)}"><div><b>${esc(r0[R.matNom])}</b><small class="gcnt">${esc(r0[R.mat])} · ${rs.length} estudiante${rs.length === 1 ? '' : 's'}${nm ? ` · <span>${nm} marcado${nm === 1 ? '' : 's'}</span>` : ''}</small></div><span class="chev">${ab ? '▴' : '▾'}</span></button>
-        ${ab ? `<div class="gbar"><button class="sbtn" data-gt="Sí" data-g2="${esc(gk)}">Todos asistieron</button><button class="sbtn del" data-gt="No" data-g2="${esc(gk)}">Nadie asistió</button></div>${rs.map(fila).join('')}` : ''}</div>`;
-    });
-    $('#lest', el).innerHTML = html || '<div class="sinfo">No hay estudiantes. Usa «Agregar estudiante de otra materia».</div>';
+    const gs = grupos(), total = gs.reduce((n, g) => n + g.filas.length, 0);
+    $('#lest', el).innerHTML = gs.map(g => {
+      const gk = 's' + g.sem, ab = abierto(gk, total), nm = g.filas.filter(f => S.asis[f.k]).length, nMat = new Set(g.filas.flatMap(f => f.rs.map(r => r[R.mat]))).size;
+      return `<div class="grp gas ${ab ? 'abierta' : ''}"><button class="grph gtog" data-g="${esc(gk)}"><div><b>${semTxt(g.sem)}</b><small class="gcnt">${g.filas.length} estudiante${g.filas.length === 1 ? '' : 's'} · ${nMat} materia${nMat === 1 ? '' : 's'}${nm ? ` · <span>${nm} marcado${nm === 1 ? '' : 's'}</span>` : ''}</small></div><span class="chev">${ab ? '▴' : '▾'}</span></button>
+        ${ab ? `<div class="gbar"><button class="sbtn" data-gt="Sí" data-g2="${esc(gk)}">Todos asistieron</button><button class="sbtn del" data-gt="No" data-g2="${esc(gk)}">Nadie asistió</button></div>${g.filas.map(filaHtml).join('')}` : ''}</div>`;
+    }).join('') || '<div class="sinfo">No hay estudiantes. Usa «Agregar estudiante de otra materia».</div>';
   };
   const refresca = () => {
-    const ms = selRegs(), nSi = ms.filter(r => S.asis[r[R.key]] === 'Sí').length;
+    const ms = selRegs(), ks = Object.keys(selEst()), nSi = ks.filter(k => S.asis[k] === 'Sí').length;
     $('#secSes', el).hidden = !nSi;
     const e1 = sesError(S.ses), d = $('#dur', el);
     d.classList.toggle('err', !!e1 && !!(S.ses.hi && S.ses.hf));
@@ -1087,7 +1102,7 @@ SCR.ses = function (el) {
     $('#cA', el).textContent = S.ses.act.length; $('#cO', el).textContent = S.ses.obs.length;
     const er = errSes(), f = $('#fmsg', el), nE = new Set(ms.map(estKey)).size;
     f.className = 'fmsg' + (er ? '' : ' ok');
-    f.textContent = er ? 'Falta: ' + er : `✓ ${nE} estudiante${nE === 1 ? '' : 's'} marcado${nE === 1 ? '' : 's'} (${nSi} asistencia${nSi === 1 ? '' : 's'}). Todo listo para revisar.`;
+    f.textContent = er ? 'Falta: ' + er : `✓ ${nE} estudiante${nE === 1 ? '' : 's'} marcado${nE === 1 ? '' : 's'} · ${ms.length} materia${ms.length === 1 ? '' : 's'}. Todo listo para revisar.`;
     $('#btnNext', el).classList.toggle('wait', !!er);
     saveDraft();
   };
@@ -1097,8 +1112,9 @@ SCR.ses = function (el) {
     if (t.closest('[data-act=prev]')) return libre ? go('est', true) : go('mentor', true);
     if (t.closest('#agregar')) return go('est');
     const hb = t.closest('[data-hito]'); if (hb) { S.hito = hb.dataset.hito; $$('[data-hito]', el).forEach(x => x.classList.toggle('sel', x === hb)); return refresca(); }
-    const gt = t.closest('[data-g]'); if (gt) { const g = gt.dataset.g, ab = S.gAb[g] !== undefined ? S.gAb[g] : visRegs().length <= 15; S.gAb[g] = !ab; pintaLista(); return refresca(); }
-    const gb = t.closest('[data-gt]'); if (gb) { visRegs().filter(r => r[R.mat] === gb.dataset.g2).forEach(r => { S.asis[r[R.key]] = gb.dataset.gt; }); pintaLista(); return refresca(); }
+    const gt = t.closest('[data-g]'); if (gt) { const gs = grupos(), total = gs.reduce((n, g) => n + g.filas.length, 0); S.gAb[gt.dataset.g] = !abierto(gt.dataset.g, total); pintaLista(); return refresca(); }
+    const gb = t.closest('[data-gt]'); if (gb) { const g = grupos().find(x => 's' + x.sem === gb.dataset.g2); if (g) g.filas.forEach(f => { S.asis[f.k] = gb.dataset.gt; }); pintaLista(); return refresca(); }
+    const mt = t.closest('[data-mt]'); if (mt) { const k = mt.dataset.mt; if (S.matOff[k]) delete S.matOff[k]; else S.matOff[k] = true; pintaLista(); return refresca(); }
     const row = t.closest('[data-e]'); const k = row && row.dataset.e;
     const ba = t.closest('[data-a]'); if (ba && k) { if (S.asis[k] === ba.dataset.a) { delete S.asis[k]; delete S.propio[k]; } else S.asis[k] = ba.dataset.a; pintaLista(); return refresca(); }
     if (t.closest('[data-otra]') && k) { S.propio[k] = {fecha:S.ses.fecha, hi:S.ses.hi, hf:S.ses.hf}; pintaLista(); return refresca(); }
