@@ -135,5 +135,14 @@ const rs=ss.getSheetByName('RESUMEN');for(let r=1;r<=rs.getLastRow();r++){const 
 if(SEP===';'){const f=String(rs.get(4,2));if(!/;/.test(f))fallo('RESUMEN sin «;»: '+f)}
 {const h=ss.getSheetByName('BASEDEDATOS');h.name='Rep. Ficha est.';const r=ctx.leerSiar_(ctx.config_());if(r.error||!r.lista.length)fallo('no encuentra «Rep. Ficha est.»: '+r.error);h.name='BASEDEDATOS'}
 {const vieja=ss.getSheetByName('BASEDEDATOS'),datos=vieja.d;vieja.d=[];ss.insertSheet('Rep. Ficha est.').d=datos;ctx.menuActualizarSiar();const sh=ss._sheets.filter(x=>x.name==='BASEDEDATOS'||x.name==='Rep. Ficha est.');if(sh.length!==1||sh[0].name!=='BASEDEDATOS'||!sh[0].d.length)fallo('reimportación: '+ss._sheets.map(x=>x.name));const i3=get('inicio',{clave:'NIV2026'});if(!i3.sedes.length)fallo('tras reimportar no hay sedes');const v=ss._sheets.filter(x=>!x._hid).map(x=>x.name).join();if(v!=='RESPUESTAS,RESUMEN,SIN ASIGNACIÓN,BASEDEDATOS,CONFIG,CARRERAS')fallo('orden tras reimportar '+v)}
+{const base={clave:'NIV2026',sede:'LPZ',fac:'Ciencias de la Salud',hito:'3',mentor:{nombre:'Rafael Aramayo',programa:'Docente Tutor'},version:'t'};
+ const ks=ctx.siar_(ctx.config_()).filter(x=>x[1]==='Guina Veronica Gutierrez Mamani').map(x=>x[0]);
+ if(ks.length<2)fallo('mock: Guina debería tener 2 materias '+ks);
+ const it=(k,hi,hf)=>({keys:[k],asistio:'Sí',fecha:ctx.Utilities.formatDate(new Date(),'America/La_Paz','yyyy-MM-dd'),hi,hf,act:'Repaso'});
+ const r1=ctx.guardar_(Object.assign({},base,{id:'ME-PARTE-AAAAA1',items:[it(ks[0],'08:00','09:00'),it(ks[1],'10:00','11:00')]}));
+ console.log('dos partes',JSON.stringify(r1));
+ if(!r1.ok||r1.codigos.length!==1||r1.estudiantes!==1||r1.filas!==2)fallo('mismo estudiante en dos partes');
+ const r2=ctx.guardar_(Object.assign({},base,{id:'ME-PARTE-AAAAA2',items:[it(ks[0],'08:00','09:00'),it(ks[0],'10:00','11:00')]}));
+ if(r2.ok||!/dos veces/.test(r2.detalle||''))fallo('misma materia dos veces debía rechazarse '+JSON.stringify(r2));}
 const cab=ctx.cabResp_();if(new Set(cab).size!==cab.length)fallo('cabecera con títulos repetidos');
 console.log('\nOK · todas las comprobaciones pasaron (SEP='+SEP+')');

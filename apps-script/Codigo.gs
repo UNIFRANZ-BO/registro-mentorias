@@ -1,6 +1,6 @@
 /** @OnlyCurrentDoc */  // el script solo puede tocar esta hoja, ningún otro archivo de Drive
 /**
- * BITÁCORA DE NIVELACIONES · UNIFRANZ  (v2.1)
+ * BITÁCORA DE NIVELACIONES · UNIFRANZ  (v2.4)
  * Registro de sesiones de Docentes Tutores y Hermanos Mayores. Reemplaza el Google Form
  * «Registro de Sesiones Realizadas de Mentorías». UNA SOLA BASE: el reporte del SIAR
  * («Rep. Ficha est.»), importado como una pestaña más. De ahí salen los estudiantes, sus materias
@@ -31,7 +31,7 @@
  *   (Nunca «Nueva implementación»: cambia la URL.)
  */
 
-const VERSION_APP = '2.1';
+const VERSION_APP = '2.4';
 const ZONA = 'America/La_Paz';
 const H = {             // nombres de pestañas
   CONFIG: 'CONFIG', CARRERAS: 'CARRERAS', SIN_ASIG: 'SIN ASIGNACIÓN',
@@ -503,9 +503,11 @@ function guardar_(d) {
     const C = cabResp_(), dupes = clavesExistentes_(sh), ahora = new Date(), filas = [], codigos = [];
     const extra = [cfg.periodo, d.movil ? 'Móvil' : 'Computadora', txt_(d.fecha_local, 40), txt_(d.version, 10)];
     let nDup = 0;
-    v.items.forEach((it, i) => {
-      const cod = id + '-' + ('0' + (i + 1)).slice(-2), n = it.regs.length;
-      codigos.push({ codigo: cod.replace(/^ME-/, ''), estudiante: it.regs[0][1] });
+    const codEst = {};
+    v.items.forEach(it => {
+      const ke = ciNorm_(it.regs[0][2]), n = it.regs.length;
+      if (!codEst[ke]) { codEst[ke] = id + '-' + ('0' + (codigos.length + 1)).slice(-2); codigos.push({ codigo: codEst[ke].replace(/^ME-/, ''), estudiante: it.regs[0][1] }); }
+      const cod = codEst[ke];
       it.regs.forEach(x => {
         const clave = [nombreKey_(v.mentor.nombre), ciNorm_(x[2]), x[9], String(v.hito), it.fecha ? fmtFecha_(it.fecha) : ''].join('|');
         const dup = !!dupes[clave]; if (dup) nDup++; dupes[clave] = true;
@@ -518,7 +520,7 @@ function guardar_(d) {
     });
     if (filas[0].length !== C.length) throw new Error('Fila de ' + filas[0].length + ' columnas para ' + C.length + ' títulos');
     sh.getRange(sh.getLastRow() + 1, 1, filas.length, filas[0].length).setValues(filas);
-    return { ok: true, id: id, filas: filas.length, estudiantes: v.items.length, duplicados: nDup, codigos: codigos };
+    return { ok: true, id: id, filas: filas.length, estudiantes: codigos.length, duplicados: nDup, codigos: codigos };
   } finally { lock.releaseLock(); }
 }
 function clavesExistentes_(sh) {
@@ -558,8 +560,7 @@ function validarEnvio_(d, cfg, prueba) {
       }
     }
     const kEst = ciNorm_(regs[0][2]);
-    if (usados[kEst]) return { error: n + 'está repetido en el envío' };
-    usados[kEst] = true;
+    for (const x of regs) { const u = kEst + '|' + x[9]; if (usados[u]) return { error: n + 'la materia ' + x[10] + ' está dos veces en el envío' }; usados[u] = true; }
     const asistio = siNo_(it.asistio);
     if (!asistio) return { error: n + 'falta indicar si asistió' };
     const r = { regs: regs, asistio: asistio, fecha: '', hi: '', hf: '', dur: '', act: '', obs: '' };
