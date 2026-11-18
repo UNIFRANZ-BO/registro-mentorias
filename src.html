@@ -710,7 +710,7 @@ details.more ol li b{color:var(--txt)}
 // ⬇⬇⬇ Pega aquí la URL de tu implementación de Apps Script (termina en /exec) ⬇⬇⬇
 const API_URL_DEFECTO = 'https://script.google.com/macros/s/AKfycbxwv1mH1KPyZs9gXbATNo5Q6HeCTFlmTsfh98iyF0Ogh_-mJLURTOXlgEHhVdsmDyDq8Q/exec';
 // ⬆⬆⬆ ------------------------------------------------------------------------ ⬆⬆⬆
-const VERSION = '2.6';
+const VERSION = '2.7';
 const LS_DRAFT = 'bitniv_draft1', LS_COLA = 'bitniv_cola1', LS_PREF = 'bitniv_pref1';
 const LOGO_FULL = '__LOGO_FULL__';
 const LOGO_WORD = '__LOGO_WORD__';
@@ -880,11 +880,9 @@ async function cargarLista(m) {
 /* ---------- 2 · ¿quién eres? ---------- */
 SCR.mentor = function (el) {
   const ms = S.mentores.map(x => ({nombre:x[0], programa:x[1], n:x[2], combos:x[3] || []})), p = pref();
-  const yo = p.mentor && ms.find(m => norm(m.nombre) === norm(p.mentor.nombre) && m.programa === p.mentor.programa);
   const donde = m => m.combos.map(c => c[1] + (c[2] ? ' · ' + c[2] : '')).join(' / ');
   const opt = (m, cls) => `<button class="opt ${cls || ''}" data-m="${ms.indexOf(m)}"><span class="lbl">${cls ? '¿Eres ' + esc(m.nombre) + '?' : esc(m.nombre)}<span class="sub">${cls ? esc(m.programa) + ' · ' : ''}${m.n} estudiante${m.n === 1 ? '' : 's'} asignado${m.n === 1 ? '' : 's'} · ${esc(donde(m))}</span></span><span class="chk">${IC.check}</span></button>`;
   el.innerHTML = `<div class="card">${qHead('01', 'Bitácora de nivelaciones', 'Selecciona tu nombre', 'Estimado docente tutor o hermano mayor: por favor, busca tu nombre en la lista y selecciónalo.')}
-    ${yo ? opt(yo, 'yo') : ''}
     <div class="search">${IC.search}<input id="qm" type="search" autocomplete="off" spellcheck="false" placeholder="Escribe tu nombre o apellido"></div>
     <div id="mlist" class="mlist2"></div>
     <div class="fnav"><button class="linkbtn cancel" data-act="prev">Volver al inicio</button></div></div>`;
@@ -914,7 +912,7 @@ async function elegirMentor(m, info) {
   const c = (info && info.combos && info.combos[0]) || [];
   S.sede = c[0] || ''; S.fac = c[2] || '';
   S.mentor = m; S.modo = 'mios';
-  setPref({mentor:{nombre:m.nombre, programa:m.programa}});
+
   go(misRegs().length ? 'ses' : 'est');
   return true;
 }
