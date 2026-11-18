@@ -720,7 +720,7 @@ details.more ol li b{color:var(--txt)}
 // ⬇⬇⬇ Pega aquí la URL de tu implementación de Apps Script (termina en /exec) ⬇⬇⬇
 const API_URL_DEFECTO = 'https://script.google.com/macros/s/AKfycbxwv1mH1KPyZs9gXbATNo5Q6HeCTFlmTsfh98iyF0Ogh_-mJLURTOXlgEHhVdsmDyDq8Q/exec';
 // ⬆⬆⬆ ------------------------------------------------------------------------ ⬆⬆⬆
-const VERSION = '2.9';
+const VERSION = '2.10';
 const LS_DRAFT = 'bitniv_draft1', LS_COLA = 'bitniv_cola1', LS_PREF = 'bitniv_pref1';
 const LOGO_FULL = '__LOGO_FULL__';
 const LOGO_WORD = '__LOGO_WORD__';
@@ -1281,7 +1281,7 @@ function showDone(p, ok, sinUrl, j) {
   } else {
     el.innerHTML = `<div class="fin"><div class="badge warn"><svg viewBox="0 0 70 70"><path d="M35 18v22M35 50v1"/></svg></div>
       <div class="modlbl" style="color:var(--y)">Guardado en este equipo</div><h2 class="modtitle"><span>${sinUrl ? 'El registro aún no está conectado' : 'No pudimos conectar con el servidor'}</span></h2>
-      <p class="moddesc">Tu registro quedó guardado en este dispositivo y se enviará solo la próxima vez que abras esta página con internet.</p>${lista}
+      <p class="moddesc">Tu registro quedó guardado en este equipo y se enviará solo cuando vuelva el internet con esta página abierta, o la próxima vez que abras este mismo enlace <b>en este equipo y este navegador</b>. Puedes cerrar la página: no se pierde. No lo llenes de nuevo.</p>${lista}
       <div class="nav" style="justify-content:center;gap:12px;flex-wrap:wrap">${sinUrl ? '' : `<button class="btn prime" id="retry"><span>Reintentar envío</span>${IC.send}</button>`}<button class="btn ghost" id="fin"><span>Finalizar</span></button></div></div>`;
     const rb = $('#retry');
     if (rb) rb.onclick = async () => { rb.disabled = true; rb.querySelector('span').textContent = 'Enviando…'; const k = await flushCola(); if (k) showDone(p, true); else { rb.disabled = false; rb.querySelector('span').textContent = 'Reintentar envío'; toast('Aún sin conexión. Quedó guardado en este equipo.'); } };
@@ -1300,12 +1300,12 @@ function pintaPendientes() {
   if (!c.length) { box.innerHTML = ''; return; }
   box.innerHTML = `<div class="resume pend"><b>${c.length === 1 ? 'Tienes 1 registro sin enviar' : `Tienes ${c.length} registros sin enviar`}</b> en este equipo (no hubo conexión al enviarlo):
     <ul>${c.map(p => `<li>${esc(resumenPend(p))} · código <b>${esc(p.id.replace(/^ME-/, ''))}</b></li>`).join('')}</ul>
-    Se enviará${c.length === 1 ? '' : 'n'} solo${c.length === 1 ? '' : 's'} cuando haya internet, sin duplicarse. No lo llenes de nuevo.
+    Se enviará${c.length === 1 ? '' : 'n'} solo${c.length === 1 ? '' : 's'} en cuanto haya internet mientras esta página esté abierta (o pulsa «Enviar ahora»), sin duplicarse. Si cierras la página, se enviará la próxima vez que abras este enlace en este mismo equipo y navegador. No lo llenes de nuevo.
     <div class="row"><button class="btn prime" id="pendGo"><span>Enviar ahora</span>${IC.send}</button></div></div>`;
   $('#pendGo').onclick = async () => {
     const b = $('#pendGo'); b.classList.add('wait'); b.querySelector('span').textContent = 'Enviando…';
     const k = await flushCola();
-    if (!k) { toast('Aún sin conexión. Quedó guardado y se enviará solo.'); b.classList.remove('wait'); b.querySelector('span').textContent = 'Enviar ahora'; }
+    if (!k) { toast('Aún sin conexión. Sigue guardado en este equipo; se enviará cuando vuelva el internet.'); b.classList.remove('wait'); b.querySelector('span').textContent = 'Enviar ahora'; }
     pintaPendientes();
   };
 }
