@@ -130,6 +130,14 @@ Envío → **un código por estudiante** `XXXXX-YYYYYY-NN` (en la hoja `ME-…-N
   izquierda: verde «Servidor conectado» / ámbar «Reconectando…» / rojo «Sin conexión al servidor» (ping al abrir; eventos online/offline).
   La prueba e2e simula la red caída (`FALLAS`) en ambos casos.
 
+## v2.9 · Registros pendientes visibles (18-nov-2026)
+- Rafael temía duplicados por el reenvío automático. No hay: la cola guarda el envío con su mismo ID y `guardar_` responde
+  `duplicado:true` sin escribir si el ID ya está en RESPUESTAS. Se mantiene el reenvío automático (perder un registro es peor).
+- Inicio: `#pendBox` lista lo pendiente en ese equipo (hito · n.º estudiantes · fecha · código) con «Enviar ahora» y «No lo llenes de nuevo».
+  Al enviarse solo: toast «Tu registro pendiente se envió · código …».
+- `codigosLocales` ahora da un código por estudiante (sin repetir nombres), como el servidor. Códigos: ID de envío (uno por envío) y
+  «Código de registro» = ID-NN (uno por estudiante en ese envío; todas sus filas/materias lo comparten).
+
 ## Historia v1.x (11 al 27-oct-2026, ya reemplazada)
 - v1: correo docente validado contra BASEDEDATOSDOC, ficha por estudiante con materias del catálogo, un envío por grupo.
 - v1.4: GET por `fetch` con `credentials:'omit'` (JSONP de respaldo) — dispositivos con varias cuentas Google fallaban con JSONP. **Sigue vigente.**

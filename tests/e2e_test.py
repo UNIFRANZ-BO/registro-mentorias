@@ -2,7 +2,7 @@
 Requisitos: pip install playwright && playwright install chromium
 Uso: python tests/e2e_test.py [ancho]   (390 por defecto; genera capturas en tests/shots/)
 """
-import asyncio, json, pathlib, sys
+import asyncio, json, pathlib, sys, time
 from urllib.parse import urlparse, parse_qs
 from playwright.async_api import async_playwright
 
@@ -23,12 +23,17 @@ REGS = [
 
 async def backend(route, req):
     q = parse_qs(urlparse(req.url).query)
+    if req.method == 'POST' and FALLAS.get('post', 0) > 0:
+        FALLAS['post'] -= 1
+        return await route.abort()
     if req.method == 'POST':
         d = json.loads(req.post_data)['data']
         DB[d['id']] = d
         cods = [{'codigo': d['id'][3:] + '-%02d' % (i + 1), 'estudiante': n} for i, n in enumerate(d.get('nombres', []))]
         return await route.fulfill(status=200, headers={'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'}, body=json.dumps({'ok': True, 'id': d['id'], 'codigos': cods, 'duplicados': 0}))
     a, cb = q.get('action', ['ping'])[0], q.get('callback', [''])[0]
+    if VERIF['bloq'] and a in ('guardar', 'verificar'):      # sin red para guardar (también el plan B y C)
+        return await route.abort()
     if a == 'mentores' and FALLAS['mentores'] > 0:      # simula una red inestable: el primer intento (fetch + JSONP) falla
         FALLAS['mentores'] -= 1
         return await route.abort()
@@ -48,6 +53,10 @@ async def backend(route, req):
     if not cb:
         return await route.fulfill(status=200, headers={'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'}, body=json.dumps(out))
     await route.fulfill(status=200, headers={'Content-Type': 'application/javascript'}, body=f'{cb}({json.dumps(out)});')
+
+VERIF = {'bloq': False}
+async def page_route_block(pg): VERIF['bloq'] = True
+async def page_route_unblock(pg): VERIF['bloq'] = False
 
 async def main():
     async with async_playwright() as p:
@@ -155,6 +164,29 @@ async def main():
         FALLAS['mentores'] = 0
         await pg.click('#fin'); await pg.wait_for_timeout(1500)
         assert await scr() == 'mentor' and 'ok' in await pg.get_attribute('#srv', 'class')
+        # ── envío sin conexión: queda pendiente, se ve en el inicio y llega una sola vez
+        await pg.fill('#qm', 'joseph'); await pg.wait_for_timeout(200)
+        await pg.click('#mlist [data-m]'); await pg.wait_for_timeout(1500)
+        await pg.click('[data-hito="2"]'); await pg.locator('.asisrow [data-a="No"]').first.click(); await pg.wait_for_timeout(200)
+        await pg.click('#btnNext'); await pg.wait_for_timeout(1000)
+        antes = len(DB); FALLAS['post'] = 99; FALLAS['mentores'] = 0
+        await page_route_block(pg)
+        await pg.click('#btnNext')
+        t_ini = time.time()
+        for _ in range(120):
+            await pg.wait_for_timeout(500)
+            if await pg.evaluate("JSON.parse(localStorage.getItem('bitniv_cola1')||'[]').length") == 1: break
+        print('tiempo hasta quedar en cola: %.1f s' % (time.time() - t_ini))
+        await pg.wait_for_timeout(500)
+        assert len(DB) == antes and await pg.evaluate("JSON.parse(localStorage.getItem('bitniv_cola1')||'[]').length") == 1, ('quedó en la cola', len(DB), antes, await pg.evaluate("localStorage.getItem('bitniv_cola1')"), await pg.inner_text('#stage'))
+        await pg.evaluate('showWelcome()'); await pg.wait_for_timeout(800)
+        assert 'Tienes 1 registro sin enviar' in await pg.inner_text('#pendBox')
+        await shot('09_pendiente')
+        FALLAS['post'] = 0; await page_route_unblock(pg)
+        await pg.click('#pendGo'); await pg.wait_for_timeout(3000)
+        assert len(DB) == antes + 1 and await pg.inner_text('#pendBox') == '', 'se envió una vez y el aviso desaparece'
+        await pg.click('#pendGo') if await pg.locator('#pendGo').count() else None
+        assert len(DB) == antes + 1
         assert VIAS and 'jsonp' not in VIAS, ('las consultas deben ir por fetch', VIAS)
         assert not errs, errs
         print('OK · errores JS:', errs)

@@ -344,6 +344,8 @@ button{font:inherit;color:inherit}
 .chip{display:flex;align-items:center;gap:9px;padding:10px 14px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.035);font-size:13px;color:var(--txt);backdrop-filter:blur(8px)}
 .chip svg{width:18px;height:18px;stroke:var(--c);fill:none;stroke-width:2}
 .chip b{font:700 14px var(--fd);color:var(--c)}
+.resume.pend{margin-top:22px;text-align:left;border-color:rgba(255,210,61,.55);background:rgba(255,210,61,.07)}
+.resume.pend ul{margin:8px 0;padding-left:18px}
 .resume{max-width:460px;margin:0 auto 22px;padding:16px;border-radius:16px;border:1px dashed rgba(255,160,77,.5);background:rgba(255,107,26,.07);font-size:14px;color:var(--txt)}
 .resume .row{display:flex;gap:10px;justify-content:center;margin-top:12px;flex-wrap:wrap}
 .hfoot{margin-top:26px;font:500 10.5px var(--fm);letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
@@ -718,7 +720,7 @@ details.more ol li b{color:var(--txt)}
 // ⬇⬇⬇ Pega aquí la URL de tu implementación de Apps Script (termina en /exec) ⬇⬇⬇
 const API_URL_DEFECTO = 'https://script.google.com/macros/s/AKfycbxwv1mH1KPyZs9gXbATNo5Q6HeCTFlmTsfh98iyF0Ogh_-mJLURTOXlgEHhVdsmDyDq8Q/exec';
 // ⬆⬆⬆ ------------------------------------------------------------------------ ⬆⬆⬆
-const VERSION = '2.8';
+const VERSION = '2.9';
 const LS_DRAFT = 'bitniv_draft1', LS_COLA = 'bitniv_cola1', LS_PREF = 'bitniv_pref1';
 const LOGO_FULL = '__LOGO_FULL__';
 const LOGO_WORD = '__LOGO_WORD__';
@@ -1221,13 +1223,14 @@ async function flushCola(log) {
   if (flushing || !API_OK) return 0; flushing = true; let ok = 0;
   try {
     for (const p of cola()) {
-      try { await enviar(p, log); lsSet(LS_COLA, cola().filter(x => x.id !== p.id)); ok++; } catch (e) { if (e.final) { lsSet(LS_COLA, cola().filter(x => x.id !== p.id)); if (log) log('Descartado ' + p.id + ': ' + e.message + ' ' + (e.detalle || '')); } else if (log) log('Pendiente ' + p.id + ' sigue sin enviarse'); }
+      try { await enviar(p, log); lsSet(LS_COLA, cola().filter(x => x.id !== p.id)); ok++; toast('Tu registro pendiente se envió · código ' + p.id.replace(/^ME-/, '')); pintaPendientes(); } catch (e) { if (e.final) { lsSet(LS_COLA, cola().filter(x => x.id !== p.id)); if (log) log('Descartado ' + p.id + ': ' + e.message + ' ' + (e.detalle || '')); } else if (log) log('Pendiente ' + p.id + ' sigue sin enviarse'); }
     }
   } finally { flushing = false; }
   return ok;
 }
 // Códigos por estudiante: los da el servidor; si el envío quedó en cola, se calculan igual (mismo orden).
-const codigosLocales = p => p.nombres.map((n, i) => ({codigo: p.id.replace(/^ME-/, '') + '-' + pad(i + 1), estudiante:n}));
+const codigosLocales = p => [...new Set(p.nombres)].map((n, i) => ({codigo: p.id.replace(/^ME-/, '') + '-' + pad(i + 1), estudiante:n}));
+const resumenPend = p => { const n = new Set(p.nombres).size; return `Hito ${p.hito} · ${n} estudiante${n === 1 ? '' : 's'} · ${String(p.fecha_local || '').split(',')[0]}`; };
 async function submit() {
   const p = buildPayload();
   S.scr = null; $('#top').classList.add('off');
@@ -1266,7 +1269,7 @@ function showFinal(e) {
   $('#fin').onclick = () => { if (corregible) { stage.innerHTML = ''; go('ses', true); } else { S = fresh(); showWelcome(); } };
 }
 function showDone(p, ok, sinUrl, j) {
-  const el = stage.firstElementChild, cods = (j && j.codigos) || codigosLocales(p), n = p.items.length;
+  const el = stage.firstElementChild, cods = (j && j.codigos) || codigosLocales(p), n = cods.length;
   const lista = `<div class="codes">${cods.map(c => `<div><b>${esc(c.codigo)}</b><span>${esc(c.estudiante)}</span></div>`).join('')}</div>`;
   if (ok) {
     const dup = j && j.duplicados ? `<p class="moddesc" style="color:#ffe9a6">${j.duplicados} materia${j.duplicados === 1 ? '' : 's'} ya tenía${j.duplicados === 1 ? '' : 'n'} un registro tuyo con la misma fecha: quedaron marcadas como «posible duplicado».</p>` : '';
@@ -1290,6 +1293,22 @@ function showDone(p, ok, sinUrl, j) {
 }
 
 /* ---------- bienvenida ---------- */
+// Aviso en la pantalla de inicio: registros guardados en este equipo que aún no llegaron a la hoja.
+function pintaPendientes() {
+  const box = $('#pendBox'); if (!box) return;
+  const c = API_OK ? cola() : [];
+  if (!c.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `<div class="resume pend"><b>${c.length === 1 ? 'Tienes 1 registro sin enviar' : `Tienes ${c.length} registros sin enviar`}</b> en este equipo (no hubo conexión al enviarlo):
+    <ul>${c.map(p => `<li>${esc(resumenPend(p))} · código <b>${esc(p.id.replace(/^ME-/, ''))}</b></li>`).join('')}</ul>
+    Se enviará${c.length === 1 ? '' : 'n'} solo${c.length === 1 ? '' : 's'} cuando haya internet, sin duplicarse. No lo llenes de nuevo.
+    <div class="row"><button class="btn prime" id="pendGo"><span>Enviar ahora</span>${IC.send}</button></div></div>`;
+  $('#pendGo').onclick = async () => {
+    const b = $('#pendGo'); b.classList.add('wait'); b.querySelector('span').textContent = 'Enviando…';
+    const k = await flushCola();
+    if (!k) { toast('Aún sin conexión. Quedó guardado y se enviará solo.'); b.classList.remove('wait'); b.querySelector('span').textContent = 'Enviar ahora'; }
+    pintaPendientes();
+  };
+}
 function showWelcome(back) {
   S.scr = null; $('#top').classList.add('off');
   const d = lsGet(LS_DRAFT, null);
@@ -1306,7 +1325,9 @@ function showWelcome(back) {
     <h1 class="htitle">${title}</h1>
     ${hasDraft ? `<div class="resume">Tienes un registro sin enviar en este equipo (${esc(d.mentor.nombre)} · ${nd} materia${nd === 1 ? '' : 's'} marcada${nd === 1 ? '' : 's'}).<div class="row"><button class="btn prime" id="cont"><span>Continuar donde lo dejé</span>${IC.arrowR}</button><button class="btn ghost" id="fresh">Empezar de nuevo</button></div></div>`
       : `<button class="btn prime big" id="start"><span>Comenzar registro</span>${IC.arrowR}</button>`}
+    <div id="pendBox"></div>
   </div>`;
+  pintaPendientes();
   const sh = $('#shine', el); sh.style.webkitMaskImage = sh.style.maskImage = `url(${LOGO_FULL})`;
   const start = async () => {
     S = Object.assign(fresh(), {id:nuevoId(), t0:Date.now(), clave:pref().clave || ''});
