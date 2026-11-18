@@ -70,6 +70,12 @@ button{font:inherit;color:inherit}
 .ticker .track b{color:var(--o);font-weight:600}
 .ticker .track i{color:var(--c);font-style:normal}
 @keyframes tick{to{transform:translateX(-50%)}}
+#srv{position:fixed;left:10px;bottom:8px;z-index:5;display:flex;align-items:center;gap:7px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(4,5,13,.72);backdrop-filter:blur(6px);color:var(--mut);font:600 10.5px var(--fm);letter-spacing:.04em;cursor:pointer}
+#srv i{width:8px;height:8px;border-radius:50%;background:#8a8fa8;flex:none}
+#srv.ok i{background:#39ffb0;box-shadow:0 0 8px #39ffb0}#srv.ok{color:#bfffe4;border-color:rgba(57,255,176,.35)}
+#srv.retry i{background:#ffd23d;animation:srvp 1s ease-in-out infinite}#srv.retry{color:#ffe9a6;border-color:rgba(255,210,61,.4)}
+#srv.off i{background:#ff3d6e}#srv.off{color:#ff9db5;border-color:rgba(255,61,110,.4)}
+@keyframes srvp{50%{opacity:.25}}
 #ver{position:fixed;right:10px;bottom:8px;z-index:5;font:500 10px var(--fm);color:var(--dim);letter-spacing:.12em;opacity:.7;user-select:none;cursor:default;padding:4px}
 
 /* ============ CABECERA ============ */
@@ -631,6 +637,7 @@ details.more ol li b{color:var(--txt)}
 .tagas{align-self:flex-start;margin-top:3px;font:600 10.5px var(--fm);letter-spacing:.04em;padding:3px 8px;border-radius:8px;border:1px solid rgba(57,255,176,.4);color:var(--g);background:rgba(57,255,176,.06)}
 .tagas.sin{border-color:rgba(255,210,61,.5);color:var(--y);background:rgba(255,210,61,.07)}
 .opt.matb{margin:0 0 8px;padding:12px 14px}
+.gtm{margin-top:4px}.gtm.on{border-color:rgba(0,229,255,.45);background:rgba(0,229,255,.06)}
 .opt.matb .chev{flex:none;color:var(--c);font-size:16px}
 .matcab{display:block;width:100%;padding:8px;border:0;background:rgba(255,160,77,.1);color:var(--o2);font:600 12px var(--fm);letter-spacing:.1em;cursor:pointer}
 .asisbar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
@@ -682,6 +689,7 @@ details.more ol li b{color:var(--txt)}
 <main id="stage" aria-live="polite"></main>
 <canvas id="fx2" aria-hidden="true"></canvas>
 <div id="ver">v1.0</div>
+<button id="srv" class="srv chk" hidden aria-live="polite"><i></i><span>Comprobando servidor…</span></button>
 <div id="toast" role="status"></div>
 
 <div class="modal" id="admin" hidden>
@@ -710,7 +718,7 @@ details.more ol li b{color:var(--txt)}
 // ⬇⬇⬇ Pega aquí la URL de tu implementación de Apps Script (termina en /exec) ⬇⬇⬇
 const API_URL_DEFECTO = 'https://script.google.com/macros/s/AKfycbxwv1mH1KPyZs9gXbATNo5Q6HeCTFlmTsfh98iyF0Ogh_-mJLURTOXlgEHhVdsmDyDq8Q/exec';
 // ⬆⬆⬆ ------------------------------------------------------------------------ ⬆⬆⬆
-const VERSION = '2.7';
+const VERSION = '2.8';
 const LS_DRAFT = 'bitniv_draft1', LS_COLA = 'bitniv_cola1', LS_PREF = 'bitniv_pref1';
 const LOGO_FULL = '__LOGO_FULL__';
 const LOGO_WORD = '__LOGO_WORD__';
@@ -850,11 +858,11 @@ SCR.inicio = function (el) {   // solo aparece si CONFIG tiene «Código de acce
 };
 async function cargarInicio() {
   let r;
-  try { r = API_OK ? await jsonp({action:'mentores', clave:S.clave}, 30000) : {ok:true, abierta:true, hitos:['2', '3', '4'], mentores:mentoresDemo()}; }
+  try { r = API_OK ? await consultar({action:'mentores', clave:S.clave}, 30000) : {ok:true, abierta:true, hitos:['2', '3', '4'], mentores:mentoresDemo()}; }
   catch (e) { r = {ok:false, motivo:'red'}; }
   if (r && r.ok && r.abierta === false) return showAviso('El registro está cerrado', esc(r.mensaje || 'El registro de sesiones no está disponible en este momento.'));
   if (r && r.motivo === 'clave') { S.claveMal = !!S.clave; S.pideClave = true; return go('inicio'); }
-  if (!r || !r.ok) return showAviso('Sin conexión', 'No pudimos conectar con el servidor. Revisa tu conexión a internet e inténtalo de nuevo.', true);
+  if (!r || !r.ok) return showAviso('Sin conexión', 'No pudimos conectar con el servidor después de 3 intentos. Prueba esto:<br>• Revisa tu internet o cambia de red (por ejemplo, a datos móviles).<br>• Si abriste el enlace desde WhatsApp, Facebook o Instagram, ábrelo en Chrome o Safari.<br>• Desactiva el bloqueador de anuncios, si tienes uno.<br>Luego pulsa «Reintentar».', true);
   S.pideClave = false; S.claveMal = false;
   S.hitos = (r.hitos || []).map(String); S.mentores = r.mentores || [];
   if (hitoUnico()) S.hito = S.hitos[0];
@@ -869,10 +877,10 @@ function mentoresDemo() {
 // Estudiantes de las sedes y facultades donde la persona tiene asignados.
 async function cargarLista(m) {
   let r;
-  try { r = API_OK ? await jsonp({action:'lista', clave:S.clave, mentor:m.nombre, prog:m.programa}, 45000) : {ok:true, registros:DEMO.regs}; }
+  try { r = API_OK ? await consultar({action:'lista', clave:S.clave, mentor:m.nombre, prog:m.programa}, 45000) : {ok:true, registros:DEMO.regs}; }
   catch (e) { r = {ok:false, motivo:'red'}; }
   if (r && r.motivo === 'clave') { S.pideClave = true; S.claveMal = true; go('inicio'); return false; }
-  if (!r || !r.ok) { toast(r && r.motivo === 'cerrada' ? 'El registro está cerrado' : 'No pudimos cargar tus estudiantes. Revisa tu conexión.'); return false; }
+  if (!r || !r.ok) { if (r && r.motivo === 'cerrada') toast('El registro está cerrado'); else showAviso('Sin conexión', 'No pudimos conectar con el servidor después de 3 intentos. Prueba esto:<br>• Revisa tu internet o cambia de red (por ejemplo, a datos móviles).<br>• Si abriste el enlace desde WhatsApp, Facebook o Instagram, ábrelo en Chrome o Safari.<br>• Desactiva el bloqueador de anuncios, si tienes uno.<br>Luego pulsa «Reintentar».', true); return false; }
   S.regs = r.registros || [];
   return true;
 }
@@ -886,17 +894,22 @@ SCR.mentor = function (el) {
     <div class="search">${IC.search}<input id="qm" type="search" autocomplete="off" spellcheck="false" placeholder="Escribe tu nombre o apellido"></div>
     <div id="mlist" class="mlist2"></div>
     <div class="fnav"><button class="linkbtn cancel" data-act="prev">Volver al inicio</button></div></div>`;
+  const abiertos = {};
   const pinta = () => {
     const q = norm($('#qm', el).value), lst = ms.filter(m => !q || q.split(' ').every(w => norm(m.nombre).includes(w)));
     $('#mlist', el).innerHTML = PROGRAMAS.map(g => {
-      const xs = lst.filter(m => m.programa === g);
-      return xs.length ? `<div class="fac">${g === PROGRAMAS[0] ? 'Docentes tutores' : 'Hermanos mayores'} · ${xs.length}</div>` + xs.map(m => opt(m)).join('') : '';
+      const xs = lst.filter(m => m.programa === g), tit = g === PROGRAMAS[0] ? 'Docentes tutores' : 'Hermanos mayores';
+      if (!xs.length) return '';
+      if (q) return `<div class="fac">${tit} · ${xs.length}</div>` + xs.map(m => opt(m)).join('');      // con búsqueda: resultados a la vista
+      const ab = !!abiertos[g];
+      return `<button class="opt matb gtm ${ab ? 'on' : ''}" data-gm="${esc(g)}"><span class="lbl">${tit}<span class="sub">${xs.length} persona${xs.length === 1 ? '' : 's'} · toca para ${ab ? 'ocultar' : 'ver la lista'}</span></span><span class="chev">${ab ? '▴' : '▾'}</span></button>` + (ab ? xs.map(m => opt(m)).join('') : '');
     }).join('') || `<div class="sinfo">${ms.length ? 'Nadie coincide con tu búsqueda. Si tu nombre no aparece, pide a tu dirección de carrera que te asigne en el SIAR.' : 'Todavía no hay docentes tutores ni hermanos mayores asignados en el SIAR.'}</div>`;
   };
   pinta();
   el.addEventListener('input', e => { if (e.target.id === 'qm') pinta(); });
   el.addEventListener('click', async e => {
     if (e.target.closest('[data-act=prev]')) return showWelcome(true);
+    const gm = e.target.closest('[data-gm]'); if (gm) { abiertos[gm.dataset.gm] = !abiertos[gm.dataset.gm]; return pinta(); }
     const bm = e.target.closest('[data-m]');
     if (bm && !bm.classList.contains('wait')) {
       const m = ms[+bm.dataset.m];
@@ -1160,6 +1173,22 @@ function jsonpScript(params, ms = 15000) {
     document.head.appendChild(s);
   });
 }
+// Estado del servidor (indicador abajo a la izquierda).
+const SRV_TXT = {chk:'Comprobando servidor…', ok:'Servidor conectado', retry:'Reconectando…', off:'Sin conexión al servidor'};
+function srvEstado(e, txt) { const b = $('#srv'); if (!b || !API_OK) return; b.hidden = false; b.className = 'srv ' + e; b.querySelector('span').textContent = txt || SRV_TXT[e]; }
+// Consulta con reintentos: hasta 3 intentos (cada uno por fetch y, si falla, por JSONP), con pausas crecientes.
+async function consultar(params, ms = 20000) {
+  let ult;
+  for (let i = 1; i <= 3; i++) {
+    try { const j = await jsonp(params, ms); srvEstado('ok'); return j; }
+    catch (e) {
+      ult = e;
+      if (i < 3) { srvEstado('retry', `Reconectando (${i + 1} de 3)…`); toast(`Reconectando con el servidor (${i + 1} de 3)…`); await new Promise(r => setTimeout(r, i * 1500)); }
+    }
+  }
+  srvEstado('off');
+  throw ult || new Error('red');
+}
 // Errores definitivos del servidor: no se reintentan ni se encolan.
 const FINALES = ['cerrada', 'clave', 'limite_pruebas', 'datos_invalidos'];
 const finalErr = j => Object.assign(new Error(j.codigo), {final:true, detalle:j.detalle || ''});
@@ -1405,6 +1434,18 @@ const FX = (() => {
   $('#ver').textContent = 'v' + VERSION;
   if (!API_OK) $('#bannerSlot').innerHTML = '<div class="banner"><div>Modo de prueba: la app no está conectada a la hoja. Se ven datos ficticios y los envíos se guardan solo en este equipo.</div></div>';
   showWelcome();
+  if (API_OK) {
+    srvEstado('chk');
+    consultar({action:'ping'}, 15000).catch(() => {});
+    $('#srv').onclick = () => {
+      const e = $('#srv').className;
+      if (/ok/.test(e)) toast('El servidor responde bien. Si algo falla, revisa tu internet o abre el enlace en Chrome o Safari.');
+      else if (/off/.test(e)) { toast('Sin conexión al servidor. Volviendo a intentar…'); consultar({action:'ping'}, 15000).catch(() => {}); }
+      else toast('Comprobando la conexión con el servidor…');
+    };
+    addEventListener('offline', () => srvEstado('off', 'Sin internet'));
+    addEventListener('online', () => consultar({action:'ping'}, 15000).catch(() => {}));
+  }
   if (API_OK && cola().length) setTimeout(() => flushCola(), 2500);
   addEventListener('online', () => flushCola());
   if (QS.get('admin') === '1') setTimeout(openAdmin, 600);

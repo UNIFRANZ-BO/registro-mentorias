@@ -122,6 +122,14 @@ Envío → **un código por estudiante** `XXXXX-YYYYYY-NN` (en la hoja `ME-…-N
 - `limpiaAsignado_` quita «Correo docente …@…» de «Detalle». Tras pegar el script: Nueva versión + **Actualizar SIAR** (limpia la caché).
 - **Orden de publicación:** el front 2.6 necesita el script 2.6 (acción `mentores`): primero el script, después el push.
 
+## v2.7–2.8 (18-nov-2026, pedidos de Rafael)
+- 2.7: sin «¿Eres …?» (en equipos compartidos sugería el último nombre usado).
+- 2.8: lista de nombres plegada («Docentes tutores · N» / «Hermanos mayores · N», se abren con un toque; al buscar se muestran los
+  resultados). `consultar()`: 3 intentos (cada uno fetch → JSONP) con pausas de 1,5 s y 3 s, toast «Reconectando (n de 3)»; si todo
+  falla, aviso con instrucciones (cambiar de red, abrir en Chrome/Safari, bloqueadores) y «Reintentar». Indicador `#srv` abajo a la
+  izquierda: verde «Servidor conectado» / ámbar «Reconectando…» / rojo «Sin conexión al servidor» (ping al abrir; eventos online/offline).
+  La prueba e2e simula la red caída (`FALLAS`) en ambos casos.
+
 ## Historia v1.x (11 al 27-oct-2026, ya reemplazada)
 - v1: correo docente validado contra BASEDEDATOSDOC, ficha por estudiante con materias del catálogo, un envío por grupo.
 - v1.4: GET por `fetch` con `credentials:'omit'` (JSONP de respaldo) — dispositivos con varias cuentas Google fallaban con JSONP. **Sigue vigente.**

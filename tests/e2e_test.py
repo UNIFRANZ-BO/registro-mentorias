@@ -11,6 +11,7 @@ SHOTS = RAIZ / 'tests' / 'shots'; SHOTS.mkdir(exist_ok=True)
 API = 'https://script.google.com/macros/s/TESTID/exec'
 W = int(sys.argv[1]) if len(sys.argv) > 1 else 390
 DB, VIAS = {}, []
+FALLAS = {'mentores': 0}
 CLAVE = 'NIV2026'
 # [clave, nombre, ciParcial, codCarrera, carrera, semEst, codMateria, materia, semMateria, paralelo, docente, programa, asignado, hito]
 REGS = [
@@ -28,6 +29,9 @@ async def backend(route, req):
         cods = [{'codigo': d['id'][3:] + '-%02d' % (i + 1), 'estudiante': n} for i, n in enumerate(d.get('nombres', []))]
         return await route.fulfill(status=200, headers={'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'}, body=json.dumps({'ok': True, 'id': d['id'], 'codigos': cods, 'duplicados': 0}))
     a, cb = q.get('action', ['ping'])[0], q.get('callback', [''])[0]
+    if a == 'mentores' and FALLAS['mentores'] > 0:      # simula una red inestable: el primer intento (fetch + JSONP) falla
+        FALLAS['mentores'] -= 1
+        return await route.abort()
     VIAS.append('jsonp' if cb else 'fetch')
     clave = q.get('clave', [''])[0].upper()
     if a == 'mentores':
@@ -60,11 +64,18 @@ async def main():
         assert await scr() == 'inicio' and await pg.locator('#cClave').count() == 1, 'pide el código de acceso'
         await pg.fill('#cClave', 'malo'); await pg.click('#btnNext'); await pg.wait_for_timeout(1200)
         assert 'no es correcto' in await pg.inner_text('#cMsg')
-        await pg.fill('#cClave', 'niv2026'); await pg.click('#btnNext'); await pg.wait_for_timeout(1200)
+        assert 'ok' in await pg.get_attribute('#srv', 'class'), 'indicador verde tras el ping'
+        FALLAS['mentores'] = 2
+        await pg.fill('#cClave', 'niv2026'); await pg.click('#btnNext'); await pg.wait_for_timeout(4500)
+        assert FALLAS['mentores'] == 0 and 'ok' in await pg.get_attribute('#srv', 'class'), 'reintenta y se recupera'
         assert await scr() == 'mentor', 'tras el código va directo a «Selecciona tu nombre»'
         await shot('01_nombre')
         # ── ¿quién eres?
-        assert await pg.locator('#mlist [data-m]').count() == 2, 'un docente tutor y un hermano mayor'
+        assert await pg.locator('#mlist [data-m]').count() == 0 and await pg.locator('[data-gm]').count() == 2, 'listas plegadas'
+        await pg.click('[data-gm="Docente Tutor"]'); await pg.wait_for_timeout(200)
+        assert await pg.locator('#mlist [data-m]').count() == 1
+        await pg.click('[data-gm="Docente Tutor"]'); await pg.wait_for_timeout(200)
+        assert await pg.locator('#mlist [data-m]').count() == 0
         await pg.fill('#qm', 'rafa'); await pg.wait_for_timeout(200)
         assert await pg.locator('#mlist [data-m]').count() == 1
         await shot('02_mentor')
@@ -135,6 +146,15 @@ async def main():
         await pg.fill('#qm', 'joseph'); await pg.wait_for_timeout(200)
         await pg.click('#mlist [data-m]'); await pg.wait_for_timeout(1500)
         assert await scr() == 'ses' and await pg.locator('.asisrow').count() == 1 and 'Histología' in await pg.inner_text('#lest')
+        # ── sin conexión de verdad: 3 intentos, aviso con «Reintentar», indicador rojo; al volver la red, entra
+        FALLAS['mentores'] = 6
+        await pg.evaluate('showWelcome()'); await pg.wait_for_timeout(800)
+        await pg.click('#start, #fresh'); await pg.wait_for_timeout(7000)
+        assert 'Sin conexión' in await pg.inner_text('#stage') and 'off' in await pg.get_attribute('#srv', 'class'), 'aviso tras 3 intentos'
+        await shot('08_sin_conexion')
+        FALLAS['mentores'] = 0
+        await pg.click('#fin'); await pg.wait_for_timeout(1500)
+        assert await scr() == 'mentor' and 'ok' in await pg.get_attribute('#srv', 'class')
         assert VIAS and 'jsonp' not in VIAS, ('las consultas deben ir por fetch', VIAS)
         assert not errs, errs
         print('OK · errores JS:', errs)
