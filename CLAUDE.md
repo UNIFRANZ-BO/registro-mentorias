@@ -138,6 +138,14 @@ Envío → **un código por estudiante** `XXXXX-YYYYYY-NN` (en la hoja `ME-…-N
 - `codigosLocales` ahora da un código por estudiante (sin repetir nombres), como el servidor. Códigos: ID de envío (uno por envío) y
   «Código de registro» = ID-NN (uno por estudiante en ese envío; todas sus filas/materias lo comparten).
 
+## v2.11 (19-nov-2026, pedidos de Rafael; los docentes ya registraban: nada se invalida)
+- Asistencia: debajo del HITO, **«Fecha y horario de la sesión»** obligatorios para todos los marcados (también si nadie asistió).
+  «Actividad(es)» solo si alguien asistió; «Observaciones» siempre (opcional). Sin «Agregar estudiante de otra materia».
+- Script: «No asistió» guarda fecha y horario (si vienen; los envíos viejos sin fecha se aceptan) y observaciones; sin duración ni horas imputadas.
+  RESPUESTAS sin cambios de columnas. Borradores desde la 2.5 se conservan (`verCompat`).
+- Velocidad: ~2 s por consulta con caché (arranque de Apps Script). Caché del SIAR y de `mentores` a 6 h (máximo). La app pide
+  `mentores` al abrir la página (`PRE`, vale 5 min) y «Comenzar» usa esa respuesta.
+
 ## Historia v1.x (11 al 27-oct-2026, ya reemplazada)
 - v1: correo docente validado contra BASEDEDATOSDOC, ficha por estudiante con materias del catálogo, un envío por grupo.
 - v1.4: GET por `fetch` con `credentials:'omit'` (JSONP de respaldo) — dispositivos con varias cuentas Google fallaban con JSONP. **Sigue vigente.**
