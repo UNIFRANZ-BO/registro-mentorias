@@ -1,6 +1,6 @@
 /** @OnlyCurrentDoc */  // el script solo puede tocar esta hoja, ningún otro archivo de Drive
 /**
- * BITÁCORA DE NIVELACIONES · UNIFRANZ  (v2.6)
+ * BITÁCORA DE NIVELACIONES · UNIFRANZ  (v2.11)
  * Registro de sesiones de Docentes Tutores y Hermanos Mayores. Reemplaza el Google Form
  * «Registro de Sesiones Realizadas de Mentorías». UNA SOLA BASE: el reporte del SIAR
  * («Rep. Ficha est.»), importado como una pestaña más. De ahí salen los estudiantes, sus materias
@@ -31,7 +31,7 @@
  *   (Nunca «Nueva implementación»: cambia la URL.)
  */
 
-const VERSION_APP = '2.6';
+const VERSION_APP = '2.11';
 const ZONA = 'America/La_Paz';
 const H = {             // nombres de pestañas
   CONFIG: 'CONFIG', CARRERAS: 'CARRERAS', SIN_ASIG: 'SIN ASIGNACIÓN',
@@ -322,7 +322,7 @@ function leerSiar_(cfg) {
 function siar_(cfg) { return cacheLista_('siar', () => leerSiar_(cfg).lista); }
 
 // Listas que se guardan en la caché del script, en trozos (límite de 100 KB por clave). Una lista vacía no se guarda.
-const CACHES = { siar: 3600 };
+const CACHES = { siar: 21600, mentores: 21600 };   // 6 horas (máximo de Google); «Actualizar SIAR» las limpia
 function cacheLista_(pref, fn) {
   const cache = CacheService.getScriptCache();
   try {
@@ -490,6 +490,9 @@ function mentores_(clave) {
   const cfg = config_();
   if (!abierta_(cfg)) return { ok: true, abierta: false, mensaje: cfg.mensaje };
   if (!claveOk_(cfg, clave)) return { ok: false, motivo: 'clave', requiere_clave: true };
+  return { ok: true, abierta: true, periodo: cfg.periodo, hitos: cfg.hitos, mentores: cacheLista_('mentores', () => calcMentores_(cfg)) };
+}
+function calcMentores_(cfg) {
   const m = {};
   siar_(cfg).forEach(x => {
     if (!x[15]) return;
@@ -499,7 +502,7 @@ function mentores_(clave) {
   const mentores = Object.values(m).map(o => [o.n, o.p, Object.keys(o.e).length,
     Object.keys(o.c).sort((a, b) => o.c[b] - o.c[a]).map(c => { const i = c.indexOf('|'), s = c.slice(0, i); return [s, SEDES[s] || s, c.slice(i + 1)]; })])
     .sort((a, b) => a[0].localeCompare(b[0], 'es'));
-  return { ok: true, abierta: true, periodo: cfg.periodo, hitos: cfg.hitos, mentores: mentores };
+  return mentores;
 }
 
 // Un envío: un mentor, un hito y varios estudiantes; cada estudiante con sus materias (claves del SIAR).
@@ -587,17 +590,21 @@ function validarEnvio_(d, cfg, prueba) {
     for (const x of regs) { const u = kEst + '|' + x[9]; if (usados[u]) return { error: n + 'la materia ' + x[10] + ' está dos veces en el envío' }; usados[u] = true; }
     const asistio = siNo_(it.asistio);
     if (!asistio) return { error: n + 'falta indicar si asistió' };
-    const r = { regs: regs, asistio: asistio, fecha: '', hi: '', hf: '', dur: '', act: '', obs: '' };
-    if (asistio === 'Sí') {
-      const f = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(it.fecha || ''));
-      if (!f) return { error: n + 'fecha inválida' };
+    const r = { regs: regs, asistio: asistio, fecha: '', hi: '', hf: '', dur: '', act: '', obs: txt_(it.obs, 1000) };
+    const f = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(it.fecha || ''));
+    if (asistio === 'Sí' && !f) return { error: n + 'fecha inválida' };
+    if (f) {   // «No asistió»: fecha y horario de la sesión programada, opcionales (las versiones anteriores no los mandan)
       const fecha = new Date(+f[1], +f[2] - 1, +f[3]);
       if (fecha.getMonth() !== +f[2] - 1 || fecha - hoy > 36 * 3600 * 1000 || hoy - fecha > 400 * 86400 * 1000) return { error: n + 'fecha fuera de rango' };
-      const hi = hora_(it.hi), hf = hora_(it.hf);
-      if (hi === null || hf === null || hf <= hi || hf - hi > 600) return { error: n + 'horario inválido' };
-      const act = txt_(it.act, 1000);
-      if (!act) return { error: n + 'faltan las actividades realizadas' };
-      Object.assign(r, { fecha: fecha, hi: hhmm_(hi), hf: hhmm_(hf), dur: hf - hi, act: act, obs: txt_(it.obs, 1000) });
+      r.fecha = fecha;
+      const hi = hora_(it.hi), hf = hora_(it.hf), okH = hi !== null && hf !== null && hf > hi && hf - hi <= 600;
+      if (asistio === 'Sí' && !okH) return { error: n + 'horario inválido' };
+      if (okH) { r.hi = hhmm_(hi); r.hf = hhmm_(hf); }
+      if (asistio === 'Sí') {
+        const act = txt_(it.act, 1000);
+        if (!act) return { error: n + 'faltan las actividades realizadas' };
+        r.act = act; r.dur = hf - hi;
+      }
     }
     out.push(r);
   }

@@ -720,7 +720,7 @@ details.more ol li b{color:var(--txt)}
 // ⬇⬇⬇ Pega aquí la URL de tu implementación de Apps Script (termina en /exec) ⬇⬇⬇
 const API_URL_DEFECTO = 'https://script.google.com/macros/s/AKfycbxwv1mH1KPyZs9gXbATNo5Q6HeCTFlmTsfh98iyF0Ogh_-mJLURTOXlgEHhVdsmDyDq8Q/exec';
 // ⬆⬆⬆ ------------------------------------------------------------------------ ⬆⬆⬆
-const VERSION = '2.10';
+const VERSION = '2.11';
 const LS_DRAFT = 'bitniv_draft1', LS_COLA = 'bitniv_cola1', LS_PREF = 'bitniv_pref1';
 const LOGO_FULL = '__LOGO_FULL__';
 const LOGO_WORD = '__LOGO_WORD__';
@@ -858,10 +858,15 @@ SCR.inicio = function (el) {   // solo aparece si CONFIG tiene «Código de acce
   });
   el.addEventListener('keydown', e => { if (e.target.id === 'cClave' && e.key === 'Enter') { e.preventDefault(); $('#btnNext', el).click(); } });
 };
+let PRE = null;   // {clave, p}: consulta de mentores lanzada al abrir la página
 async function cargarInicio() {
   let r;
-  try { r = API_OK ? await consultar({action:'mentores', clave:S.clave}, 30000) : {ok:true, abierta:true, hitos:['2', '3', '4'], mentores:mentoresDemo()}; }
-  catch (e) { r = {ok:false, motivo:'red'}; }
+  const pre = PRE && PRE.clave === S.clave && Date.now() - PRE.t < 300000 ? PRE.p : null; PRE = null;   // lo pedido al abrir la página (máx. 5 min)
+  if (pre) { try { r = await pre; } catch (e) { r = null; } }
+  if (!r) {
+    try { r = API_OK ? await consultar({action:'mentores', clave:S.clave}, 30000) : {ok:true, abierta:true, hitos:['2', '3', '4'], mentores:mentoresDemo()}; }
+    catch (e) { r = {ok:false, motivo:'red'}; }
+  }
   if (r && r.ok && r.abierta === false) return showAviso('El registro está cerrado', esc(r.mensaje || 'El registro de sesiones no está disponible en este momento.'));
   if (r && r.motivo === 'clave') { S.claveMal = !!S.clave; S.pideClave = true; return go('inicio'); }
   if (!r || !r.ok) return showAviso('Sin conexión', 'No pudimos conectar con el servidor después de 3 intentos. Prueba esto:<br>• Revisa tu internet o cambia de red (por ejemplo, a datos móviles).<br>• Si abriste el enlace desde WhatsApp, Facebook o Instagram, ábrelo en Chrome o Safari.<br>• Desactiva el bloqueador de anuncios, si tienes uno.<br>Luego pulsa «Reintentar».', true);
@@ -1027,6 +1032,7 @@ function errSes() {
   const ks = Object.keys(filas);
   if (!ks.length) return 'abre el semestre de la sesión y marca quién asistió.';
   for (const k of ks) if (filas[k].every(r => S.matOff[r[R.key]])) return filas[k][0][R.nom] + ': deja marcada al menos una materia.';
+  const e0 = sesError(S.ses); if (e0) return e0;
   if (ks.length > MAX_EST) return `máximo ${MAX_EST} estudiantes por envío.`;
   const si = ks.filter(k => S.asis[k] === 'Sí');
   for (const k of si) { const e = sesError(sesDe(k)); if (e) return (S.propio[k] ? filas[k][0][R.nom] + ': ' : '') + e; }
@@ -1036,19 +1042,19 @@ function errSes() {
 SCR.ses = function (el) {
   const libre = !S.mentor.enSiar;
   if (!S.ses.fecha) S.ses.fecha = isoHoy();
-  el.innerHTML = `<div class="card">${qHead(libre ? '04' : '03', S.mentor.programa, 'Asistencia y sesión', (libre ? 'Marca quién asistió y quién no.' : 'Tus estudiantes asignados en el SIAR, por semestre. Abre el semestre de esta sesión y marca quién asistió. Solo se registra a quien marques.') + ' Debajo de cada nombre están sus materias: desmarca las que no trabajaste en esta sesión.')}
+  el.innerHTML = `<div class="card">${qHead(libre ? '04' : '03', S.mentor.programa, 'Asistencia y sesión', (libre ? 'Marca quién asistió y quién no.' : 'Tus estudiantes asignados en el SIAR, por semestre. Indica la fecha y el horario de la sesión, abre el semestre y marca quién asistió y quién no. Solo se registra a quien marques.') + ' Debajo de cada nombre están sus materias: desmarca las que no trabajaste en esta sesión.')}
     ${hitoRow()}
-    <div id="lest"></div>
-    <button class="linkbtn otra" id="agregar" style="margin:0 0 14px">+ Agregar estudiante de otra materia</button>
-    <section class="fsec" id="secSes"><div class="fhd"><b>✓</b>Sesión</div>
+    <section class="fsec" id="secFecha"><div class="fhd"><b>✓</b>Fecha y horario de la sesión</div>
       <div class="fgrid"><label class="fld fecha full">Fecha de la sesión<input id="fF" type="date" max="${isoHoy()}" value="${esc(S.ses.fecha)}"></label>
       <label class="fld">Hora de inicio<input id="fHi" type="time" value="${esc(S.ses.hi)}"></label>
       <label class="fld">Hora de conclusión<input id="fHf" type="time" value="${esc(S.ses.hf)}"></label></div>
-      <div class="durbox" id="dur"></div>
-      <span class="lbl2 ob">Actividad(es) realizada(s)</span>
-      <div class="tx"><textarea id="tAct" class="short" maxlength="1000">${esc(S.ses.act)}</textarea><span class="cnt"><span id="cA">${S.ses.act.length}</span> / 1000</span></div>
+      <div class="durbox" id="dur"></div></section>
+    <div id="lest"></div>
+    <section class="fsec" id="secSes">
+      <div id="secAct"><span class="lbl2 ob">Actividad(es) realizada(s)</span>
+      <div class="tx"><textarea id="tAct" class="short" maxlength="1000">${esc(S.ses.act)}</textarea><span class="cnt"><span id="cA">${S.ses.act.length}</span> / 1000</span></div></div>
       <span class="lbl2">Observaciones y comentarios · opcional</span>
-      <div class="tx"><textarea id="tObs" class="short" maxlength="1000">${esc(S.ses.obs)}</textarea><span class="cnt"><span id="cO">${S.ses.obs.length}</span> / 1000</span></div></section>
+      <div class="tx"><textarea id="tObs" class="short" maxlength="1000" placeholder="Por ejemplo: el grupo no se presentó porque…">${esc(S.ses.obs)}</textarea><span class="cnt"><span id="cO">${S.ses.obs.length}</span> / 1000</span></div></section>
     <div class="fmsg" id="fmsg"></div>
     <div class="fnav"><button class="btn prime big" id="btnNext"><span>Revisar y enviar</span>${IC.arrowR}</button><button class="linkbtn cancel" data-act="prev">${libre ? 'Volver a los estudiantes' : 'Cambiar de persona'}</button></div></div>`;
   const filaHtml = ({k, rs}) => {
@@ -1070,11 +1076,11 @@ SCR.ses = function (el) {
       const gk = 's' + g.sem, ab = abierto(gk, total), nm = g.filas.filter(f => S.asis[f.k]).length, nMat = new Set(g.filas.flatMap(f => f.rs.map(r => r[R.mat]))).size;
       return `<div class="grp gas ${ab ? 'abierta' : ''}"><button class="grph gtog" data-g="${esc(gk)}"><div><b>${semTxt(g.sem)}</b><small class="gcnt">${g.filas.length} estudiante${g.filas.length === 1 ? '' : 's'} · ${nMat} materia${nMat === 1 ? '' : 's'}${nm ? ` · <span>${nm} marcado${nm === 1 ? '' : 's'}</span>` : ''}</small></div><span class="chev">${ab ? '▴' : '▾'}</span></button>
         ${ab ? `<div class="gbar"><button class="sbtn" data-gt="Sí" data-g2="${esc(gk)}">Todos asistieron</button><button class="sbtn del" data-gt="No" data-g2="${esc(gk)}">Nadie asistió</button></div>${g.filas.map(filaHtml).join('')}` : ''}</div>`;
-    }).join('') || '<div class="sinfo">No hay estudiantes. Usa «Agregar estudiante de otra materia».</div>';
+    }).join('') || '<div class="sinfo">No tienes estudiantes asignados en el SIAR. Pide a tu dirección de carrera que actualice el SIAR.</div>';
   };
   const refresca = () => {
     const ms = selRegs(), ks = Object.keys(selEst()), nSi = ks.filter(k => S.asis[k] === 'Sí').length;
-    $('#secSes', el).hidden = !nSi;
+    $('#secAct', el).hidden = !nSi;
     const e1 = sesError(S.ses), d = $('#dur', el);
     d.classList.toggle('err', !!e1 && !!(S.ses.hi && S.ses.hf));
     d.innerHTML = e1 ? (S.ses.hi && S.ses.hf ? esc(e1.charAt(0).toUpperCase() + e1.slice(1)) : 'Indica la hora de inicio y la de conclusión.') : `Duración: <b>${fmtDur(minutos(S.ses.hf) - minutos(S.ses.hi))}</b>`;
@@ -1089,7 +1095,6 @@ SCR.ses = function (el) {
   el.addEventListener('click', e => {
     const t = e.target;
     if (t.closest('[data-act=prev]')) return libre ? go('est', true) : go('mentor', true);
-    if (t.closest('#agregar')) return go('est');
     const hb = t.closest('[data-hito]'); if (hb) { S.hito = hb.dataset.hito; $$('[data-hito]', el).forEach(x => x.classList.toggle('sel', x === hb)); return refresca(); }
     const gt = t.closest('[data-g]'); if (gt) { const gs = grupos(), total = gs.reduce((n, g) => n + g.filas.length, 0); S.gAb[gt.dataset.g] = !abierto(gt.dataset.g, total); pintaLista(); return refresca(); }
     const gb = t.closest('[data-gt]'); if (gb) { const g = grupos().find(x => 's' + x.sem === gb.dataset.g2); if (g) g.filas.forEach(f => { S.asis[f.k] = gb.dataset.gt; }); pintaLista(); return refresca(); }
@@ -1115,7 +1120,7 @@ SCR.review = function (el) {
     <div class="qhead"><div class="qnum" data-n="OK">OK</div><div class="qmeta"><span class="tag">Hito ${esc(S.hito)} · ${esc(S.mentor.programa)}</span></div></div>
     <h2 class="qtitle">${splitWords('Revisa y envía')}</h2>
     <p class="qhint">Registra <b style="color:var(--c)">${esc(S.mentor.nombre)}</b>: ${ks.length} estudiante${ks.length === 1 ? '' : 's'} (${nSi} asistieron) · ${nM} materia${nM === 1 ? '' : 's'}.</p>
-    ${nSi ? `<div class="it" style="opacity:1"><div class="ses">${IC.cal}<span>${fmtF(S.ses.fecha)} · ${esc(S.ses.hi)}–${esc(S.ses.hf)} · ${esc(S.ses.act)}</span></div></div>` : ''}
+    <div class="it" style="opacity:1"><div class="ses">${IC.cal}<span>${fmtF(S.ses.fecha)} · ${esc(S.ses.hi)}–${esc(S.ses.hf)}${nSi ? ' · ' + esc(S.ses.act) : ' · nadie asistió'}${S.ses.obs.trim() ? ' · Obs.: ' + esc(S.ses.obs.trim()) : ''}</span></div></div>
     <div class="items">${ks.map((k, i) => { const rs = est[k], a = S.asis[kOf(rs)], p = S.propio[kOf(rs)];
       return `<div class="it" style="animation-delay:${Math.min(i, 10) * 40}ms"><div class="ith"><div><span class="num">${pad(i + 1)}</span><span class="nm">${esc(rs[0][R.nom])}</span></div><span class="pill ${a === 'Sí' ? 'si' : 'no'}">${a === 'Sí' ? 'Asistió' : 'No asistió'}</span></div>
         <div class="meta">${esc(rs[0][R.carNom])} · CI ${esc(rs[0][R.ci])}${p && a === 'Sí' ? ` · <span style="color:var(--y)">${fmtF(p.fecha)} ${esc(p.hi)}–${esc(p.hf)}</span>` : ''}</div>
@@ -1136,6 +1141,7 @@ function buildPayload() {
     items: Object.entries(est).map(([k, rs]) => {
       const o = {keys: rs.map(r => r[R.key]), asistio: S.asis[kOf(rs)]};
       if (o.asistio === 'Sí') { const s = sesDe(kOf(rs)); Object.assign(o, {fecha:s.fecha, hi:s.hi, hf:s.hf, act:S.ses.act.trim(), obs:S.ses.obs.trim()}); }
+      else Object.assign(o, {fecha:S.ses.fecha, hi:S.ses.hi, hf:S.ses.hf, obs:S.ses.obs.trim()});
       return o;
     }),
     nombres: Object.values(est).map(rs => rs[0][R.nom]),
@@ -1309,10 +1315,12 @@ function pintaPendientes() {
     pintaPendientes();
   };
 }
+// Borradores compatibles: desde la 2.5 el estado es el mismo (asistencia por estudiante y semestre).
+const verCompat = v => { const m = /^2\.(\d+)$/.exec(String(v || '')); return !!m && +m[1] >= 5; };
 function showWelcome(back) {
   S.scr = null; $('#top').classList.add('off');
   const d = lsGet(LS_DRAFT, null);
-  const hasDraft = d && d.id && d.mentor && d.v === VERSION;
+  const hasDraft = d && d.id && d.mentor && verCompat(d.v);
   const words = [['Bitácora', 0], ['de', 0], ['nivelaciones', 1]];
   let ci = 0;
   const NG = words.filter(w => w[1]).reduce((n, w) => n + w[0].length, 0); let gi = 0;
@@ -1457,7 +1465,7 @@ const FX = (() => {
   showWelcome();
   if (API_OK) {
     srvEstado('chk');
-    consultar({action:'ping'}, 15000).catch(() => {});
+    { const clave = pref().clave || '', p = consultar({action:'mentores', clave}, 30000); p.catch(() => {}); PRE = {clave, p, t:Date.now()}; }   // adelanta la lista de nombres
     $('#srv').onclick = () => {
       const e = $('#srv').className;
       if (/ok/.test(e)) toast('El servidor responde bien. Si algo falla, revisa tu internet o abre el enlace en Chrome o Safari.');

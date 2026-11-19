@@ -17,7 +17,7 @@ CLAVE = 'NIV2026'
 REGS = [
     ['101|Docente Tutor', 'Ana Ojeda Guerrero', '•••469', 'MED', 'Medicina', 1, 'AHU-211 (P)', 'Anatomía Humana', 2, '105', 'Vito Rivas Vargas', 'Docente Tutor', 'Rafael Aramayo', 2],
     ['201|Docente Tutor', 'Guina Gutierrez Mamani', '•••360', 'MED', 'Medicina', 2, 'AHU-211 (P)', 'Anatomía Humana', 2, '105', 'Vito Rivas Vargas', 'Docente Tutor', 'Rafael Aramayo', 2],
-    ['202|Docente Tutor', 'Guina Gutierrez Mamani', '•••360', 'MED', 'Medicina', 2, 'EME-211 (P)', 'Embriología Médica', 2, '105', 'Erika Quisbert', 'Docente Tutor', '', 3],
+    ['202|Docente Tutor', 'Guina Gutierrez Mamani', '•••360', 'MED', 'Medicina', 2, 'EME-211 (P)', 'Embriología Médica', 2, '105', 'Erika Quisbert', 'Docente Tutor', 'Rafael Aramayo', 3],
     ['102|Hermano Mayor', 'Ana Ojeda Guerrero', '•••469', 'MED', 'Medicina', 1, 'HIS-211 (P)', 'Histología', 2, '105', 'Dorcas Oliden', 'Hermano Mayor', 'Joseph Mamani Copa', 2],
 ]
 
@@ -100,19 +100,10 @@ async def main():
         assert await pg.locator('.asisrow').count() == 0, 'el semestre se cierra'
         await pg.click('[data-g="s2"]'); await pg.wait_for_timeout(200)
         await shot('03_asistencia', True)
-        # ── agregar a Guina en Embriología (sin asignación): queda en su misma fila, como otra materia
-        await pg.click('#agregar'); await pg.wait_for_timeout(1200)
-        assert await scr() == 'est'
-        await pg.fill('#qmat', 'embrio'); await pg.wait_for_timeout(300)
-        await pg.click('[data-mat="EME-211 (P)"]'); await pg.wait_for_timeout(300)
-        assert 'Sin asignación' in await pg.inner_text('#lmat')
-        await pg.click('.rowc[data-k="202|Docente Tutor"]'); await pg.wait_for_timeout(200)
-        await shot('04_agregar', True)
-        assert '1 agregado' in await pg.inner_text('#fmsg')
-        await pg.click('#btnNext'); await pg.wait_for_timeout(1200)
+        assert await pg.locator('#agregar').count() == 0, 'sin «Agregar estudiante de otra materia»'
         guina = pg.locator('.asisrow', has_text='Gutierrez')
-        assert await scr() == 'ses' and await pg.locator('.asisrow').count() == 2 and await guina.locator('.mt').count() == 2, 'Guina: una fila con 2 materias'
-        assert 'sin asignación' in await guina.inner_text()
+        assert await guina.locator('.mt').count() == 2, 'Guina: una fila con sus 2 materias'
+        assert await pg.locator('#fF').is_visible() and not await pg.locator('#secAct').is_visible(), 'fecha arriba; actividades ocultas sin asistentes'
         # ── «Todos asistieron» del semestre; tocar de nuevo desmarca (Ana no se registra)
         await pg.click('[data-gt="Sí"][data-g2="s2"]'); await pg.wait_for_timeout(200)
         await pg.locator('.asisrow', has_text='Ojeda').locator('[data-a="Sí"]').click(); await pg.wait_for_timeout(200)
@@ -148,7 +139,7 @@ async def main():
         assert await pg.evaluate("localStorage.getItem('bitniv_draft1')") is None
         # ── registrar otro grupo: vuelve a la asistencia, sin marcas y con el mismo hito
         await pg.click('#otro'); await pg.wait_for_timeout(1200)
-        assert await scr() == 'ses' and await pg.evaluate('visRegs().length') == 2 and await pg.evaluate('Object.keys(S.asis).length') == 0 and await pg.evaluate('S.hito') == '3'
+        assert await scr() == 'ses' and await pg.evaluate('visRegs().length') == 3 and await pg.evaluate('Object.keys(S.asis).length') == 0 and await pg.evaluate('S.hito') == '3'
         # ── cambiar de persona: el hermano mayor ve solo a su estudiante
         await pg.click('[data-act=prev]'); await pg.wait_for_timeout(1000)
         assert await scr() == 'mentor' and await pg.locator('#noEstoy').count() == 0
@@ -157,9 +148,9 @@ async def main():
         assert await scr() == 'ses' and await pg.locator('.asisrow').count() == 1 and 'Histología' in await pg.inner_text('#lest')
         # ── sin conexión de verdad: 3 intentos, aviso con «Reintentar», indicador rojo; al volver la red, entra
         FALLAS['mentores'] = 6
-        await pg.evaluate('showWelcome()'); await pg.wait_for_timeout(800)
+        await pg.evaluate('PRE = null; showWelcome()'); await pg.wait_for_timeout(800)
         await pg.click('#start, #fresh'); await pg.wait_for_timeout(7000)
-        assert 'Sin conexión' in await pg.inner_text('#stage') and 'off' in await pg.get_attribute('#srv', 'class'), 'aviso tras 3 intentos'
+        assert 'Sin conexión' in await pg.inner_text('#stage') and 'off' in await pg.get_attribute('#srv', 'class'), ('aviso tras 3 intentos', FALLAS, await pg.inner_text('#stage'), await pg.evaluate('S.scr'))
         await shot('08_sin_conexion')
         FALLAS['mentores'] = 0
         await pg.click('#fin'); await pg.wait_for_timeout(1500)
@@ -168,6 +159,10 @@ async def main():
         await pg.fill('#qm', 'joseph'); await pg.wait_for_timeout(200)
         await pg.click('#mlist [data-m]'); await pg.wait_for_timeout(1500)
         await pg.click('[data-hito="2"]'); await pg.locator('.asisrow [data-a="No"]').first.click(); await pg.wait_for_timeout(200)
+        assert not await pg.locator('#secAct').is_visible() and await pg.locator('#tObs').is_visible(), 'nadie asistió: sin actividades, con observaciones'
+        await pg.fill('#fHi', ''); await pg.fill('#fHf', ''); await pg.wait_for_timeout(150)
+        assert 'hora' in (await pg.inner_text('#fmsg')).lower(), 'pide el horario aunque nadie asista'
+        await pg.fill('#fHi', '08:00'); await pg.fill('#fHf', '09:30'); await pg.fill('#tObs', 'No se presentó')
         await pg.click('#btnNext'); await pg.wait_for_timeout(1000)
         antes = len(DB); FALLAS['post'] = 99; FALLAS['mentores'] = 0
         await page_route_block(pg)
@@ -185,6 +180,8 @@ async def main():
         FALLAS['post'] = 0; await page_route_unblock(pg)
         await pg.click('#pendGo'); await pg.wait_for_timeout(3000)
         assert len(DB) == antes + 1 and await pg.inner_text('#pendBox') == '', 'se envió una vez y el aviso desaparece'
+        ult = list(DB.values())[-1]['items'][0]
+        assert ult['asistio'] == 'No' and ult['hi'] == '08:00' and ult['hf'] == '09:30' and ult['fecha'] and ult['obs'] == 'No se presentó', ult
         await pg.click('#pendGo') if await pg.locator('#pendGo').count() else None
         assert len(DB) == antes + 1
         assert VIAS and 'jsonp' not in VIAS, ('las consultas deben ir por fetch', VIAS)

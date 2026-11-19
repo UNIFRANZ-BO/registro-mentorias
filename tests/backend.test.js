@@ -150,5 +150,16 @@ if(SEP===';'){const f=String(rs.get(4,2));if(!/;/.test(f))fallo('RESUMEN sin «;
  if(get('mentores',{clave:'x'}).ok)fallo('mentores sin código');
  const lm2=get('lista',{clave:'NIV2026',mentor:'RAFAEL ARAMAYO',prog:'Docente Tutor'}),lm3=get('lista',{clave:'NIV2026',sede:'LPZ',fac:'Ciencias de la Salud'});
  if(!lm2.ok||lm2.registros.length!==lm3.registros.length||!lm2.registros.length)fallo('lista por mentor '+lm2.registros.length+'/'+lm3.registros.length);}
+{const base={clave:'NIV2026',sede:'LPZ',fac:'Ciencias de la Salud',hito:'2',mentor:{nombre:'Rafael Aramayo',programa:'Docente Tutor'},version:'t'};
+ const k=ctx.siar_(ctx.config_()).find(x=>x[1]==='Ana Elizabeth Ojeda Guerrero')[0], hoyS=ctx.Utilities.formatDate(new Date(),'America/La_Paz','yyyy-MM-dd');
+ const r1=ctx.guardar_(Object.assign({},base,{id:'ME-NOASI-AAAAA1',items:[{keys:[k],asistio:'No',fecha:hoyS,hi:'08:00',hf:'09:30',obs:'No se presentó'}]}));
+ const r2=ctx.guardar_(Object.assign({},base,{id:'ME-NOASI-AAAAA2',items:[{keys:[k],asistio:'No'}]}));
+ if(!r1.ok||!r2.ok)fallo('No asistió con y sin fecha '+JSON.stringify([r1,r2]));
+ const sh=ss.getSheetByName('RESPUESTAS'),C=ctx.cabResp_(),col=t=>C.indexOf(t);
+ const f1=sh.d.find(r=>r[1]==='ME-NOASI-AAAAA1'),f2=sh.d.find(r=>r[1]==='ME-NOASI-AAAAA2');
+ console.log('No asistió',JSON.stringify([f1[col('Fecha de la sesión')],f1[col('Hora de inicio')],f1[col('Hora de conclusión')],f1[col('Duración de la sesión (min)')],f1[col('Horas imputadas a esta materia')],f1[col('Observaciones y comentarios')]]));
+ if(!f1[col('Fecha de la sesión')]||f1[col('Hora de inicio')]!=='08:00'||f1[col('Duración de la sesión (min)')]!==''||f1[col('Horas imputadas a esta materia')]!==''||f1[col('Observaciones y comentarios')]!=='No se presentó')fallo('fila No asistió');
+ if(f2[col('Fecha de la sesión')]!=='')fallo('No asistió sin fecha');
+ const m1=get('mentores',{clave:'NIV2026'}),m2=get('mentores',{clave:'NIV2026'});if(JSON.stringify(m1)!==JSON.stringify(m2))fallo('caché de mentores');}
 const cab=ctx.cabResp_();if(new Set(cab).size!==cab.length)fallo('cabecera con títulos repetidos');
 console.log('\nOK · todas las comprobaciones pasaron (SEP='+SEP+')');
