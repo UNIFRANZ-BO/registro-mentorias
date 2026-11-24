@@ -1,6 +1,6 @@
 /** @OnlyCurrentDoc */  // el script solo puede tocar esta hoja, ningún otro archivo de Drive
 /**
- * BITÁCORA DE NIVELACIONES · UNIFRANZ  (v2.12)
+ * BITÁCORA DE NIVELACIONES · UNIFRANZ  (v2.13)
  * Registro de sesiones de Docentes Tutores y Hermanos Mayores. Reemplaza el Google Form
  * «Registro de Sesiones Realizadas de Mentorías». UNA SOLA BASE: el reporte del SIAR
  * («Rep. Ficha est.»), importado como una pestaña más. De ahí salen los estudiantes, sus materias
@@ -31,7 +31,7 @@
  *   (Nunca «Nueva implementación»: cambia la URL.)
  */
 
-const VERSION_APP = '2.12';
+const VERSION_APP = '2.13';
 const ZONA = 'America/La_Paz';
 const H = {             // nombres de pestañas
   CONFIG: 'CONFIG', CARRERAS: 'CARRERAS', SIN_ASIG: 'SIN ASIGNACIÓN',
@@ -101,10 +101,7 @@ function configuracionInicial() {
   const cons = consolidarSiar_();
   const r = actualizarSiar_();
   r.texto = cons + r.texto;
-  try { const c = prepararCache_(); r.texto += '\n\nApp lista: la lista de nombres quedó preparada (' + c.seg + ' s).'; }
-  catch (e) { r.texto += '\n\n⚠ No se pudo preparar la caché: ' + e; }
-  try { if (activadorCalentar_()) r.texto += ' Desde ahora se renueva sola cada hora, para que la app abra rápido.'; }
-  catch (e) { r.texto += '\n⚠ No se pudo crear la renovación automática: ' + e; }
+  r.texto += appLista_();
   crearResumen_();
   const borradas = OBSOLETAS.filter(n => ss.getSheetByName(n));
   borradas.forEach(n => ss.deleteSheet(ss.getSheetByName(n)));
@@ -358,6 +355,15 @@ function activadorCalentar_() {
   if (ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'calentarApp')) return false;
   ScriptApp.newTrigger('calentarApp').timeBased().everyHours(1).create();
   return true;
+}
+// Prepara la caché y crea la renovación horaria (si falta). Devuelve el texto para el aviso.
+function appLista_() {
+  let t = '';
+  try { const c = prepararCache_(); t += '\n\nApp lista: la lista de nombres quedó preparada (' + c.seg + ' s).'; }
+  catch (e) { t += '\n\n⚠ No se pudo preparar la caché: ' + e; }
+  try { t += activadorCalentar_() ? ' Desde ahora se renueva sola cada hora, para que la app abra rápido.' : ' Se renueva sola cada hora.'; }
+  catch (e) { t += '\n⚠ No se pudo crear la renovación automática: ' + e; }
+  return t;
 }
 function limpiarCache_() {
   const cache = CacheService.getScriptCache();
@@ -648,7 +654,7 @@ function menuActualizarSiar() {
   crearConfig_(false); crearCarreras_();
   const cons = consolidarSiar_();
   const r = actualizarSiar_();
-  r.texto = cons + r.texto;
+  r.texto = cons + r.texto + appLista_();
   ordenarPestanas_();
   bitacora_('Actualizar SIAR', r.texto);
   aviso_('SIAR actualizado', r.texto);

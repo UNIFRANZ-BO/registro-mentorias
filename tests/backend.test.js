@@ -165,6 +165,7 @@ if(SEP===';'){const f=String(rs.get(4,2));if(!/;/.test(f))fallo('RESUMEN sin «;
  const m1=get('mentores',{clave:'NIV2026'}),m2=get('mentores',{clave:'NIV2026'});if(JSON.stringify(m1)!==JSON.stringify(m2))fallo('caché de mentores');}
 {if(TRIG.length!==1)fallo('activador horario: '+TRIG.length);ctx.menuActualizarSiar();if(TRIG.length!==1)fallo('activador duplicado');
  const k=Object.keys(cache);ctx.limpiarCache_();if(Object.keys(cache).some(x=>/^(siar|mentores)_/.test(x)))fallo('limpiar caché');
- ctx.calentarApp();if(!cache['mentores_n']||!cache['siar_n'])fallo('calentarApp no llenó la caché');console.log('activador y caché ok');}
+ {const tx=[];const a=ctx.aviso_;ctx.aviso_=(x,y)=>tx.push(y);ctx.menuActualizarSiar();ctx.aviso_=a;if(!/App lista/.test(tx.join()))fallo('Actualizar SIAR sin App lista')}
+ ctx.limpiarCache_();ctx.calentarApp();if(!cache['mentores_n']||!cache['siar_n'])fallo('calentarApp no llenó la caché');console.log('activador y caché ok');}
 const cab=ctx.cabResp_();if(new Set(cab).size!==cab.length)fallo('cabecera con títulos repetidos');
 console.log('\nOK · todas las comprobaciones pasaron (SEP='+SEP+')');
