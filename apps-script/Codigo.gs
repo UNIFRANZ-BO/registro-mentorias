@@ -1,6 +1,6 @@
 /** @OnlyCurrentDoc */  // el script solo puede tocar esta hoja, ningún otro archivo de Drive
 /**
- * BITÁCORA DE NIVELACIONES · UNIFRANZ  (v2.11)
+ * BITÁCORA DE NIVELACIONES · UNIFRANZ  (v2.12)
  * Registro de sesiones de Docentes Tutores y Hermanos Mayores. Reemplaza el Google Form
  * «Registro de Sesiones Realizadas de Mentorías». UNA SOLA BASE: el reporte del SIAR
  * («Rep. Ficha est.»), importado como una pestaña más. De ahí salen los estudiantes, sus materias
@@ -31,7 +31,7 @@
  *   (Nunca «Nueva implementación»: cambia la URL.)
  */
 
-const VERSION_APP = '2.11';
+const VERSION_APP = '2.12';
 const ZONA = 'America/La_Paz';
 const H = {             // nombres de pestañas
   CONFIG: 'CONFIG', CARRERAS: 'CARRERAS', SIN_ASIG: 'SIN ASIGNACIÓN',
@@ -101,6 +101,10 @@ function configuracionInicial() {
   const cons = consolidarSiar_();
   const r = actualizarSiar_();
   r.texto = cons + r.texto;
+  try { const c = prepararCache_(); r.texto += '\n\nApp lista: la lista de nombres quedó preparada (' + c.seg + ' s).'; }
+  catch (e) { r.texto += '\n\n⚠ No se pudo preparar la caché: ' + e; }
+  try { if (activadorCalentar_()) r.texto += ' Desde ahora se renueva sola cada hora, para que la app abra rápido.'; }
+  catch (e) { r.texto += '\n⚠ No se pudo crear la renovación automática: ' + e; }
   crearResumen_();
   const borradas = OBSOLETAS.filter(n => ss.getSheetByName(n));
   borradas.forEach(n => ss.deleteSheet(ss.getSheetByName(n)));
@@ -323,9 +327,9 @@ function siar_(cfg) { return cacheLista_('siar', () => leerSiar_(cfg).lista); }
 
 // Listas que se guardan en la caché del script, en trozos (límite de 100 KB por clave). Una lista vacía no se guarda.
 const CACHES = { siar: 21600, mentores: 21600 };   // 6 horas (máximo de Google); «Actualizar SIAR» las limpia
-function cacheLista_(pref, fn) {
+function cacheLista_(pref, fn, forzar) {
   const cache = CacheService.getScriptCache();
-  try {
+  if (!forzar) try {
     const n = Number(cache.get(pref + '_n'));
     if (n) {
       const keys = Array.from({ length: n }, (_, i) => pref + '_' + i), t = cache.getAll(keys);
@@ -338,6 +342,22 @@ function cacheLista_(pref, fn) {
     if (lista.length && n <= 200) { for (let i = 0; i < n; i++) o[pref + '_' + i] = s.slice(i * T, (i + 1) * T); o[pref + '_n'] = String(n); cache.putAll(o, CACHES[pref]); }
   } catch (e) {}
   return lista;
+}
+// Lee el SIAR una sola vez y deja en la caché los registros y la lista de nombres, para que nadie espere al abrir la app.
+function prepararCache_() {
+  const cfg = config_(), t = Date.now();
+  const l = cacheLista_('siar', () => leerSiar_(cfg).lista, true);
+  cacheLista_('mentores', () => calcMentores_(cfg, l), true);
+  return { n: l.length, seg: Math.round((Date.now() - t) / 100) / 10 };
+}
+// Activador horario: renueva la caché mientras el registro esté abierto (la caché de Google vence o se descarta sola).
+function calentarApp() {
+  try { if (abierta_(config_())) prepararCache_(); } catch (e) { console.log('calentarApp: ' + e); }
+}
+function activadorCalentar_() {
+  if (ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'calentarApp')) return false;
+  ScriptApp.newTrigger('calentarApp').timeBased().everyHours(1).create();
+  return true;
 }
 function limpiarCache_() {
   const cache = CacheService.getScriptCache();
@@ -492,9 +512,9 @@ function mentores_(clave) {
   if (!claveOk_(cfg, clave)) return { ok: false, motivo: 'clave', requiere_clave: true };
   return { ok: true, abierta: true, periodo: cfg.periodo, hitos: cfg.hitos, mentores: cacheLista_('mentores', () => calcMentores_(cfg)) };
 }
-function calcMentores_(cfg) {
+function calcMentores_(cfg, lista) {
   const m = {};
-  siar_(cfg).forEach(x => {
+  (lista || siar_(cfg)).forEach(x => {
     if (!x[15]) return;
     const k = x[14] + '|' + nombreKey_(x[15]), o = m[k] = m[k] || { n: x[15], p: x[14], e: {}, c: {} }, c = x[4] + '|' + x[7];
     o.e[ciNorm_(x[2])] = true; o.c[c] = (o.c[c] || 0) + 1;

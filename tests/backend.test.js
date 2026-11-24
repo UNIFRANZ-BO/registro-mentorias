@@ -39,8 +39,10 @@ const ss={_sheets:[],_active:null,getSheetByName(n){return this._sheets.find(s=>
 const cache={};
 const ui={alert:(t,m)=>{console.log('[ALERT]',t,'|',String(m).replace(/\n/g,' / '));return 'YES'},prompt:(t,m)=>({getSelectedButton:()=> 'OK',getResponseText:()=>ctx.__answers.shift()}),ButtonSet:{OK:1,YES_NO:2,OK_CANCEL:3},Button:{YES:'YES',OK:'OK'},createMenu(){const m={addItem(){return m},addSeparator(){return m},addToUi(){}};return m}};
 const props={};
+const TRIG=[];
 const ctx={PropertiesService:{getScriptProperties:()=>({getProperty:k=>props[k]||null,setProperty:(k,v)=>props[k]=v})},
  SpreadsheetApp:{flush(){},getActive:()=>ss,getActiveSpreadsheet:()=>ss,getUi:()=>ui,newDataValidation:()=>({requireValueInList(){return this},setAllowInvalid(){return this},build(){return{}}})},
+ ScriptApp:{getProjectTriggers:()=>TRIG,newTrigger:f=>({timeBased:()=>({everyHours:()=>({create:()=>{TRIG.push({getHandlerFunction:()=>f})}})})})},
  LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){}})},CacheService:{getScriptCache:()=>({get:k=>cache[k]===undefined?null:cache[k],put:(k,v)=>cache[k]=v,remove:k=>delete cache[k],getAll:ks=>Object.fromEntries(ks.filter(k=>k in cache).map(k=>[k,cache[k]])),putAll:o=>Object.assign(cache,o),removeAll:ks=>ks.forEach(k=>delete cache[k])})},
  Session:{getActiveUser:()=>({getEmail:()=>'rafael@unifranz.edu.bo'})},Utilities:{formatDate:(d)=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},
  ContentService:{createTextOutput:t=>({t,setMimeType(){return this}}),MimeType:{JSON:1,JAVASCRIPT:2}},Logger:{log:console.log},console,__answers:[]};
@@ -161,5 +163,8 @@ if(SEP===';'){const f=String(rs.get(4,2));if(!/;/.test(f))fallo('RESUMEN sin «;
  if(!f1[col('Fecha de la sesión')]||f1[col('Hora de inicio')]!=='08:00'||f1[col('Duración de la sesión (min)')]!==''||f1[col('Horas imputadas a esta materia')]!==''||f1[col('Observaciones y comentarios')]!=='No se presentó')fallo('fila No asistió');
  if(f2[col('Fecha de la sesión')]!=='')fallo('No asistió sin fecha');
  const m1=get('mentores',{clave:'NIV2026'}),m2=get('mentores',{clave:'NIV2026'});if(JSON.stringify(m1)!==JSON.stringify(m2))fallo('caché de mentores');}
+{if(TRIG.length!==1)fallo('activador horario: '+TRIG.length);ctx.menuActualizarSiar();if(TRIG.length!==1)fallo('activador duplicado');
+ const k=Object.keys(cache);ctx.limpiarCache_();if(Object.keys(cache).some(x=>/^(siar|mentores)_/.test(x)))fallo('limpiar caché');
+ ctx.calentarApp();if(!cache['mentores_n']||!cache['siar_n'])fallo('calentarApp no llenó la caché');console.log('activador y caché ok');}
 const cab=ctx.cabResp_();if(new Set(cab).size!==cab.length)fallo('cabecera con títulos repetidos');
 console.log('\nOK · todas las comprobaciones pasaron (SEP='+SEP+')');

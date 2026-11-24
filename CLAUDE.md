@@ -169,3 +169,8 @@ node tests/backend.test.js && SEP=";" node tests/backend.test.js
 python tests/e2e_test.py 390 && python tests/e2e_test.py 1366
 python docs/tutorial/build_pdf.py
 ```
+
+## v2.12 (24-nov-2026) · solo script, enlace sigue en ?v=22
+- Causa de los 30–40 s al abrir: caché fría. BASEDEDATOS tiene ~7000 filas × 60 columnas; leerla y armar la lista tarda más que el tiempo de espera de la app (30 s), que reintenta.
+- `prepararCache_()` lee el SIAR una vez y llena las cachés `siar` y `mentores` (forzado). Se llama al final de «Actualizar SIAR» (el aviso dice cuánto tardó).
+- Activador horario `calentarApp` (lo crea «Actualizar SIAR» si no existe; pide autorizar «activadores» una vez) renueva la caché mientras el registro esté abierto.
